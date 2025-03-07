@@ -1,0 +1,203 @@
+"use client"
+
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useRouter } from "next/navigation"
+import { createEntry, updateEntry } from "@/lib/actions"
+import { Card, CardContent } from "@/components/ui/card"
+import type { Entry } from "@/lib/definitions"
+
+const formSchema = z.object({
+  fecha: z.string().min(1, { message: "La fecha es requerida" }),
+  tipo: z.string().min(1, { message: "El tipo es requerido" }),
+  accion: z.string().min(1, { message: "La acción es requerida" }),
+  que: z.string().min(1, { message: "El campo 'Qué' es requerido" }),
+  plataformaPago: z.string().min(1, { message: "La plataforma de pago es requerida" }),
+  cantidad: z.coerce.number().min(0.01, { message: "La cantidad debe ser mayor a 0" }),
+  detalle1: z.string().optional(),
+  detalle2: z.string().optional(),
+})
+
+export function FinanceForm({ entry }: { entry?: Entry }) {
+  const router = useRouter()
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: entry
+      ? {
+          fecha: entry.fecha.split("T")[0], // Format date for input
+          tipo: entry.tipo,
+          accion: entry.accion,
+          que: entry.que,
+          plataformaPago: entry.plataformaPago,
+          cantidad: entry.cantidad,
+          detalle1: entry.detalle1 || "",
+          detalle2: entry.detalle2 || "",
+        }
+      : {
+          fecha: new Date().toISOString().split("T")[0],
+          tipo: "",
+          accion: "",
+          que: "",
+          plataformaPago: "",
+          cantidad: 0,
+          detalle1: "",
+          detalle2: "",
+        },
+  })
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (entry) {
+      await updateEntry(entry.id, values)
+    } else {
+      await createEntry(values)
+    }
+    router.push("/")
+    router.refresh()
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="fecha"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Ingreso">Ingreso</SelectItem>
+                        <SelectItem value="Gasto">Gasto</SelectItem>
+                        <SelectItem value="Inversión">Inversión</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="accion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Acción</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="que"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Qué</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="plataformaPago"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plataforma de pago</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cantidad"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cantidad</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="detalle1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Detalle 1</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="detalle2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Detalle 2</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => router.back()}>
+                Cancelar
+              </Button>
+              <Button type="submit">{entry ? "Actualizar" : "Guardar"}</Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  )
+}
+
