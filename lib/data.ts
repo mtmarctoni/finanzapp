@@ -12,7 +12,7 @@ type GetEntriesOptions = {
   page?: number
 }
 
-const DATABASE_URL="postgres://neondb_owner:npg_u5EfMosCXqS0@ep-wandering-rice-a27j2k6f-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+const DATABASE_URL = process.env.DATABASE_URL
 
 export async function getFinanceEntries(options: GetEntriesOptions = {}) {
   const { search = "", tipo = "", from = "", to = "", page = 1 } = options

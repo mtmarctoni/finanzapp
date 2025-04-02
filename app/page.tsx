@@ -34,7 +34,7 @@ export default async function Home({
             </Button>
           </Link>
           <Link href="/api/export" target="_blank">
-            <Button variant="outline">Exportar a Excel</Button>
+            <Button className="bg-background"  variant="outline">Exportar a Excel</Button>
           </Link>
         </div>
       </div>

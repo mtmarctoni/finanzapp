@@ -65,3 +65,19 @@
   --input: #2D2D2D;
   --ring: #1FB35E;
 }
+
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@utility text-balance {
+    text-wrap: balance;
+}
+
+* {
+  @apply border-border;
+}
+body {
+  @apply bg-background text-foreground;
+}
