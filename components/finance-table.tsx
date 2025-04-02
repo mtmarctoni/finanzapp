@@ -7,8 +7,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { deleteEntry } from "@/lib/actions"
+import { useEffect, useState } from "react"
+import { Entry } from "@/lib/definitions"
 
-export default async function FinanceTable({
+interface Entries {
+  data: Entry[],
+  totalItems: number,
+  totalPages: number,
+  currentPage: number,
+}
+
+export default function FinanceTable({
   searchParams,
 }: {
   searchParams?: {
@@ -18,15 +27,22 @@ export default async function FinanceTable({
     to?: string
     page?: string
   }
-}) {
+  }) {
+  const [entries, setEntries] = useState<Entries>({ data: [], totalItems: 0, totalPages: 0, currentPage: 1 })
+  
   const search = searchParams?.search || ""
   const tipo = searchParams?.tipo || ""
   const from = searchParams?.from || ""
   const to = searchParams?.to || ""
   const currentPage = Number(searchParams?.page) || 1
 
-  const entries = await getFinanceEntries({ search, tipo, from, to, page: currentPage })
-
+  useEffect(() => {
+    const getEntries = async () => {
+      setEntries(await getFinanceEntries({ search, tipo, from, to, page: currentPage }) as Entries)
+    }
+    getEntries()
+  }, [searchParams])
+  
   return (
     <div className="rounded-md border">
       <Table>

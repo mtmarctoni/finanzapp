@@ -7,17 +7,21 @@ import { TableSkeleton } from "@/components/table-skeleton"
 import Dashboard from "@/components/dashboard"
 import { SearchFilter } from "@/components/search-filter"
 
-export default function Home({
-  searchParams,
+export default async function Home({
+  params,
 }: {
-  searchParams?: {
+  params?: {
     search?: string
     tipo?: string
     from?: string
     to?: string
     page?: string
   }
-}) {
+  }) {
+  
+  const { search, tipo, from, to, page } = await params || {}
+  const searchParams = { search, tipo, from, to, page }
+  
   return (
     <main className="container mx-auto py-10 space-y-6">
       <div className="flex justify-between items-center">

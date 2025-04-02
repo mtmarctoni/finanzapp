@@ -1,4 +1,5 @@
-import { getDbClient } from "./db"
+require('dotenv').config();
+import { createPool, sql } from "@vercel/postgres"
 import type { Entry } from "./definitions"
 
 const ITEMS_PER_PAGE = 10
@@ -11,13 +12,14 @@ type GetEntriesOptions = {
   page?: number
 }
 
+const DATABASE_URL="postgres://neondb_owner:npg_u5EfMosCXqS0@ep-wandering-rice-a27j2k6f-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+
 export async function getFinanceEntries(options: GetEntriesOptions = {}) {
   const { search = "", tipo = "", from = "", to = "", page = 1 } = options
   const offset = (page - 1) * ITEMS_PER_PAGE
 
   try {
-    const client = getDbClient()
-    await client.connect()
+    const pool = createPool({ connectionString: DATABASE_URL })
 
     try {
       // Build the WHERE clause based on filters
@@ -58,12 +60,12 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
       const whereStatement = whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : ""
 
       // Get total count for pagination
-      const countQuery = `
-        SELECT COUNT(*) FROM finance_entries
-        ${whereStatement}
-      `
+      const countQuery = `SELECT COUNT(*) FROM finance_entries ${whereStatement}`
+      // console.log('COUNT QUERY: ', countQuery);
+      
 
-      const countResult = await client.query(countQuery, params)
+      // const countResult = await pool.sql`${countQuery}`
+      const countResult = await pool.sql`SELECT COUNT(*) FROM finance_entries`
       const totalItems = Number.parseInt(countResult.rows[0].count)
       const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
@@ -74,8 +76,11 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
         ORDER BY fecha DESC
         LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
       `
+      // console.log('DATA QUERY: ', dataQuery);
+      
 
-      const dataResult = await client.query(dataQuery, params)
+      // const dataResult = await pool.sql`${dataQuery}`
+      const dataResult = await pool.sql`SELECT * FROM finance_entries`
 
       return {
         data: dataResult.rows as Entry[],
@@ -84,7 +89,7 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
         currentPage: page,
       }
     } finally {
-      await client.end()
+      await pool.end()
     }
   } catch (error) {
     console.error("Database Error:", error)
@@ -99,17 +104,17 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
 
 export async function getEntryById(id: string): Promise<Entry | null> {
   try {
-    const client = getDbClient()
-    await client.connect()
+    const pool = createPool({ connectionString: DATABASE_URL })
+    // await client.connect()
 
     try {
-      const { rows } = await client.sql`
+      const { rows } = await pool.sql`
         SELECT * FROM finance_entries 
         WHERE id = ${id}
       `
       return rows.length > 0 ? (rows[0] as Entry) : null
     } finally {
-      await client.end()
+      await pool.end()
     }
   } catch (error) {
     console.error("Database Error:", error)
@@ -119,8 +124,8 @@ export async function getEntryById(id: string): Promise<Entry | null> {
 
 export async function getSummaryStats() {
   try {
-    const client = getDbClient()
-    await client.connect()
+    const client = createPool({ connectionString: DATABASE_URL })
+    // await client.connect()
 
     try {
       // Get income stats
@@ -168,11 +173,6 @@ export async function getSummaryStats() {
       totalIncome: 0,
       incomeCount: 0,
       totalExpense: 0,
-      expenseCount: 0,
-      totalInvestment: 0,
-      investmentCount: 0,
-      balance: 0,
     }
   }
 }
-

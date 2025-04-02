@@ -89,6 +89,7 @@ export async function GET(request: Request) {
     // Set headers for file download
     return new Response(buffer, {
       headers: {
+        'Access-Control-Allow-Origin': '*',
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": 'attachment; filename="finanzas.xlsx"',
       },
