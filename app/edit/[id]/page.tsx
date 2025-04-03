@@ -1,9 +1,11 @@
 import { FinanceForm } from "@/components/finance-form"
-import { getEntryById } from "@/lib/data"
+import { getEntryById } from "@/lib/server-data" // Import from server-data instead
 import { notFound } from "next/navigation"
 
 export default async function EditEntryPage({ params }: { params: { id: string } }) {
-  const entry = await getEntryById(params.id)
+  // Ensure params is fully resolved before accessing properties
+  const {id} = await params
+  const entry = await getEntryById(id)
 
   if (!entry) {
     notFound()

@@ -1,5 +1,6 @@
 import { createClient } from "@vercel/postgres"
 import * as XLSX from "xlsx"
+import { formatDate } from "@/lib/utils"
 
 export async function GET(request: Request) {
   try {
@@ -33,13 +34,15 @@ export async function GET(request: Request) {
     }
 
     if (from) {
-      whereClause.push(`fecha >= $${paramIndex}`)
+      // Use local time without Z to prevent timezone offset issues
+      whereClause.push(`fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`)
       params.push(from)
       paramIndex++
     }
 
     if (to) {
-      whereClause.push(`fecha <= $${paramIndex}`)
+      // Use local time without Z to prevent timezone offset issues
+      whereClause.push(`fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`)
       params.push(to)
       paramIndex++
     }
@@ -66,7 +69,7 @@ export async function GET(request: Request) {
 
     // Format data for Excel
     const data = entries.map((entry) => ({
-      Fecha: new Date(entry.fecha).toLocaleDateString("es-ES"),
+      Fecha: formatDate(entry.fecha, true), // Include time information
       Tipo: entry.tipo,
       Acción: entry.accion,
       Qué: entry.que,

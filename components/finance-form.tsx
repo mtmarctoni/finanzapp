@@ -14,6 +14,8 @@ import type { Entry } from "@/lib/definitions"
 
 const formSchema = z.object({
   fecha: z.string().min(1, { message: "La fecha es requerida" }),
+  hora: z.coerce.number().min(0).max(23, { message: "La hora debe estar entre 0 y 23" }),
+  minuto: z.coerce.number().min(0).max(59, { message: "El minuto debe estar entre 0 y 59" }),
   tipo: z.string().min(1, { message: "El tipo es requerido" }),
   accion: z.string().min(1, { message: "La acción es requerida" }),
   que: z.string().min(1, { message: "El campo 'Qué' es requerido" }),
@@ -29,7 +31,18 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     resolver: zodResolver(formSchema),
     defaultValues: entry
       ? {
-          fecha: entry.fecha.split("T")[0], // Format date for input
+          // Safely format the date for the input field
+          fecha: entry.fecha 
+            ? (typeof entry.fecha === 'string' 
+                ? new Date(entry.fecha).toISOString().split('T')[0] 
+                : new Date().toISOString().split('T')[0])
+            : new Date().toISOString().split('T')[0], // Fallback
+          hora: entry.fecha
+            ? new Date(entry.fecha).getHours()
+            : new Date().getHours(),
+          minuto: entry.fecha
+            ? new Date(entry.fecha).getMinutes()
+            : new Date().getMinutes(),
           tipo: entry.tipo,
           accion: entry.accion,
           que: entry.que,
@@ -40,6 +53,8 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
         }
       : {
           fecha: new Date().toISOString().split("T")[0],
+          hora: new Date().getHours(),
+          minuto: new Date().getMinutes(),
           tipo: "",
           accion: "",
           que: "",
@@ -51,10 +66,21 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    // Combine date and time into a single ISO string
+    const dateWithTime = new Date(values.fecha);
+    dateWithTime.setHours(values.hora, values.minuto);
+    
+    // Create a new object without hora and minuto properties
+    const { hora, minuto, ...otherValues } = values;
+    const formattedValues = {
+      ...otherValues,
+      fecha: dateWithTime.toISOString()
+    };
+    
     if (entry) {
-      await updateEntry(entry.id, values)
+      await updateEntry(entry.id, formattedValues)
     } else {
-      await createEntry(values)
+      await createEntry(formattedValues)
     }
     router.push("/")
     router.refresh()
@@ -79,6 +105,36 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                   </FormItem>
                 )}
               />
+              
+              <div className="flex space-x-2">
+                <FormField
+                  control={form.control}
+                  name="hora"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Hora</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" max="23" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="minuto"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Minuto</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" max="59" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}

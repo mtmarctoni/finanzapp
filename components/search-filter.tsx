@@ -16,21 +16,37 @@ export function SearchFilter() {
   const searchParams = useSearchParams()
 
   const [search, setSearch] = useState(searchParams.get("search") || "")
-  const [tipo, setTipo] = useState(searchParams.get("tipo") || "")
+  const [tipo, setTipo] = useState(searchParams.get("tipo") || "todos")
   const [fromDate, setFromDate] = useState<Date | undefined>(
     searchParams.get("from") ? new Date(searchParams.get("from") as string) : undefined,
   )
   const [toDate, setToDate] = useState<Date | undefined>(
     searchParams.get("to") ? new Date(searchParams.get("to") as string) : undefined,
   )
+  
+  console.log("Current filter values:", { search, tipo, fromDate, toDate })
 
   const handleSearch = () => {
     const params = new URLSearchParams()
     if (search) params.set("search", search)
-    if (tipo) params.set("tipo", tipo)
-    if (fromDate) params.set("from", fromDate.toISOString().split("T")[0])
-    if (toDate) params.set("to", toDate.toISOString().split("T")[0])
+    // Only set tipo if it's not 'todos'
+    if (tipo && tipo !== 'todos') params.set("tipo", tipo)
+    if (fromDate) {
+      // Create a date string in YYYY-MM-DD format without timezone conversion
+      const year = fromDate.getFullYear();
+      const month = String(fromDate.getMonth() + 1).padStart(2, '0');
+      const day = String(fromDate.getDate()).padStart(2, '0');
+      params.set("from", `${year}-${month}-${day}`);
+    }
+    if (toDate) {
+      // Create a date string in YYYY-MM-DD format without timezone conversion
+      const year = toDate.getFullYear();
+      const month = String(toDate.getMonth() + 1).padStart(2, '0');
+      const day = String(toDate.getDate()).padStart(2, '0');
+      params.set("to", `${year}-${month}-${day}`);
+    }
 
+    console.log("Applying filters with params:", Object.fromEntries(params.entries()))
     router.push(`/?${params.toString()}`)
   }
 
@@ -51,7 +67,7 @@ export function SearchFilter() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
-        <Select value={tipo} onValueChange={setTipo}>
+        <Select value={tipo || 'todos'} onValueChange={setTipo}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Todos los tipos" />
           </SelectTrigger>

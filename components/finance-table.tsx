@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { deleteEntry } from "@/lib/actions"
+import { useTransition } from "react"
 import { useEffect, useState } from "react"
 import { Entry } from "@/lib/definitions"
 
@@ -28,6 +29,8 @@ export default function FinanceTable({
     page?: string
   }
   }) {
+  // Add isPending state for optimistic UI updates
+  const [isPending, startTransition] = useTransition()
   const [entries, setEntries] = useState<Entries>({ data: [], totalItems: 0, totalPages: 0, currentPage: 1 })
   
   const search = searchParams?.search || ""
@@ -35,13 +38,18 @@ export default function FinanceTable({
   const from = searchParams?.from || ""
   const to = searchParams?.to || ""
   const currentPage = Number(searchParams?.page) || 1
+  
+  console.log('FinanceTable received params:', { search, tipo, from, to, currentPage })
 
   useEffect(() => {
     const getEntries = async () => {
-      setEntries(await getFinanceEntries({ search, tipo, from, to, page: currentPage }) as Entries)
+      console.log('Fetching entries with params:', { search, tipo, from, to, page: currentPage })
+      const result = await getFinanceEntries({ search, tipo, from, to, page: currentPage }) as Entries
+      console.log('Received entries:', result)
+      setEntries(result)
     }
     getEntries()
-  }, [searchParams])
+  }, [search, tipo, from, to, currentPage])
   
   return (
     <div className="rounded-md border">
@@ -69,7 +77,8 @@ export default function FinanceTable({
           ) : (
             entries.data.map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell>{formatDate(entry.fecha)}</TableCell>
+                {/* true = include time */}
+                <TableCell>{formatDate(entry.fecha, true)}</TableCell>
                 <TableCell>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -96,9 +105,26 @@ export default function FinanceTable({
                         <Edit className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <form action={deleteEntry}>
+                    <form action={(formData) => {
+                      // Optimistic UI update - remove the entry from the local state immediately
+                      startTransition(async () => {
+                        // Get the current entries
+                        const currentEntries = {...entries};
+                        // Filter out the deleted entry
+                        const updatedData = currentEntries.data.filter(item => item.id !== entry.id);
+                        // Update the state with the filtered entries
+                        setEntries({
+                          ...currentEntries,
+                          data: updatedData,
+                          totalItems: currentEntries.totalItems - 1
+                        });
+                        
+                        // Then perform the actual deletion
+                        await deleteEntry(formData);
+                      });
+                    }}>
                       <input type="hidden" name="id" value={entry.id} />
-                      <Button size="icon" variant="ghost" type="submit">
+                      <Button size="icon" variant="ghost" type="submit" disabled={isPending}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </form>
@@ -117,7 +143,11 @@ export default function FinanceTable({
             size="sm"
             disabled={currentPage <= 1}
             onClick={() => {
-              const params = new URLSearchParams(searchParams)
+              const params = new URLSearchParams()
+              if (search) params.set("search", search)
+              if (tipo) params.set("tipo", tipo)
+              if (from) params.set("from", from)
+              if (to) params.set("to", to)
               params.set("page", String(currentPage - 1))
               window.location.href = `/?${params.toString()}`
             }}
@@ -132,7 +162,11 @@ export default function FinanceTable({
             size="sm"
             disabled={currentPage >= entries.totalPages}
             onClick={() => {
-              const params = new URLSearchParams(searchParams)
+              const params = new URLSearchParams()
+              if (search) params.set("search", search)
+              if (tipo) params.set("tipo", tipo)
+              if (from) params.set("from", from)
+              if (to) params.set("to", to)
               params.set("page", String(currentPage + 1))
               window.location.href = `/?${params.toString()}`
             }}

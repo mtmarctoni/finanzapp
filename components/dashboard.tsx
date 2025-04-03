@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getSummaryStats } from "@/lib/data"
+import { getSummaryStats } from "@/lib/server-data" // Import from server-data instead
 import { formatCurrency } from "@/lib/utils"
 import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon } from "lucide-react"
 

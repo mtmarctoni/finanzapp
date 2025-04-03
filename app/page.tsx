@@ -8,9 +8,9 @@ import Dashboard from "@/components/dashboard"
 import { SearchFilter } from "@/components/search-filter"
 
 export default async function Home({
-  params,
+  searchParams,
 }: {
-  params?: {
+  searchParams?: {
     search?: string
     tipo?: string
     from?: string
@@ -19,8 +19,9 @@ export default async function Home({
   }
   }) {
   
-  const { search, tipo, from, to, page } = await params || {}
-  const searchParams = { search, tipo, from, to, page }
+  const { search, tipo, from, to, page } = await searchParams || {}
+  console.log('Page received searchParams:', { search, tipo, from, to, page })
+  const filterParams = { search, tipo, from, to, page }
   
   return (
     <main className="container mx-auto py-10 space-y-6">
@@ -48,7 +49,7 @@ export default async function Home({
       </div>
 
       <Suspense fallback={<TableSkeleton />}>
-        <FinanceTable searchParams={searchParams} />
+        <FinanceTable searchParams={filterParams} />
       </Suspense>
     </main>
   )

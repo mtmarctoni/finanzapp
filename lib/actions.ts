@@ -24,7 +24,7 @@ export async function createEntry(formData: {
     try {
       await client.sql`
         INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2)
-        VALUES (${id}, ${fecha}, ${tipo}, ${accion}, ${que}, ${plataformaPago}, ${cantidad}, ${detalle1 || null}, ${detalle2 || null})
+        VALUES (${id}, ${fecha}::timestamptz, ${tipo}, ${accion}, ${que}, ${plataformaPago}, ${cantidad}, ${detalle1 || null}, ${detalle2 || null})
       `
     } finally {
       await client.end()
@@ -59,7 +59,7 @@ export async function updateEntry(
     try {
       await client.sql`
         UPDATE finance_entries
-        SET fecha = ${fecha},
+        SET fecha = ${fecha}::timestamptz,
             tipo = ${tipo},
             accion = ${accion},
             que = ${que},
