@@ -7,6 +7,7 @@ export type GetEntriesOptions = {
   from?: string
   to?: string
   page?: number
+  itemsPerPage?: number
 }
 
 /**

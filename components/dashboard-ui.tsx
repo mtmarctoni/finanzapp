@@ -1,9 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getSummaryStats } from "@/lib/server-data"
 import { formatCurrency } from "@/lib/utils"
-import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, TrendingDownIcon, BarChart2Icon, PercentIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon } from "lucide-react"
 import MonthlyTrendsChart from "@/components/monthly-trends-chart"
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -13,6 +12,7 @@ interface MonthlyTrend {
   month: string
   income: number
   expenses: number
+  investments: number
 }
 
 interface Category {
@@ -27,8 +27,8 @@ interface Investment {
 
 interface ExpenseBreakdown {
   total: number
-  categories: Category[]
   averageMonthly: number
+  categories: Category[]
 }
 
 interface DashboardStats {
@@ -39,34 +39,17 @@ interface DashboardStats {
   totalInvestment: number
   investmentCount: number
   balance: number
+  savingsRate: number
   monthlyTrends: MonthlyTrend[]
   topCategories: Category[]
-  investmentPerformance: Investment[]
-  savingsRate: number
   expenseBreakdown: ExpenseBreakdown
+  investmentPerformance: Investment[]
 }
 
-export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [selectedMonth, setSelectedMonth] = useState('')
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch(`/api/summary?month=${selectedMonth}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch summary stats')
-        }
-        const data = await response.json()
-        setStats(data)
-      } catch (error) {
-        console.error('Error fetching stats:', error)
-      }
-    }
-    fetchStats()
-  }, [selectedMonth])
-
-  if (!stats) return <div>Loading...</div>
+export default function DashboardUI({ stats }: { stats: DashboardStats }) {
+  const currentDate = new Date()
+  const currentMonth = format(currentDate, 'yyyy-MM-01')
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
 
   return (
     <div className="space-y-6">
@@ -79,7 +62,7 @@ export default function Dashboard() {
           onChange={(e) => setSelectedMonth(e.target.value)}
         >
           {Array.from({ length: 12 }, (_, i) => {
-            const date = new Date()
+            const date = new Date(currentDate)
             date.setMonth(date.getMonth() - i)
             const month = format(date, 'yyyy-MM-01')
             const monthName = format(date, 'MMMM yyyy', { locale: es })
@@ -229,7 +212,7 @@ export default function Dashboard() {
               <div className="w-full bg-gray-200 rounded-full h-2.5">
                 <div 
                   className="bg-green-500 h-2.5 rounded-full transition-all duration-300"
-                  style={stats.savingsRate > 0 ? { width: `${stats.savingsRate}%` } : { width: '0%' }}
+                  style={{ width: `${stats.savingsRate}%` }}
                 />
               </div>
             </div>

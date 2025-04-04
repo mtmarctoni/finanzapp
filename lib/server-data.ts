@@ -5,18 +5,25 @@ import type { Entry } from './definitions';
  * Server-side function to get summary statistics
  * This is used by server components
  */
-export async function getSummaryStats() {
+export async function getSummaryStats(month?: string) {
   try {
     const pool = createPool();
 
     try {
+      // Build WHERE clause for month filtering
+      let whereClause = "";
+      if (month) {
+        whereClause = `WHERE date_trunc('month', fecha) = date_trunc('month', '${month}'::date)`;
+      }
+
       // Get income stats
       const incomeResult = await pool.query(`
         SELECT 
           COALESCE(SUM(cantidad), 0) as total,
           COUNT(*) as count
         FROM finance_entries 
-        WHERE tipo = 'Ingreso'
+        ${whereClause}
+        AND accion = 'Ingreso'
       `);
 
       // Get expense stats
@@ -25,7 +32,8 @@ export async function getSummaryStats() {
           COALESCE(SUM(cantidad), 0) as total,
           COUNT(*) as count
         FROM finance_entries 
-        WHERE tipo = 'Gasto'
+        ${whereClause}
+        AND accion = 'Gasto'
       `);
 
       // Get investment stats
@@ -34,17 +42,88 @@ export async function getSummaryStats() {
           COALESCE(SUM(cantidad), 0) as total,
           COUNT(*) as count
         FROM finance_entries 
-        WHERE tipo = 'Inversión'
+        ${whereClause}
+        AND accion = 'Inversión'
       `);
 
+      // Get monthly trends (last 6 months)
+      const trendsResult = await pool.query(`
+        SELECT 
+          date_trunc('month', fecha) as month,
+          SUM(CASE WHEN accion = 'Ingreso' THEN cantidad ELSE 0 END) as income,
+          SUM(CASE WHEN accion = 'Gasto' THEN cantidad ELSE 0 END) as expenses,
+          SUM(CASE WHEN accion = 'Inversión' THEN cantidad ELSE 0 END) as investments
+        FROM finance_entries
+        WHERE fecha >= NOW() - INTERVAL '6 months'
+        GROUP BY date_trunc('month', fecha)
+        ORDER BY month DESC
+        LIMIT 6
+      `);
+
+      const monthlyTrends = trendsResult.rows.map(row => ({
+        month: row.month.toISOString().split('T')[0],
+        income: Number(row.income),
+        expenses: Number(row.expenses),
+        investments: Number(row.investments)
+      }));
+
+      // Get top categories
+      const topCategories = await pool.query(`
+        SELECT 
+          que as category,
+          SUM(cantidad) as total
+        FROM finance_entries
+        ${whereClause}
+        AND accion = 'Gasto'
+        GROUP BY que
+        ORDER BY total DESC
+        LIMIT 5
+      `);
+
+      // Get investment performance
+      const investmentPerformance = await pool.query(`
+        SELECT 
+          que as investment,
+          SUM(cantidad) as total
+        FROM finance_entries
+        ${whereClause}
+        AND accion = 'Inversión'
+        GROUP BY que
+        ORDER BY total DESC
+        LIMIT 5
+      `);
+
+      // Calculate savings rate
+      const totalIncome = Number(incomeResult.rows[0].total);
+      const totalExpenses = Number(expenseResult.rows[0].total);
+      const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+
       return {
-        totalIncome: Number(incomeResult.rows[0].total) || 0,
-        incomeCount: Number(incomeResult.rows[0].count) || 0,
-        totalExpense: Number(expenseResult.rows[0].total) || 0,
-        expenseCount: Number(expenseResult.rows[0].count) || 0,
-        totalInvestment: Number(investmentResult.rows[0].total) || 0,
-        investmentCount: Number(investmentResult.rows[0].count) || 0,
-        balance: Number(incomeResult.rows[0].total) - Number(expenseResult.rows[0].total) || 0,
+        totalIncome,
+        incomeCount: Number(incomeResult.rows[0].count),
+        totalExpense: totalExpenses,
+        expenseCount: Number(expenseResult.rows[0].count),
+        totalInvestment: Number(investmentResult.rows[0].total),
+        investmentCount: Number(investmentResult.rows[0].count),
+        balance: totalIncome - totalExpenses,
+        monthlyTrends,
+        topCategories: topCategories.rows.map((row: any) => ({
+          category: row.category,
+          total: Number(row.total)
+        })),
+        investmentPerformance: investmentPerformance.rows.map((row: any) => ({
+          investment: row.investment,
+          total: Number(row.total)
+        })),
+        savingsRate: savingsRate,
+        expenseBreakdown: {
+          total: totalExpenses,
+          categories: topCategories.rows.map((row: any) => ({
+            category: row.category,
+            total: Number(row.total)
+          })),
+          averageMonthly: totalExpenses / 12
+        }
       };
     } finally {
       await pool.end();
@@ -58,7 +137,16 @@ export async function getSummaryStats() {
       expenseCount: 0,
       totalInvestment: 0,
       investmentCount: 0,
-      balance: 0
+      balance: 0,
+      monthlyTrends: [],
+      topCategories: [],
+      investmentPerformance: [],
+      savingsRate: 0,
+      expenseBreakdown: {
+        total: 0,
+        categories: [],
+        averageMonthly: 0
+      }
     };
   }
 }
@@ -75,15 +163,14 @@ export async function getEntryById(id: string): Promise<Entry | null> {
         SELECT 
           id, 
           fecha, 
-          tipo, 
           accion, 
           que, 
           plataforma_pago as "plataformaPago", 
           cantidad, 
           detalle1, 
           detalle2,
-          created_at as "createdAt",
-          updated_at as "updatedAt"
+          created_at,
+          updated_at
         FROM finance_entries
         WHERE id = $1
       `, [id]);

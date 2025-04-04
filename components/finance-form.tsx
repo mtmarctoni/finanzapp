@@ -46,7 +46,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
           tipo: entry.tipo,
           accion: entry.accion,
           que: entry.que,
-          plataformaPago: entry.plataformaPago,
+          plataformaPago: entry.plataforma_pago,
           cantidad: entry.cantidad,
           detalle1: entry.detalle1 || "",
           detalle2: entry.detalle2 || "",
@@ -76,6 +76,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
       ...otherValues,
       fecha: dateWithTime.toISOString()
     };
+    console.log('FECHA:', formattedValues.fecha)
     
     if (entry) {
       await updateEntry(entry.id, formattedValues)
@@ -138,10 +139,10 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
 
               <FormField
                 control={form.control}
-                name="tipo"
+                name="accion"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo</FormLabel>
+                    <FormLabel>Acción</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -161,10 +162,10 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
 
               <FormField
                 control={form.control}
-                name="accion"
+                name="tipo"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Acción</FormLabel>
+                    <FormLabel>Tipo</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>

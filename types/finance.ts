@@ -7,12 +7,12 @@ export type Entry = {
   tipo: string
   accion: string
   que: string
-  plataformaPago: string
+  plataforma_pago: string
   cantidad: number
   detalle1: string | null
   detalle2: string | null
-  createdAt: string
-  updatedAt: string
+  created_at: string
+  updated_at: string
 }
 
 /**

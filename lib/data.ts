@@ -2,22 +2,24 @@
 
 import type { Entry, GetEntriesOptions } from "./definitions"
 
-const ITEMS_PER_PAGE = 10
+// Number of items to display per page
+const ITEMS_PER_PAGE = 50
 
 /**
  * Fetches finance entries from the API with optional filtering and pagination
  */
 export async function getFinanceEntries(options: GetEntriesOptions = {}) {
-  const { search = "", tipo = "", from = "", to = "", page = 1 } = options
+  const { search = "", accion = "todos", from = "", to = "", page = 1 } = options
   
   try {
     // Build query parameters for API request
     const params = new URLSearchParams()
     if (search) params.set('search', search)
-    if (tipo) params.set('tipo', tipo)
+    if (accion && accion !== 'todos') params.set('accion', accion)
     if (from) params.set('from', from)
     if (to) params.set('to', to)
     params.set('page', page.toString())
+    params.set('itemsPerPage', ITEMS_PER_PAGE.toString())
     
     // Call API route instead of connecting directly to database
     // Use absolute URL to avoid parsing errors

@@ -16,7 +16,7 @@ export function SearchFilter() {
   const searchParams = useSearchParams()
 
   const [search, setSearch] = useState(searchParams.get("search") || "")
-  const [tipo, setTipo] = useState(searchParams.get("tipo") || "todos")
+  const [accion, setAccion] = useState(searchParams.get("accion") || "todos")
   const [fromDate, setFromDate] = useState<Date | undefined>(
     searchParams.get("from") ? new Date(searchParams.get("from") as string) : undefined,
   )
@@ -24,22 +24,19 @@ export function SearchFilter() {
     searchParams.get("to") ? new Date(searchParams.get("to") as string) : undefined,
   )
   
-  console.log("Current filter values:", { search, tipo, fromDate, toDate })
+  console.log("Current filter values:", { search, accion, fromDate, toDate })
 
   const handleSearch = () => {
     const params = new URLSearchParams()
     if (search) params.set("search", search)
-    // Only set tipo if it's not 'todos'
-    if (tipo && tipo !== 'todos') params.set("tipo", tipo)
+    if (accion && accion !== 'todos') params.set("accion", accion)
     if (fromDate) {
-      // Create a date string in YYYY-MM-DD format without timezone conversion
       const year = fromDate.getFullYear();
       const month = String(fromDate.getMonth() + 1).padStart(2, '0');
       const day = String(fromDate.getDate()).padStart(2, '0');
       params.set("from", `${year}-${month}-${day}`);
     }
     if (toDate) {
-      // Create a date string in YYYY-MM-DD format without timezone conversion
       const year = toDate.getFullYear();
       const month = String(toDate.getMonth() + 1).padStart(2, '0');
       const day = String(toDate.getDate()).padStart(2, '0');
@@ -52,7 +49,7 @@ export function SearchFilter() {
 
   const handleReset = () => {
     setSearch("")
-    setTipo("")
+    setAccion("")
     setFromDate(undefined)
     setToDate(undefined)
     router.push("/")
@@ -67,12 +64,12 @@ export function SearchFilter() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
-        <Select value={tipo || 'todos'} onValueChange={setTipo}>
+        <Select value={accion || 'todos'} onValueChange={setAccion}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Todos los tipos" />
+            <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos los tipos</SelectItem>
+            <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="Ingreso">Ingreso</SelectItem>
             <SelectItem value="Gasto">Gasto</SelectItem>
             <SelectItem value="Inversión">Inversión</SelectItem>
@@ -117,4 +114,3 @@ export function SearchFilter() {
     </div>
   )
 }
-

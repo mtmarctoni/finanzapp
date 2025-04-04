@@ -12,16 +12,16 @@ export default async function Home({
 }: {
   searchParams?: {
     search?: string
-    tipo?: string
+    accion?: string
     from?: string
     to?: string
     page?: string
   }
-  }) {
+}) {
   
-  const { search, tipo, from, to, page } = await searchParams || {}
-  console.log('Page received searchParams:', { search, tipo, from, to, page })
-  const filterParams = { search, tipo, from, to, page }
+  const { search, accion, from, to, page } = await searchParams || {}
+  console.log('Page received searchParams:', { search, accion, from, to, page })
+  const filterParams = { search, accion, from, to, page }
   
   return (
     <main className="container mx-auto py-10 space-y-6">
@@ -54,4 +54,3 @@ export default async function Home({
     </main>
   )
 }
-

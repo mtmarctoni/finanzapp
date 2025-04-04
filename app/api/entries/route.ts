@@ -1,16 +1,17 @@
 import { createPool } from '@vercel/postgres';
 import { NextRequest, NextResponse } from 'next/server';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE_DEFAULT = 10;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search') || '';
-  const tipo = searchParams.get('tipo') || '';
+  const accion = searchParams.get('accion') || '';
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
   const page = parseInt(searchParams.get('page') || '1');
-  const offset = (page - 1) * ITEMS_PER_PAGE;
+  const itemsPerPage = parseInt(searchParams.get('itemsPerPage') || ITEMS_PER_PAGE_DEFAULT.toString());
+  const offset = (page - 1) * itemsPerPage;
 
   try {
     const pool = createPool();
@@ -30,9 +31,11 @@ export async function GET(request: NextRequest) {
         )`);
       }
 
-      if (tipo) {
-        whereClause.push(`tipo = '${tipo}'`);
+      if (accion && accion !== 'todos') {
+        whereClause.push(`accion = '${accion}'`);
       }
+      console.log('WHERE CLAUS: ',whereClause)
+      
 
       if (from) {
         // Use local time without Z to prevent timezone offset issues
@@ -44,7 +47,7 @@ export async function GET(request: NextRequest) {
         whereClause.push(`fecha <= '${to}T23:59:59.999'::timestamptz`);
       }
       
-      console.log('API filters:', { search, tipo, from, to, whereClause });
+      console.log('API filters:', { search, accion, from, to, whereClause });
 
       const whereStatement = whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : "";
 
@@ -53,14 +56,14 @@ export async function GET(request: NextRequest) {
       const countResult = await pool.query(countQuery);
       
       const totalItems = Number.parseInt(countResult.rows[0].count);
-      const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+      const totalPages = Math.ceil(totalItems / itemsPerPage);
 
       // Get paginated data
       const dataQuery = `
         SELECT * FROM finance_entries 
         ${whereStatement}
         ORDER BY fecha DESC 
-        LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+        LIMIT ${itemsPerPage} OFFSET ${offset}
       `;
       const dataResult = await pool.query(dataQuery);
 
