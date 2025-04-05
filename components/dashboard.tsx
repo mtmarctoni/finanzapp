@@ -1,9 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getSummaryStats } from "@/lib/server-data"
 import { formatCurrency } from "@/lib/utils"
-import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, TrendingDownIcon, BarChart2Icon, PercentIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon } from "lucide-react"
 import MonthlyTrendsChart from "@/components/monthly-trends-chart"
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -13,6 +12,7 @@ interface MonthlyTrend {
   month: string
   income: number
   expenses: number
+  investments: number
 }
 
 interface Category {
@@ -48,7 +48,10 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const today = new Date()
+    return format(today, 'yyyy-MM-01')
+  })
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -66,7 +69,9 @@ export default function Dashboard() {
     fetchStats()
   }, [selectedMonth])
 
-  if (!stats) return <div>Loading...</div>
+  if (!stats) return <div className="flex items-center justify-center min-h-[200px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
 
   return (
     <div className="space-y-6">
@@ -127,7 +132,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts and Detailed Stats */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="flex flex-col gap-4 md:flex-col-2">
         {/* Monthly Trends Chart */}
         <Card>
           <CardHeader>

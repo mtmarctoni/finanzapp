@@ -25,7 +25,7 @@ export default async function Home({
   
   return (
     <main className="container mx-auto py-10 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center">
         <h1 className="text-3xl font-bold">Finanzas Personales</h1>
         <div className="flex gap-2">
           <Link href="/new">

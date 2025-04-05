@@ -56,7 +56,7 @@ export function SearchFilter() {
   }
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row">
+    <div className="flex flex-col gap-4 md:flex-row w-full overflow-x-auto">
       <div className="flex flex-1 items-center space-x-2">
         <Input
           placeholder="Buscar..."
@@ -77,7 +77,7 @@ export function SearchFilter() {
         </Select>
       </div>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex flex-wrap gap-2 items-center">
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-[180px] justify-start text-left font-normal">

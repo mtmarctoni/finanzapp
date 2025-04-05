@@ -6,7 +6,7 @@ import { ChartData, ChartOptions } from 'chart.js'
 import { formatCurrency } from "@/lib/utils"
 
 interface MonthlyTrend {
-  month: string
+  month: string // 'YYYY-MM-01' format
   income: number
   expenses: number
   investments: number
