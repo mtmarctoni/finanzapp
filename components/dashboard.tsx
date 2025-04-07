@@ -95,6 +95,16 @@ export default function Dashboard() {
         </select>
       </div>
 
+      {/* Navigation Links */}
+      <div className="flex space-x-4">
+        <a href="/recurring" className="text-blue-500 hover:text-blue-700">
+          <span className="flex items-center space-x-2">
+            <ArrowUpIcon className="h-4 w-4" />
+            <span>Registros Recurrentes</span>
+          </span>
+        </a>
+      </div>
+
       {/* Main Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
