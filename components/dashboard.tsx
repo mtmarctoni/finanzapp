@@ -84,14 +84,15 @@ export default function Dashboard() {
           onChange={(e) => setSelectedMonth(e.target.value)}
         >
           {Array.from({ length: 12 }, (_, i) => {
-            const date = new Date()
-            date.setMonth(date.getMonth() - i)
-            const month = format(date, 'yyyy-MM-01')
-            const monthName = format(date, 'MMMM yyyy', { locale: es })
-            return (
-              <option key={month} value={month}>{monthName}</option>
-            )
-          })}
+  const now = new Date();
+  // Always set to the 1st day of the month to avoid rollover issues
+  const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  const month = format(date, 'yyyy-MM-01');
+  const monthName = format(date, 'MMMM yyyy', { locale: es });
+  return (
+    <option key={month} value={month}>{monthName}</option>
+  )
+})}
         </select>
       </div>
 
