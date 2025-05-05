@@ -63,6 +63,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     dateWithTime.setHours(values.hora, values.minuto);
     
     // Create a new object without hora and minuto properties
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { hora, minuto, ...otherValues } = values;
     const formattedValues = {
       ...otherValues,

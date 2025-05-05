@@ -107,10 +107,12 @@ export async function getSummaryStats(month?: string) {
         investmentCount: Number(investmentResult.rows[0].count),
         balance: totalIncome - totalExpenses,
         monthlyTrends,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         topCategories: topCategories.rows.map((row: any) => ({
           category: row.category,
           total: Number(row.total)
         })),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         investmentPerformance: investmentPerformance.rows.map((row: any) => ({
           investment: row.investment,
           total: Number(row.total)
@@ -118,6 +120,7 @@ export async function getSummaryStats(month?: string) {
         savingsRate: savingsRate,
         expenseBreakdown: {
           total: totalExpenses,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           categories: topCategories.rows.map((row: any) => ({
             category: row.category,
             total: Number(row.total)
