@@ -107,7 +107,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Ingresos</CardTitle>
@@ -138,6 +138,17 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(stats.balance)}</div>
             <p className="text-xs text-muted-foreground">{stats.savingsRate.toFixed(1)}% ahorro</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Balance Final</CardTitle>
+            <PercentIcon className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome - stats.totalExpense - stats.totalInvestment)}</div>
+            <p className="text-xs text-muted-foreground">Flujo mensual</p>
           </CardContent>
         </Card>
       </div>

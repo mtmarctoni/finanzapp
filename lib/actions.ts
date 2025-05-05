@@ -9,13 +9,13 @@ export async function createEntry(formData: {
   tipo: string
   accion: string
   que: string
-  plataformaPago: string
+  plataforma_pago: string
   cantidad: number
   detalle1?: string
   detalle2?: string
 }) {
   const id = uuidv4()
-  const { fecha, tipo, accion, que, plataformaPago, cantidad, detalle1, detalle2 } = formData
+  const { fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2 } = formData
 
   try {
     const client = createClient()
@@ -24,7 +24,7 @@ export async function createEntry(formData: {
     try {
       await client.sql`
         INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2)
-        VALUES (${id}, ${fecha}::timestamptz, ${tipo}, ${accion}, ${que}, ${plataformaPago}, ${cantidad}, ${detalle1 || null}, ${detalle2 || null})
+        VALUES (${id}, ${fecha}::timestamptz, ${tipo}, ${accion}, ${que}, ${plataforma_pago}, ${cantidad}, ${detalle1 || null}, ${detalle2 || null})
       `
     } finally {
       await client.end()
@@ -44,13 +44,13 @@ export async function updateEntry(
     tipo: string
     accion: string
     que: string
-    plataformaPago: string
+    plataforma_pago: string
     cantidad: number
     detalle1?: string
     detalle2?: string
   },
 ) {
-  const { fecha, tipo, accion, que, plataformaPago, cantidad, detalle1, detalle2 } = formData
+  const { fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2 } = formData
 
   try {
     const client = createClient()
@@ -63,7 +63,7 @@ export async function updateEntry(
             tipo = ${tipo},
             accion = ${accion},
             que = ${que},
-            plataforma_pago = ${plataformaPago},
+            plataforma_pago = ${plataforma_pago},
             cantidad = ${cantidad},
             detalle1 = ${detalle1 || null},
             detalle2 = ${detalle2 || null},

@@ -19,7 +19,7 @@ const formSchema = z.object({
   tipo: z.string().min(1, { message: "El tipo es requerido" }),
   accion: z.string().min(1, { message: "La acción es requerida" }),
   que: z.string().min(1, { message: "El campo 'Qué' es requerido" }),
-  plataformaPago: z.string().min(1, { message: "La plataforma de pago es requerida" }),
+  plataforma_pago: z.string().min(1, { message: "La plataforma de pago es requerida" }),
   cantidad: z.coerce.number().min(0.01, { message: "La cantidad debe ser mayor a 0" }),
   detalle1: z.string().optional(),
   detalle2: z.string().optional(),
@@ -31,23 +31,15 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     resolver: zodResolver(formSchema),
     defaultValues: entry
       ? {
-          // Safely format the date for the input field
-          fecha: entry.fecha 
-            ? (typeof entry.fecha === 'string' 
-                ? new Date(entry.fecha).toISOString().split('T')[0] 
-                : new Date().toISOString().split('T')[0])
-            : new Date().toISOString().split('T')[0], // Fallback
-          hora: entry.fecha
-            ? new Date(entry.fecha).getHours()
-            : new Date().getHours(),
-          minuto: entry.fecha
-            ? new Date(entry.fecha).getMinutes()
-            : new Date().getMinutes(),
-          tipo: entry.tipo,
-          accion: entry.accion,
-          que: entry.que,
-          plataformaPago: entry.plataforma_pago,
-          cantidad: entry.cantidad,
+          // Use the existing date when editing
+          fecha: new Date(entry.fecha).toISOString().split('T')[0],
+          hora: new Date(entry.fecha).getHours(),
+          minuto: new Date(entry.fecha).getMinutes(),
+          tipo: entry.tipo || "",
+          accion: entry.accion || "",
+          que: entry.que || "",
+          plataforma_pago: entry.plataforma_pago || "",
+          cantidad: entry.cantidad || 0,
           detalle1: entry.detalle1 || "",
           detalle2: entry.detalle2 || "",
         }
@@ -58,7 +50,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
           tipo: "",
           accion: "",
           que: "",
-          plataformaPago: "",
+          plataforma_pago: "",
           cantidad: 0,
           detalle1: "",
           detalle2: "",
@@ -190,7 +182,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
 
               <FormField
                 control={form.control}
-                name="plataformaPago"
+                name="plataforma_pago"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Plataforma de pago</FormLabel>

@@ -9,7 +9,7 @@ import Link from "next/link"
 import { deleteEntry } from "@/lib/actions"
 import { useTransition } from "react"
 import { useEffect, useState } from "react"
-import { Entry } from "@/lib/definitions"
+// import { Entry } from "@/lib/definitions"
 import { useRouter } from "next/navigation"
 import { PaginatedEntriesResponse } from "@/types/api"
 
@@ -59,6 +59,7 @@ export default function FinanceTable({
             <TableHead className="w-[100px]">Fecha</TableHead>
             <TableHead>Accion</TableHead>
             <TableHead>Qué</TableHead>
+            <TableHead>Tipo</TableHead>
             <TableHead>Plataforma pago</TableHead>
             <TableHead>Cantidad</TableHead>
             <TableHead>Detalle 1</TableHead>
@@ -92,6 +93,7 @@ export default function FinanceTable({
                   </span>
                 </TableCell>
                 <TableCell>{entry.que}</TableCell>
+                <TableCell>{entry.tipo}</TableCell>
                 <TableCell>{entry.plataforma_pago}</TableCell>
                 <TableCell className={entry.accion === 'Gasto' ? 'text-red-500' : entry.accion === 'Ingreso' ? 'text-green-500' : 'text-blue-500'}>
                   {formatCurrency(entry.cantidad)}
