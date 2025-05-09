@@ -1,11 +1,26 @@
+// import { withAuth } from "next-auth/middleware";
+
+// export default withAuth(
+//     {
+//   callbacks: {
+//     authorized: ({ token }) => !!token,
+//   },
+// }, {
+//   callbacks: {
+//     async authorized() {
+//       return true;
+//     },
+//   },
+// }
+// );
+
 export { default } from "next-auth/middleware";
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
     "/",
-    "/dashboard",
-    "/finance",
+    "/edit/:path",
+    "/new",
     "/recurring",
     "/api/:path*",
   ],
