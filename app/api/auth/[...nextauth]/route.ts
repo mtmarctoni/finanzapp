@@ -1,14 +1,13 @@
-import GithubProvider from "next-auth/providers/github";
+import GithubProvider, { GithubProfile } from "next-auth/providers/github";
 import NextAuth, { 
   DefaultSession, 
-  SessionStrategy, 
+  SessionStrategy,
+  AuthOptions,
   User,
   Account,
   Profile,
 } from "next-auth";
 import { JWT } from "next-auth/jwt";
-import type { User as NextAuthUser } from "next-auth";
-import { signIn } from "next-auth/react";
 
 // Extend the default session type to include id
 interface Session extends DefaultSession {
@@ -20,7 +19,7 @@ interface Session extends DefaultSession {
   };
 }
 
-export const authOptions = {
+export const authOptions: AuthOptions = {
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID!,
@@ -30,12 +29,13 @@ export const authOptions = {
   session: {
     strategy: "jwt" as SessionStrategy,
   },
-//   pages:{
-//     signIn: "/auth/signin",
-//     error: "/auth/error",
-//   },
+  pages: {
+    signIn: "/auth/signin",
+    signOut: "/auth/signout",
+    error: "/auth/unauthorized",
+  },
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user: NextAuthUser }) {
+    async jwt({ token, user }: { token: JWT; user: User }) {
       if (user) {
         token.id = user.id;
       }
@@ -46,6 +46,17 @@ export const authOptions = {
         session.user.id = token.id;
       }
       return session;
+    },
+    async signIn({user, account, profile}: {user: User, account: Account | null, profile?: Profile | undefined}){
+      const githubProfile = profile as GithubProfile | undefined;
+      // only me access
+      const allowedUsers = process.env.ALLOWED_USERS?.split(",") ?? [];
+      // console.log(JSON.stringify(profile))
+      if (!allowedUsers.includes(githubProfile?.login ?? "")) {
+        return false;
+      }
+
+      return true;
     }
   },
 };

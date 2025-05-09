@@ -1,15 +1,27 @@
-import {withAuth} from "next-auth/middleware";
+// import { withAuth } from "next-auth/middleware";
 
-// export { withAuth } from "next-auth/middleware"
+// export default withAuth(
+//     {
+//   callbacks: {
+//     authorized: ({ token }) => !!token,
+//   },
+// }, {
+//   callbacks: {
+//     async authorized() {
+//       return true;
+//     },
+//   },
+// }
+// );
 
-export default withAuth({
-    // pages: {
-    //     signIn: "auth/signin",
-    //     error: "auth/error"
-    // },
-})
+export { default } from "next-auth/middleware";
 
-// export const config = {
-//     matcher: [
-//     ],
-// };
+export const config = {
+  matcher: [
+    "/",
+    "/dashboard",
+    "/finance",
+    "/recurring",
+    "/api/:path*",
+  ],
+};
