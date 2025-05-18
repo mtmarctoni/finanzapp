@@ -8,6 +8,7 @@ import NextAuth, {
   Profile,
 } from "next-auth";
 import { JWT } from "next-auth/jwt";
+import { createUser, getUserByEmail } from "@/lib/actions";
 
 // Extend the default session type to include id
 interface Session extends DefaultSession {
@@ -37,7 +38,12 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }: { token: JWT; user: User }) {
       if (user) {
-        token.id = user.id;
+        // set token.id with the id of our databas, not the github user
+        const existingUser = await getUserByEmail(user.email ?? "");
+        if (!existingUser) {
+          throw new Error('User not found');
+        }
+        token.id = existingUser.id;
       }
       return token;
     },
@@ -51,9 +57,20 @@ export const authOptions: AuthOptions = {
       const githubProfile = profile as GithubProfile | undefined;
       // only me access
       const allowedUsers = process.env.ALLOWED_USERS?.split(",") ?? [];
-      // console.log(JSON.stringify(profile))
+      
       if (!allowedUsers.includes(githubProfile?.login ?? "")) {
         return false;
+      }
+
+      // Get or create user using our actions
+      const existingUser = await getUserByEmail(githubProfile?.email ?? "")
+      
+      if (!existingUser) {
+        // If user doesn't exist, create them
+        await createUser({
+          name: githubProfile?.name ?? "",
+          email: githubProfile?.email ?? ""
+        })
       }
 
       return true;

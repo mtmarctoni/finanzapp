@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import { createEntry, updateEntry } from "@/lib/actions"
+import { useSession } from "next-auth/react"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Entry } from "@/lib/definitions"
 
@@ -27,6 +28,7 @@ const formSchema = z.object({
 
 export function FinanceForm({ entry }: { entry?: Entry }) {
   const router = useRouter()
+  const { data: session } = useSession()
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: entry
@@ -71,10 +73,14 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     };
     console.log('FECHA:', formattedValues.fecha)
     
+    if (!session?.user?.id) {
+      throw new Error("User not authenticated")
+    }
+
     if (entry) {
-      await updateEntry(entry.id, formattedValues)
+      await updateEntry(entry.id, formattedValues, { user: { id: session.user.id } })
     } else {
-      await createEntry(formattedValues)
+      await createEntry(formattedValues, { user: { id: session.user.id } })
     }
     router.push("/")
     router.refresh()

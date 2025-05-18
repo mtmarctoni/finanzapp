@@ -3,6 +3,7 @@
 import { getFinanceEntries } from "@/lib/data"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useSession } from "next-auth/react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
@@ -36,6 +37,7 @@ export default function FinanceTable({
   const accion = searchParams?.accion || "todos"
   const from = searchParams?.from || ""
   const to = searchParams?.to || ""
+  const { data: session } = useSession() || ""
   const currentPage = Number(searchParams?.page) || 1
   const itemsPerPage = Number(searchParams?.itemsPerPage) || 10
   
@@ -125,7 +127,10 @@ export default function FinanceTable({
                         });
                         
                         // Then perform the actual deletion
-                        await deleteEntry(formData);
+                        if (!session?.user?.id) {
+                          throw new Error('User session not available');
+                        }
+                        await deleteEntry(formData, { user: { id: session.user.id } });
                       });
                     }}>
                       <input type="hidden" name="id" value={entry.id} />

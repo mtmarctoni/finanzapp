@@ -1,11 +1,12 @@
 import { createPool } from '@vercel/postgres';
 import type { Entry } from './definitions';
+import { Session } from 'next-auth';
 
 /**
  * Server-side function to get summary statistics
  * This is used by server components
  */
-export async function getSummaryStats(month?: string) {
+export async function getSummaryStats(month?: string, session: Session | null = null) {
   try {
     const pool = createPool();
 
@@ -14,6 +15,12 @@ export async function getSummaryStats(month?: string) {
       let whereClause = "";
       if (month) {
         whereClause = `WHERE date_trunc('month', fecha) = date_trunc('month', '${month}'::date)`;
+      }
+      
+      // Add user_id filter if session exists
+      if (session?.user?.id) {
+        whereClause += whereClause ? " AND " : "WHERE ";
+        whereClause += `user_id = '${session.user.id}'`;
       }
 
       // Get income stats
@@ -157,7 +164,7 @@ export async function getSummaryStats(month?: string) {
 /**
  * Server-side function to get a single entry by ID
  */
-export async function getEntryById(id: string): Promise<Entry | null> {
+export async function getEntryById(id: string, session: Session | null = null): Promise<Entry | null> {
   try {
     const pool = createPool();
     
@@ -166,17 +173,16 @@ export async function getEntryById(id: string): Promise<Entry | null> {
         SELECT 
           id, 
           fecha, 
-          accion, 
+          accion,
           tipo,
-          que, 
-          plataforma_pago, 
-          cantidad, 
-          detalle1, 
-          detalle2,
-          created_at,
-          updated_at
+          que,
+          plataforma_pago,
+          cantidad,
+          detalle1,
+          detalle2
         FROM finance_entries
         WHERE id = $1
+        ${session?.user?.id ? " AND user_id = '" + session.user.id + "'" : ""}
       `, [id]);
       
       if (result.rows.length === 0) {

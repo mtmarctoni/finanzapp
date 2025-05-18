@@ -1,5 +1,7 @@
-import { createPool } from '@vercel/postgres';
+import { getEntries } from '@/lib/actions';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const ITEMS_PER_PAGE_DEFAULT = 10;
 
@@ -11,75 +13,38 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get('to') || '';
   const page = parseInt(searchParams.get('page') || '1');
   const itemsPerPage = parseInt(searchParams.get('itemsPerPage') || ITEMS_PER_PAGE_DEFAULT.toString());
-  const offset = (page - 1) * itemsPerPage;
+
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'Not authenticated' },
+      { status: 401 }
+    );
+  }
 
   try {
-    const pool = createPool();
+    const filters = {
+      search,
+      accion,
+      from,
+      to,
+      page,
+      itemsPerPage
+    };
 
-    try {
-      // Build the WHERE clause based on filters
-      const whereClause = [];
-      
-      if (search) {
-        const searchPattern = `%${search}%`;
-        whereClause.push(`(
-          accion ILIKE '${searchPattern}' OR 
-          que ILIKE '${searchPattern}' OR 
-          plataforma_pago ILIKE '${searchPattern}' OR
-          detalle1 ILIKE '${searchPattern}' OR
-          detalle2 ILIKE '${searchPattern}'
-        )`);
-      }
-
-      if (accion && accion !== 'todos') {
-        whereClause.push(`accion = '${accion}'`);
-      }
-      console.log('WHERE CLAUS: ',whereClause)
-      
-
-      if (from) {
-        // Use local time without Z to prevent timezone offset issues
-        whereClause.push(`fecha >= '${from}T00:00:00.000'::timestamptz`);
-      }
-
-      if (to) {
-        // Use local time without Z to prevent timezone offset issues
-        whereClause.push(`fecha <= '${to}T23:59:59.999'::timestamptz`);
-      }
-      
-      console.log('API filters:', { search, accion, from, to, whereClause });
-
-      const whereStatement = whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : "";
-
-      // Get total count for pagination
-      const countQuery = `SELECT COUNT(*) FROM finance_entries ${whereStatement}`;
-      const countResult = await pool.query(countQuery);
-      
-      const totalItems = Number.parseInt(countResult.rows[0].count);
-      const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-      // Get paginated data
-      const dataQuery = `
-        SELECT * FROM finance_entries 
-        ${whereStatement}
-        ORDER BY fecha DESC 
-        LIMIT ${itemsPerPage} OFFSET ${offset}
-      `;
-      const dataResult = await pool.query(dataQuery);
-
-      return NextResponse.json({
-        data: dataResult.rows,
-        totalItems,
-        totalPages,
-        currentPage: page,
-      });
-    } finally {
-      await pool.end();
-    }
+    const result = await getEntries(filters, { user: { id: session.user.id } });
+    // console.log('result', result)
+    return NextResponse.json({
+      data: result.entries,
+      total: result.total,
+      totalPages: result.totalPages,
+      currentPage: page
+    });
   } catch (error) {
-    console.error("Database Error:", error);
+    console.error('Error fetching entries:', error);
     return NextResponse.json(
-      { error: "Failed to fetch entries" },
+      { error: 'Failed to fetch entries' },
       { status: 500 }
     );
   }
