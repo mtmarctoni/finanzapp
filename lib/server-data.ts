@@ -6,7 +6,7 @@ import { Session } from 'next-auth';
  * Server-side function to get summary statistics
  * This is used by server components
  */
-export async function getSummaryStats(month?: string, session: Session | null = null) {
+export async function getSummaryStats(month?: string, session: Session | null = null, request?: Request) {
   try {
     const pool = createPool();
 
@@ -74,8 +74,10 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         investments: Number(row.investments)
       }));
 
-      // Get top categories
-      const topCategories = await pool.query(`
+      // Get expense categories (with limit based on showAll parameter)
+      const url = request ? new URL(request.url) : null;
+      const showAll = url ? url.searchParams.get('showAll') === 'true' : false;
+      const expenseCategories = await pool.query(`
         SELECT 
           que as category,
           SUM(cantidad) as total
@@ -84,7 +86,20 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         AND accion = 'Gasto'
         GROUP BY que
         ORDER BY total DESC
-        LIMIT 5
+        ${showAll ? '' : 'LIMIT 5'}
+      `);
+
+      // Get income categories (with limit based on showAll parameter)
+      const incomeCategories = await pool.query(`
+        SELECT 
+          que as category,
+          SUM(cantidad) as total
+        FROM finance_entries
+        ${whereClause}
+        AND accion = 'Ingreso'
+        GROUP BY que
+        ORDER BY total DESC
+        ${showAll ? '' : 'LIMIT 5'}
       `);
 
       // Get investment performance
@@ -115,7 +130,7 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         balance: totalIncome - totalExpenses,
         monthlyTrends,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        topCategories: topCategories.rows.map((row: any) => ({
+        topCategories: expenseCategories.rows.map((row: any) => ({
           category: row.category,
           total: Number(row.total)
         })),
@@ -128,11 +143,22 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         expenseBreakdown: {
           total: totalExpenses,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          categories: topCategories.rows.map((row: any) => ({
+          categories: expenseCategories.rows.map((row: any) => ({
             category: row.category,
             total: Number(row.total)
           })),
-          averageMonthly: totalExpenses / 12
+          averageMonthly: totalExpenses / 12,
+          hasMore: !showAll && expenseCategories.rows.length >= 5
+        },
+        incomeBreakdown: {
+          total: totalIncome,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          categories: incomeCategories.rows.map((row: any) => ({
+            category: row.category,
+            total: Number(row.total)
+          })),
+          averageMonthly: totalIncome / 12,
+          hasMore: !showAll && incomeCategories.rows.length >= 5
         }
       };
     } finally {

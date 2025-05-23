@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') || undefined
 
-    const stats = await getSummaryStats(month)
+    const stats = await getSummaryStats(month, null, request)
     
     return NextResponse.json(stats)
   } catch (error) {

@@ -1,8 +1,9 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
-import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon, WalletIcon, ChevronDown } from "lucide-react"
 import MonthlyTrendsChart from "@/components/monthly-trends-chart"
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -29,6 +30,14 @@ interface ExpenseBreakdown {
   total: number
   categories: Category[]
   averageMonthly: number
+  hasMore?: boolean
+}
+
+interface IncomeBreakdown {
+  total: number
+  categories: Category[]
+  averageMonthly: number
+  hasMore?: boolean
 }
 
 interface DashboardStats {
@@ -44,6 +53,7 @@ interface DashboardStats {
   investmentPerformance: Investment[]
   savingsRate: number
   expenseBreakdown: ExpenseBreakdown
+  incomeBreakdown: IncomeBreakdown
 }
 
 export default function Dashboard() {
@@ -52,26 +62,65 @@ export default function Dashboard() {
     const today = new Date()
     return format(today, 'yyyy-MM-01')
   })
+  const [showAll, setShowAll] = useState({
+    income: false,
+    expenses: false,
+    investments: false
+  })
+  const [isLoading, setIsLoading] = useState(false)
+
+  const fetchStats = async (showAllType?: 'income' | 'expenses' | 'investments') => {
+    try {
+      setIsLoading(true)
+      const params = new URLSearchParams({
+        month: selectedMonth,
+        ...(showAllType ? { showAll: 'true' } : {})
+      })
+      
+      const response = await fetch(`/api/summary?${params}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch summary stats')
+      }
+      const data = await response.json()
+      
+      setStats(data)
+      
+      // If showAllType is provided, update the showAll state
+      if (showAllType) {
+        setShowAll(prev => ({
+          ...prev,
+          [showAllType]: true
+        }))
+      } else {
+        // Reset all showAll states when month changes
+        setShowAll({
+          income: false,
+          expenses: false,
+          investments: false
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch(`/api/summary?month=${selectedMonth}`)
-        if (!response.ok) {
-          throw new Error('Failed to fetch summary stats')
-        }
-        const data = await response.json()
-        setStats(data)
-      } catch (error) {
-        console.error('Error fetching stats:', error)
-      }
-    }
     fetchStats()
   }, [selectedMonth])
 
-  if (!stats) return <div className="flex items-center justify-center min-h-[200px]">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
+  const renderLoading = () => (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  )
+
+  if (!stats) return renderLoading()
+  
+  const handleShowAll = (type: 'income' | 'expenses' | 'investments') => {
+    fetchStats(type)
+  }
 
   return (
     <div className="space-y-6">
@@ -165,6 +214,57 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Income Breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Desglose de Ingresos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <WalletIcon className="h-4 w-4 text-green-500" />
+                  <span>Total Ingresos Anuales</span>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{formatCurrency(stats.incomeBreakdown?.total || 0)}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatCurrency(stats.incomeBreakdown?.averageMonthly || 0)} mensuales
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {stats.incomeBreakdown?.categories?.map((category: Category) => (
+                  <div key={category.category} className="flex justify-between items-center">
+                    <span className="text-sm">{category.category}</span>
+                    <div className="text-right">
+                      <span className="font-medium">{formatCurrency(category.total)}</span>
+                    </div>
+                  </div>
+                )) || <p className="text-sm text-muted-foreground">No hay datos de ingresos disponibles</p>}
+                
+                {stats.incomeBreakdown?.hasMore && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full mt-2 text-sm text-muted-foreground"
+                    onClick={() => handleShowAll('income')}
+                    disabled={isLoading}
+                  >
+                    {isLoading && showAll.income ? (
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                    )}
+                    Mostrar todos
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Expense Breakdown */}
         <Card>
           <CardHeader>
@@ -174,7 +274,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-2">
-                  <BarChart2Icon className="h-4 w-4 text-gray-500" />
+                  <BarChart2Icon className="h-4 w-4 text-red-500" />
                   <span>Total Gastos Anuales</span>
                 </div>
                 <div className="text-right">
@@ -194,6 +294,23 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+                
+                {stats.expenseBreakdown.hasMore && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full mt-2 text-sm text-muted-foreground"
+                    onClick={() => handleShowAll('expenses')}
+                    disabled={isLoading}
+                  >
+                    {isLoading && showAll.expenses ? (
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                    )}
+                    Mostrar todos
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -228,6 +345,23 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
+                
+                {stats.investmentPerformance.length >= 5 && !showAll.investments && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full mt-2 text-sm text-muted-foreground"
+                    onClick={() => handleShowAll('investments')}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                    )}
+                    Mostrar todos
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
