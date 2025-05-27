@@ -133,7 +133,7 @@ export default function FinanceTable({
                         await deleteEntry(formData, { user: { id: session.user.id } });
                       });
                     }}>
-                      <input type="hidden" name="id" value={entry.id} />
+                      <input type="hidden" name="entryId" value={entry.id} />
                       <Button
                         variant="destructive"
                         size="sm"
