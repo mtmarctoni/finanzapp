@@ -1,100 +1,71 @@
 "use client"
 
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { HomeIcon, PlusCircle, UserIcon } from "lucide-react"
-import { signIn, signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { UserIcon } from "lucide-react"
+import { signIn, signOut, useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export function Navbar() {
-  const { data: session } = useSession();
-  const router = useRouter();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: session } = useSession()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleSignIn = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       await signIn("github", {
         callbackUrl: "/",
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleSignOut = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       await signOut({
         callbackUrl: "/auth/signin",
-      });
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-  
+  }
+
   return (
-    <header className="border-b">
-      <div className="container mx-auto flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-          <span className="text-primary">Finanzas Personales</span>
-        </Link>
-        <nav className="flex gap-4">
-          {/* Profile Button */}
-          {session ? (
+    <header className="border-b bg-background">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="font-semibold md:text-lg">
+          {session?.user?.name ? `Hola, ${session.user.name}` : 'Finanzas Personales'}
+        </div>
+        <div className="flex items-center gap-2">
+          {session && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => router.push("/user")}
-              className="ml-2"
+              className="h-9 w-9"
             >
               <UserIcon className="h-5 w-5" />
+              <span className="sr-only">Perfil de usuario</span>
             </Button>
-          ) : null}
-           {/* Authentication */}
-           {session ? (
-              <Button
-                variant="outline"
-                onClick={handleSignOut}
-                disabled={isLoading}
-                className="ml-4"
-              >
-                {isLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : (
-                  "Cerrar sesión"
-                )}
-              </Button>
+          )}
+          <Button
+            variant={session ? "outline" : "default"}
+            onClick={session ? handleSignOut : handleSignIn}
+            disabled={isLoading}
+            className="h-9"
+          >
+            {isLoading ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : session ? (
+              "Cerrar sesión"
             ) : (
-              <Button
-                variant="outline"
-                onClick={handleSignIn}
-                disabled={isLoading}
-                className="ml-4"
-              >
-                {isLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : (
-                  "Iniciar sesión"
-                )}
-              </Button>
+              "Iniciar sesión"
             )}
-          
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <HomeIcon className="mr-2 h-4 w-4" />
-              Inicio
-            </Button>
-          </Link>
-          <Link href="/new">
-            <Button size="sm">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Entrada
-            </Button>
-          </Link>
-        </nav>
+          </Button>
+        </div>
       </div>
     </header>
   )
