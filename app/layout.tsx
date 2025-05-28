@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Navbar } from "@/components/navbar"
 import { Sidebar } from "@/components/sidebar"
+import { MobileNav } from "@/components/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
 import AuthProvider from "@/components/context/AuthProvider"
 
@@ -23,13 +24,16 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          <div className="flex h-screen overflow-hidden">
+          <div className="flex min-h-screen flex-col lg:flex-row">
             <Sidebar />
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col">
               <Navbar />
-              <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                {children}
+              <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-6 lg:pt-6 safe-bottom">
+                <div className="mx-auto w-full max-w-7xl">
+                  {children}
+                </div>
               </main>
+              <MobileNav />
             </div>
           </div>
           <Toaster />

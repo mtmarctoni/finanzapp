@@ -258,21 +258,21 @@ export default function RecurringRecords() {
   })
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Registros Recurrentes</h2>
-        <div className="flex space-x-4">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold">Registros Recurrentes</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           <Input
             type="date"
             value={format(generateDate, 'yyyy-MM-dd')}
             onChange={(e) => setGenerateDate(new Date(e.target.value))}
-            className="w-48"
+            className="w-full sm:w-48"
           />
-          <Button onClick={handleGenerateRecords} disabled={loading}>
+          <Button onClick={handleGenerateRecords} disabled={loading} className="w-full sm:w-auto">
             Generar Registros
           </Button>
           <Select value={filter} onValueChange={(value) => setFilter(value as 'all' | 'active' | 'inactive')}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Mostrar todos" />
             </SelectTrigger>
             <SelectContent>
@@ -284,12 +284,12 @@ export default function RecurringRecords() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         {/* Add/Edit Record Form */}
-        <div className="bg-card rounded-lg p-6">
+        <div className="bg-card rounded-lg p-4 sm:p-6 w-full">
           <h3 className="font-semibold mb-6 text-lg">{editingRecord ? 'Editar Registro Recurrente' : 'Añadir Nuevo Registro Recurrente'}</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Basic Information */}
             <div className="space-y-3">
               <label className="block text-sm font-medium mb-1">Nombre</label>
@@ -426,7 +426,7 @@ export default function RecurringRecords() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end space-x-2">
+          <div className="mt-6 flex flex-col sm:flex-row justify-end gap-2 w-full">
             <Button
               variant="outline"
               onClick={() => {
@@ -458,20 +458,20 @@ export default function RecurringRecords() {
         </div>
 
         {/* Recurring Records List */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">Registros Recurrentes</h3>
-          <div className="space-y-2">
+        <div className="space-y-4 w-full overflow-hidden">
+          <h3 className="font-semibold text-lg">Registros Recurrentes</h3>
+          <div className="space-y-2 w-full">
             {filteredRecords.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No se encontraron registros recurrentes
               </div>
             ) : (
               filteredRecords.map((record) => (
-                <div key={record.id} className="flex justify-between items-center p-4 bg-card rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <div>
-                      <h4 className="font-medium">{record.name}</h4>
-                      <p className="text-sm text-muted-foreground">
+                <div key={record.id} className="w-full">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 sm:p-4 bg-card rounded-lg gap-2 sm:gap-3 w-full">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium text-base truncate">{record.name}</h4>
+                      <p className="text-sm text-muted-foreground truncate">
                         {record.accion} - {record.tipo} - {record.frequency} - {record.plataforma_pago}
                       </p>
                       <div className="mt-1">
@@ -480,10 +480,11 @@ export default function RecurringRecords() {
                         </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="flex-1 sm:flex-initial whitespace-nowrap min-w-[80px]"
                         onClick={() => handleEditRecord(record)}
                         disabled={loading}
                       >
@@ -492,6 +493,7 @@ export default function RecurringRecords() {
                       <Button
                         variant="destructive"
                         size="sm"
+                        className="flex-1 sm:flex-initial whitespace-nowrap min-w-[80px]"
                         onClick={() => handleDeleteRecord(record.id)}
                         disabled={loading}
                       >
