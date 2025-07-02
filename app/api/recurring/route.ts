@@ -1,7 +1,9 @@
 'use server'
 
 import { sql } from '@vercel/postgres'
-import { RecurringRecord, TransactionType } from '@/types/finance'
+import { RecurringRecord } from '@/types/finance'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET() {
   try {
@@ -99,6 +101,13 @@ export async function DELETE(request: Request) {
 // Add a new route for generating records
 export async function generate(request: Request) {
   try {
+    // Get the current user session
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = session.user.id
+
     // Get the date from the request body or use today
     const { date } = await request.json()
     const targetDate = date ? new Date(date) : new Date()
@@ -112,8 +121,8 @@ export async function generate(request: Request) {
 
     // Get all existing entries for today
     const existingEntries = await sql`
-      SELECT que FROM entries
-      WHERE fecha = ${targetDateStr}
+      SELECT que FROM finance_entries
+      WHERE fecha = ${targetDateStr} AND user_id = ${userId}
     `
 
     // Filter out records that already exist
@@ -124,7 +133,17 @@ export async function generate(request: Request) {
     // Generate new entries
     for (const record of recordsToGenerate) {
       await sql`
-        INSERT INTO finance_entries (id, fecha, tipo, accion, que, cantidad, created_at, updated_at)
+        INSERT INTO finance_entries (
+          id, 
+          fecha, 
+          tipo, 
+          accion, 
+          que, 
+          cantidad, 
+          user_id,
+          created_at, 
+          updated_at
+        )
         VALUES (
           gen_random_uuid(),
           ${targetDateStr},
@@ -132,6 +151,7 @@ export async function generate(request: Request) {
           ${record.accion},
           ${record.name},
           ${record.amount},
+          ${userId},
           CURRENT_TIMESTAMP,
           CURRENT_TIMESTAMP
         )

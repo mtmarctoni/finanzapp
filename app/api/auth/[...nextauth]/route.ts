@@ -1,4 +1,5 @@
 import GithubProvider, { GithubProfile } from "next-auth/providers/github";
+import CredentialsProvider from "next-auth/providers/credentials";
 import NextAuth, { 
   DefaultSession, 
   SessionStrategy,
@@ -20,25 +21,70 @@ interface Session extends DefaultSession {
   };
 }
 
+// Development credentials for local testing
+const devCredentials = [
+  { id: '1', email: 'dev@example.com', password: 'password123', name: 'Dev User' },
+  { id: '2', email: 'test@example.com', password: 'password123', name: 'Test User' },
+];
+
 export const authOptions: AuthOptions = {
   providers: [
-    GithubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
+    // Enable GitHub provider only in production
+    ...(process.env.NODE_ENV === 'production' ? [
+      GithubProvider({
+        clientId: process.env.GITHUB_ID!,
+        clientSecret: process.env.GITHUB_SECRET!,
+      })
+    ] : []),
+    
+    // Development credentials provider
+    ...(process.env.NODE_ENV !== 'production' ? [
+      CredentialsProvider({
+        name: 'Credentials',
+        credentials: {
+          email: { label: "Email", type: "email" },
+          password: { label: "Password", type: "password" }
+        },
+        async authorize(credentials) {
+          if (!credentials) return null;
+          
+          // In development, check against our hardcoded users
+          const user = devCredentials.find(
+            u => u.email === credentials.email && u.password === credentials.password
+          );
+          
+          if (user) {
+            return {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+            };
+          }
+          
+          return null;
+        }
+      })
+    ] : []),
   ],
   session: {
     strategy: "jwt" as SessionStrategy,
   },
+  debug: process.env.NODE_ENV !== 'production',
   pages: {
     signIn: "/auth/signin",
     signOut: "/auth/signout",
     error: "/auth/unauthorized",
   },
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user: User }) {
+    async jwt({ token, user, account }) {
+      // For development credentials, use the user data directly
+      if (account?.provider === 'credentials' && user) {
+        token.id = user.id;
+        return token;
+      }
+      
+      // For other providers (like GitHub), check the database
       if (user) {
-        // set token.id with the id of our databas, not the github user
         const existingUser = await getUserByEmail(user.email ?? "");
         if (!existingUser) {
           throw new Error('User not found');
@@ -49,11 +95,16 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
-        session.user.id = token.id;
+        session.user.id = token.id as string;
       }
       return session;
     },
     async signIn({user, account, profile}: {user: User, account: Account | null, profile?: Profile | undefined}){
+      // Skip GitHub checks for development credentials
+      if (account?.provider === 'credentials') {
+        return true;
+      }
+      
       const githubProfile = profile as GithubProfile | undefined;
       // only me access
       const allowedUsers = process.env.ALLOWED_USERS?.split(",") ?? [];

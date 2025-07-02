@@ -3,79 +3,173 @@
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Github } from "lucide-react";
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
   const { data: session } = useSession();
 
   useEffect(() => {
     if (session?.user) {
-      router.push("/");
+      router.push(callbackUrl);
     }
-  }, [session, router]);
+  }, [session, router, callbackUrl]);
 
-  const handleSignIn = async () => {
+  const handleGithubSignIn = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       await signIn("github", {
-        callbackUrl: "/",
+        callbackUrl,
       });
     } catch (error) {
-      console.error("Sign in error:", error);
+      console.error("GitHub sign in error:", error);
+      setError("Error al iniciar sesión con GitHub");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleCredentialsSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError("Por favor ingresa tu correo y contraseña");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+        callbackUrl,
+      });
+
+      if (result?.error) {
+        setError("Credenciales inválidas");
+      } else {
+        router.push(callbackUrl);
+      }
+    } catch (error) {
+      console.error("Sign in error:", error);
+      setError("Error al iniciar sesión");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="container flex flex-col items-center justify-center gap-12 px-4 py-8">
-        <div className="flex flex-col items-center gap-2 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Bienvenido</h1>
-          <p className="text-sm text-muted-foreground">
-            Inicia sesión con tu cuenta de GitHub para continuar
+          <p className="text-muted-foreground">
+            {isDevelopment 
+              ? "Inicia sesión para continuar" 
+              : "Inicia sesión con tu cuenta para continuar"}
           </p>
         </div>
-        <Card className="w-full max-w-md">
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Iniciar Sesión
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Para acceder a tu cuenta de Finanzapp
-              </p>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md">
+                {error}
+              </div>
+            )}
+
+            {isDevelopment && (
+              <form onSubmit={handleCredentialsSignIn} className="space-y-4 mb-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Correo electrónico</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="usuario@ejemplo.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Contraseña</Label>
+                    {isDevelopment && (
+                      <span className="text-xs text-muted-foreground">
+                        Usa: dev@example.com / password123
+                      </span>
+                    )}
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Iniciar sesión
+                </Button>
+              </form>
+            )}
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  {isDevelopment ? 'O continúa con' : 'Inicia sesión con'}
+                </span>
+              </div>
             </div>
-            <Button
-              onClick={handleSignIn}
-              className={cn(
-                "flex w-full justify-center gap-2",
-                "bg-gray-800 hover:bg-gray-700 text-white"
-              )}
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 16 16"
-                fill="currentColor"
+
+            <div className="mt-6">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGithubSignIn}
+                disabled={isLoading}
               >
-                <path
-                  fillRule="evenodd"
-                  d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Iniciar sesión con GitHub</span>
-            </Button>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Github className="mr-2 h-4 w-4" />
+                )}
+                GitHub
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
