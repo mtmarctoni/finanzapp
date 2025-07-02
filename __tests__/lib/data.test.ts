@@ -1,13 +1,15 @@
 import { getFinanceEntries, getEntryById, getSummaryStats } from '@/lib/data';
 import { Entry } from '@/lib/definitions';
 
+const baseURL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
 // Mock fetch globally
 global.fetch = jest.fn();
 
 // Mock window.location.origin
 Object.defineProperty(window, 'location', {
   value: {
-    origin: 'http://localhost:3000'
+    origin: baseURL
   },
   writable: true
 });
@@ -44,7 +46,7 @@ describe('Data fetching functions', () => {
 
       // Check that fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:3000/api/entries?search=test&tipo=Ingreso&from=2023-01-01&to=2023-01-31&page=2'
+        `${baseURL}/api/entries?search=test&tipo=Ingreso&from=2023-01-01&to=2023-01-31&page=2`
       );
       
       // Check that the function returns the expected result
@@ -98,7 +100,7 @@ describe('Data fetching functions', () => {
       const result = await getEntryById('123');
 
       // Check that fetch was called with correct URL
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/entries/123');
+      expect(fetch).toHaveBeenCalledWith(`${baseURL}/api/entries/123`);
       
       // Check that the function returns the expected result
       expect(result).toEqual(mockEntry);
@@ -142,7 +144,7 @@ describe('Data fetching functions', () => {
       const result = await getSummaryStats();
 
       // Check that fetch was called with correct URL
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/stats');
+      expect(fetch).toHaveBeenCalledWith(`${baseURL}/api/stats`);
       
       // Check that the function returns the expected result
       expect(result).toEqual(mockStats);
