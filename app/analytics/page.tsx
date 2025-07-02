@@ -15,7 +15,10 @@ import {
   Title, 
   Tooltip, 
   Legend, 
-  ArcElement 
+  ArcElement,
+  ChartData,
+  ChartOptions,
+  ChartDataset
 } from 'chart.js';
 import { SearchFilter } from "@/components/search-filter";
 
@@ -33,6 +36,11 @@ interface AnalyticsData {
     action: string;
     total: number;
   }>;
+  sums: {
+    gastos: number;
+    ingresos: number;
+    inversion: number;
+  };
 }
 
 interface Filters {
@@ -47,6 +55,11 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData>({
     temporalData: [],
     categoryData: [],
+    sums: {
+      gastos: 0,
+      ingresos: 0,
+      inversion: 0,
+    },
   });
   const [loading, setLoading] = useState(true);
   
@@ -97,7 +110,7 @@ export default function AnalyticsPage() {
     const months = Array.from(new Set(data.temporalData.map(item => item.month))).sort();
     const actions = Array.from(new Set(data.temporalData.map(item => item.action)));
     
-    const datasets = actions.map(action => {
+    const datasets: ChartDataset<'bar', number[]>[] = actions.map(action => {
       const color = action === 'Ingreso' 
         ? 'rgba(75, 192, 192, 0.6)' 
         : action === 'Gasto' 
@@ -113,30 +126,66 @@ export default function AnalyticsPage() {
         backgroundColor: color,
         borderColor: color.replace('0.6', '1'),
         borderWidth: 1,
-      };
+      } as ChartDataset<'bar', number[]>;
     });
+
+    // Add a total dataset
+    if (datasets.length > 0) {
+      const totalData = months.map(month => {
+        return data.temporalData
+          .filter(item => item.month === month)
+          .reduce((sum, item) => sum + Math.abs(item.total), 0);
+      });
+
+      datasets.push({
+        label: 'Total',
+        data: totalData,
+        backgroundColor: 'rgba(201, 203, 207, 0.6)',
+        borderColor: 'rgba(201, 203, 207, 1)',
+        borderWidth: 1,
+        borderDash: [5, 5],
+        borderDashOffset: 0,
+      } as ChartDataset<'bar', number[]>);
+    }
 
     return {
       labels: months.map(month => format(new Date(month), 'MMM yyyy', { locale: es })),
       datasets,
-    };
+    } as ChartData<'bar', number[], string>;
   };
 
   // Prepare data for category chart
   const getCategoryChartData = () => {
-    const sortedData = [...data.categoryData].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+    // Group by category and sum amounts
+    const categoryTotals = data.categoryData.reduce((acc, item) => {
+      if (!acc[item.category]) {
+        acc[item.category] = 0;
+      }
+      acc[item.category] += Math.abs(item.total);
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Convert to array and sort by total
+    const sortedData = Object.entries(categoryTotals)
+      .map(([category, total]) => ({ category, total }))
+      .sort((a, b) => b.total - a.total);
+
     const colors = [
       '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
       '#FF9F40', '#8AC24A', '#FF5252', '#607D8B', '#9C27B0'
     ];
     
+    // Add total to the chart title
+    const total = sortedData.reduce((sum, item) => sum + item.total, 0);
+    
     return {
       labels: sortedData.map(item => item.category),
       datasets: [{
-        data: sortedData.map(item => Math.abs(item.total)),
+        data: sortedData.map(item => item.total),
         backgroundColor: sortedData.map((_, index) => colors[index % colors.length]),
         borderWidth: 1,
       }],
+      total,
     };
   };
 
@@ -190,6 +239,40 @@ export default function AnalyticsPage() {
         />
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Gastos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              {data.sums.gastos.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Ingresos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {data.sums.ingresos.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Inversión</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {data.sums.inversion.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Temporal Chart */}
         <Card>
@@ -228,9 +311,9 @@ export default function AnalyticsPage() {
               <Doughnut
                 data={getCategoryChartData()}
                 options={{
-                  ...chartOptions,
+                  responsive: true,
+                  maintainAspectRatio: false,
                   plugins: {
-                    ...chartOptions.plugins,
                     legend: {
                       position: 'right' as const,
                     },
@@ -244,6 +327,11 @@ export default function AnalyticsPage() {
                           return `${label}: ${value.toFixed(2)} € (${percentage}%)`;
                         }
                       }
+                    },
+                    title: {
+                      display: true,
+                      text: `Total: ${getCategoryChartData().total.toFixed(2)} €`,
+                      position: 'top',
                     }
                   }
                 }}

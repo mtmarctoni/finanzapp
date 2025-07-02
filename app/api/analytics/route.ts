@@ -90,9 +90,32 @@ export async function GET(request: NextRequest) {
         queryParams
       );
 
+      // Calculate sums for each action type
+      const actionSums = await pool.query(
+        `SELECT 
+          accion as action,
+          SUM(cantidad) as total
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY accion
+        HAVING SUM(cantidad) != 0`,
+        queryParams
+      );
+
+      // Convert to a more usable format
+      const sums = actionSums.rows.reduce((acc, row) => {
+        acc[row.action] = row.total;
+        return acc;
+      }, {} as Record<string, number>);
+
       return NextResponse.json({
         temporalData: temporalData.rows,
         categoryData: categoryData.rows,
+        sums: {
+          gastos: Math.abs(sums['Gasto'] || 0),
+          ingresos: Math.abs(sums['Ingreso'] || 0),
+          inversion: Math.abs(sums['Inversión'] || 0),
+        },
       });
     } catch (error) {
       console.error('Database query error:', error);
