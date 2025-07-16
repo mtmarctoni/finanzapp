@@ -1,4 +1,4 @@
-import { getFinanceEntries, getEntryById, getSummaryStats } from '@/lib/data';
+import { getFinanceEntries, getEntryById, getSummaryStats, duplicateEntry } from '@/lib/data';
 import { Entry } from '@/lib/definitions';
 
 const baseURL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -24,7 +24,19 @@ describe('Data fetching functions', () => {
     it('should fetch entries with correct parameters', async () => {
       // Mock successful response
       const mockResponse = {
-        data: [{ id: '1', fecha: '2023-01-01', tipo: 'Ingreso' }],
+        data: [{ 
+          id: '1', 
+          fecha: '2023-01-01', 
+          tipo: 'Ingreso',
+          accion: 'Salario',
+          que: 'Trabajo',
+          plataforma_pago: 'Banco',
+          cantidad: 1000,
+          detalle1: null,
+          detalle2: null,
+          created_at: '2023-01-01T00:00:00.000Z',
+          updated_at: '2023-01-01T00:00:00.000Z'
+        }],
         totalItems: 1,
         totalPages: 1,
         currentPage: 1
@@ -37,16 +49,15 @@ describe('Data fetching functions', () => {
 
       // Call the function with search parameters
       const result = await getFinanceEntries({ 
-        search: 'test', 
-        tipo: 'Ingreso', 
+        search: 'test',
         from: '2023-01-01', 
         to: '2023-01-31', 
-        page: 2 
+        page: 2
       });
 
       // Check that fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(
-        `${baseURL}/api/entries?search=test&tipo=Ingreso&from=2023-01-01&to=2023-01-31&page=2`
+        `${baseURL}/api/entries?search=test&from=2023-01-01&to=2023-01-31&page=2&itemsPerPage=50`
       );
       
       // Check that the function returns the expected result
@@ -82,12 +93,12 @@ describe('Data fetching functions', () => {
         tipo: 'Ingreso',
         accion: 'Salario',
         que: 'Trabajo',
-        plataformaPago: 'Transferencia',
+        plataforma_pago: 'Transferencia',
         cantidad: 1000,
         detalle1: null,
         detalle2: null,
-        createdAt: '2023-01-01',
-        updatedAt: '2023-01-01'
+        created_at: '2023-01-01T00:00:00.000Z',
+        updated_at: '2023-01-01T00:00:00.000Z'
       };
 
       // Mock successful response
@@ -170,6 +181,47 @@ describe('Data fetching functions', () => {
         expenseCount: 0,
         balance: 0
       });
+    });
+  });
+
+  describe('duplicateEntry', () => {
+    it('should successfully duplicate an entry', async () => {
+      const mockDuplicatedEntry: Entry = {
+        id: 'duplicated-id',
+        fecha: '2023-01-01',
+        tipo: 'Ingreso',
+        accion: 'Salario',
+        que: 'Trabajo',
+        plataforma_pago: 'Transferencia',
+        cantidad: 1000,
+        detalle1: null,
+        detalle2: null,
+        created_at: '2023-01-01T00:00:00.000Z',
+        updated_at: '2023-01-01T00:00:00.000Z'
+      };
+  
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockDuplicatedEntry
+      });
+  
+      const result = await duplicateEntry('original-id');
+  
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseURL}/api/entries/original-id/duplicate`,
+        { method: 'POST' }
+      );
+  
+      expect(result).toEqual(mockDuplicatedEntry);
+    });
+  
+    it('should throw an error when duplication fails', async () => {
+      (fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 500
+      });
+  
+      await expect(duplicateEntry('original-id')).rejects.toThrow('API error: 500');
     });
   });
 });
