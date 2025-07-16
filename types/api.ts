@@ -26,6 +26,11 @@ export type PaginatedEntriesResponse = {
 export type SummaryStatsResponse = import('./finance').SummaryStats
 
 /**
+ * Response for duplicate entry request
+ */
+export type DuplicateEntryResponse = import('./finance').Entry;
+
+/**
  * Standard API error response
  */
 export type ApiErrorResponse = {

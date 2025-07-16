@@ -5,9 +5,10 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useSession } from "next-auth/react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, Copy } from "lucide-react"
 import Link from "next/link"
 import { deleteEntry } from "@/lib/actions"
+import { duplicateEntry } from "@/lib/data"
 import { useTransition } from "react"
 import { useEffect, useState } from "react"
 // import { Entry } from "@/lib/definitions"
@@ -108,10 +109,44 @@ export default function FinanceTable({
                       <Button
                         variant="outline"
                         size="sm"
+                        title="Editar"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      title="Duplicar"
+                      disabled={isPending}
+                      onClick={async () => {
+                        if (!session?.user?.id) {
+                          alert('Debes iniciar sesión para duplicar entradas');
+                          return;
+                        }
+                        
+                        try {
+                          startTransition(async () => {
+                            await duplicateEntry(entry.id);
+                            // Refresh the entries after successful duplication
+                            const result = await getFinanceEntries({ 
+                              search, 
+                              accion, 
+                              from, 
+                              to, 
+                              page: currentPage, 
+                              itemsPerPage 
+                            }) as PaginatedEntriesResponse;
+                            setEntries(result);
+                          });
+                        } catch (error) {
+                          console.error('Error duplicando entrada:', error);
+                          alert('Error al duplicar la entrada');
+                        }
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                     <form action={(formData) => {
                       // Optimistic UI update - remove the entry from the local state immediately
                       startTransition(async () => {

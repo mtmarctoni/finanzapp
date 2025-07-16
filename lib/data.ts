@@ -62,6 +62,28 @@ export async function getEntryById(id: string): Promise<Entry | null> {
 }
 
 /**
+ * Duplicates an existing entry by ID
+ */
+export async function duplicateEntry(id: string): Promise<Entry | null> {
+  try {
+    // call duplicate api request with the entry id to duplicate
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    const response = await fetch(`${baseUrl}/api/entries/${id}/duplicate`, {
+      method: 'POST'
+    })
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+    
+    return await response.json()
+  } catch (error) {
+    console.error("Error duplicating entry:", error)
+    throw error // Re-throw to allow handling in the component
+  }
+}
+
+/**
  * Fetches summary statistics from the API
  */
 export async function getSummaryStats() {
