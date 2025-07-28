@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { format } from 'date-fns'
 import { useToast } from "@/hooks/use-toast"
 import { CATEGORIES } from "@/types/categories"
+import { useSession } from 'next-auth/react'
 
 interface GenerateError {
   error: string
@@ -17,6 +18,7 @@ interface GenerateError {
 }
 
 export default function RecurringRecords() {
+  const { data: session } = useSession()
   const [recurringRecords, setRecurringRecords] = useState<RecurringRecord[]>([])
   const [newRecord, setNewRecord] = useState({
     name: '',
@@ -28,13 +30,15 @@ export default function RecurringRecords() {
     frequency: 'monthly',
     active: true,
     dia: 1,
-    plataforma_pago: 'any' 
+    plataforma_pago: 'any'
   })
   const [editingRecord, setEditingRecord] = useState<RecurringRecord | null>(null)
   const [loading, setLoading] = useState(false)
   const [generateDate, setGenerateDate] = useState(new Date())
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const { toast } = useToast()
+
+  const userId = session?.user.id || ''
 
   useEffect(() => {
     fetchRecurringRecords()
@@ -79,9 +83,9 @@ export default function RecurringRecords() {
       })
 
       if (!response.ok) throw new Error('Failed to add recurring record')
-      
-      setNewRecord({ 
-        name: '', 
+
+      setNewRecord({
+        name: '',
         accion: '',
         tipo: '',
         detalle1: '',
@@ -90,7 +94,7 @@ export default function RecurringRecords() {
         frequency: 'monthly',
         active: true,
         dia: 1,
-        plataforma_pago: 'any' 
+        plataforma_pago: 'any'
       })
       fetchRecurringRecords()
       toast({
@@ -150,10 +154,10 @@ export default function RecurringRecords() {
       })
 
       if (!response.ok) throw new Error('Failed to update recurring record')
-      
+
       setEditingRecord(null)
-      setNewRecord({ 
-        name: '', 
+      setNewRecord({
+        name: '',
         accion: '',
         tipo: '',
         detalle1: '',
@@ -162,7 +166,7 @@ export default function RecurringRecords() {
         frequency: 'monthly',
         active: true,
         dia: 1,
-        plataforma_pago: 'any' 
+        plataforma_pago: 'any'
       })
       fetchRecurringRecords()
       toast({
@@ -194,7 +198,7 @@ export default function RecurringRecords() {
       })
 
       if (!response.ok) throw new Error('Failed to delete recurring record')
-      
+
       fetchRecurringRecords()
       toast({
         title: 'Éxito',
@@ -230,7 +234,7 @@ export default function RecurringRecords() {
         const errorData = await response.json() as GenerateError
         throw new Error(errorData.details || 'Failed to generate recurring records')
       }
-      
+
       const result = await response.json()
       toast({
         title: 'Éxito',
@@ -288,7 +292,7 @@ export default function RecurringRecords() {
         {/* Add/Edit Record Form */}
         <div className="bg-card rounded-lg p-4 sm:p-6 w-full">
           <h3 className="font-semibold mb-6 text-lg">{editingRecord ? 'Editar Registro Recurrente' : 'Añadir Nuevo Registro Recurrente'}</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Basic Information */}
             <div className="space-y-3">
@@ -431,8 +435,8 @@ export default function RecurringRecords() {
               variant="outline"
               onClick={() => {
                 setEditingRecord(null)
-                setNewRecord({ 
-                  name: '', 
+                setNewRecord({
+                  name: '',
                   accion: '',
                   tipo: '',
                   detalle1: '',
@@ -441,7 +445,7 @@ export default function RecurringRecords() {
                   frequency: 'monthly',
                   active: true,
                   dia: 1,
-                  plataforma_pago: 'any' 
+                  plataforma_pago: 'any'
                 })
               }}
               disabled={loading}

@@ -16,7 +16,7 @@ export async function getSummaryStats(month?: string, session: Session | null = 
       if (month) {
         whereClause = `WHERE date_trunc('month', fecha) = date_trunc('month', '${month}'::date)`;
       }
-      
+
       // Add user_id filter if session exists
       if (session?.user?.id) {
         whereClause += whereClause ? " AND " : "WHERE ";
@@ -193,7 +193,7 @@ export async function getSummaryStats(month?: string, session: Session | null = 
 export async function getEntryById(id: string, session: Session | null = null): Promise<Entry | null> {
   try {
     const pool = createPool();
-    
+
     try {
       const result = await pool.query(`
         SELECT 
@@ -210,11 +210,11 @@ export async function getEntryById(id: string, session: Session | null = null): 
         WHERE id = $1
         ${session?.user?.id ? " AND user_id = '" + session.user.id + "'" : ""}
       `, [id]);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
-      
+
       return result.rows[0] as Entry;
     } finally {
       await pool.end();

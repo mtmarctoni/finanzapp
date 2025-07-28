@@ -41,12 +41,12 @@ export function SearchFilter({
   // Initialize state from URL params or default values
   const [search, setSearch] = useState(defaultValues?.search || searchParams.get("search") || "")
   const [accion, setAccion] = useState(
-    defaultValues?.accion !== undefined 
-      ? defaultValues.accion 
+    defaultValues?.accion !== undefined
+      ? defaultValues.accion
       : searchParams.get("accion") || "todos"
   )
   const [fromDate, setFromDate] = useState<Date | undefined>(
-    defaultValues?.fromDate || 
+    defaultValues?.fromDate ||
     (searchParams.get("from") ? new Date(searchParams.get("from") as string) : undefined)
   )
   const [toDate, setToDate] = useState<Date | undefined>(
@@ -102,7 +102,7 @@ export function SearchFilter({
     setAccion("todos")
     setFromDate(undefined)
     setToDate(undefined)
-    
+
     if (onSearch) {
       onSearch({ search: "", accion: "todos" })
     } else {
@@ -129,7 +129,7 @@ export function SearchFilter({
             className="w-full"
           />
         </div>
-        
+
         {showActionFilter && (
           <div className="w-full md:w-[180px]">
             <Select value={accion} onValueChange={setAccion}>
@@ -155,29 +155,30 @@ export function SearchFilter({
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {fromDate ? format(fromDate, "dd/MM/yyyy") : "Fecha desde"}
                 {fromDate && (
-                  <X 
-                    className="ml-auto h-4 w-4 opacity-50 hover:opacity-100" 
+                  <X
+                    className="ml-auto h-4 w-4 opacity-50 hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation()
                       setFromDate(undefined)
-                    }} 
+                    }}
                   />
                 )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
-              <Calendar 
-                mode="single" 
-                selected={fromDate} 
+              <Calendar
+                mode="single"
+                selected={fromDate}
                 onSelect={(date) => {
                   setFromDate(date)
                   // If toDate is before fromDate, update toDate to be the same as fromDate
                   if (date && toDate && date > toDate) {
                     setToDate(date)
                   }
-                }} 
-                initialFocus 
-                locale={es} 
+                }}
+                autoFocus
+                captionLayout="dropdown"
+                locale={es}
               />
             </PopoverContent>
           </Popover>
@@ -188,29 +189,30 @@ export function SearchFilter({
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {toDate ? format(toDate, "dd/MM/yyyy") : "Fecha hasta"}
                 {toDate && (
-                  <X 
-                    className="ml-auto h-4 w-4 opacity-50 hover:opacity-100" 
+                  <X
+                    className="ml-auto h-4 w-4 opacity-50 hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation()
                       setToDate(undefined)
-                    }} 
+                    }}
                   />
                 )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
-              <Calendar 
-                mode="single" 
-                selected={toDate} 
+              <Calendar
+                mode="single"
+                selected={toDate}
                 onSelect={(date) => {
                   setToDate(date)
                   // If fromDate is after toDate, update fromDate to be the same as toDate
                   if (date && fromDate && date < fromDate) {
                     setFromDate(date)
                   }
-                }} 
-                initialFocus 
-                locale={es} 
+                }}
+                autoFocus
+                locale={es}
+                captionLayout="dropdown"
                 disabled={(date) => fromDate ? date < fromDate : false}
               />
             </PopoverContent>

@@ -18,11 +18,11 @@ const navItems: NavItem[] = [
     href: "/",
     icon: Home,
   },
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
+  // {
+  //   name: "Dashboard",
+  //   href: "/dashboard",
+  //   icon: LayoutDashboard,
+  // },
   {
     name: "Gastos Recurrentes",
     href: "/recurring",

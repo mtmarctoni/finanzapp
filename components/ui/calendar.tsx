@@ -32,7 +32,7 @@ function Calendar({
   // Spanish day names - these are now handled via CSS
   const [time, setTime] = React.useState(selectedTime);
   const [selectedDate, setSelectedDate] = React.useState(selected as Date | undefined);
-  
+
   // Handle date selection with visual feedback
   const handleSelect = React.useCallback((date: Date | undefined) => {
     setSelectedDate(date);
@@ -40,14 +40,14 @@ function Calendar({
       onSelect(date);
     }
   }, [onSelect]);
-  
+
   // Handle time changes
   React.useEffect(() => {
     if (onTimeChange) {
       onTimeChange(time);
     }
   }, [time, onTimeChange]);
-  
+
   // Update selected date when prop changes
   React.useEffect(() => {
     setSelectedDate(selected as Date | undefined);

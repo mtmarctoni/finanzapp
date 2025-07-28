@@ -51,7 +51,7 @@ export default function SignIn() {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await signIn("credentials", {
         redirect: false,
@@ -81,8 +81,8 @@ export default function SignIn() {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold tracking-tight">Bienvenido</h1>
           <p className="text-muted-foreground">
-            {isDevelopment 
-              ? "Inicia sesión para continuar" 
+            {isDevelopment
+              ? "Inicia sesión para continuar"
               : "Inicia sesión con tu cuenta para continuar"}
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function SignIn() {
                     <Label htmlFor="password">Contraseña</Label>
                     {isDevelopment && (
                       <span className="text-xs text-muted-foreground">
-                        Usa: dev@example.com / password123
+                        Usa: test@example.com / password123
                       </span>
                     )}
                   </div>
@@ -131,8 +131,8 @@ export default function SignIn() {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full"
                   disabled={isLoading}
                 >
