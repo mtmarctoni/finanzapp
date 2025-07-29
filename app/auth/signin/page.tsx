@@ -2,7 +2,6 @@
 
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,10 +53,10 @@ export default function SignIn() {
 
     try {
       const result = await signIn("credentials", {
-        redirect: false,
+        // redirect: false,
         email,
         password,
-        callbackUrl,
+        // callbackUrl,
       });
 
       if (result?.error) {
@@ -98,51 +97,47 @@ export default function SignIn() {
               </div>
             )}
 
-            {isDevelopment && (
-              <form onSubmit={handleCredentialsSignIn} className="space-y-4 mb-6">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="usuario@ejemplo.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Contraseña</Label>
-                    {isDevelopment && (
-                      <span className="text-xs text-muted-foreground">
-                        Usa: test@example.com / password123
-                      </span>
-                    )}
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
+            <form onSubmit={handleCredentialsSignIn} className="space-y-4 mb-6">
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo electrónico</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="usuario@ejemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
-                >
-                  {isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Iniciar sesión
-                </Button>
-              </form>
-            )}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <span className="text-xs text-muted-foreground">
+                    Usa: test@example.com / password123
+                  </span>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Iniciar sesión
+              </Button>
+            </form>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

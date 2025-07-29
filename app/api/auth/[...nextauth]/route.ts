@@ -29,35 +29,35 @@ const devCredentials = [
 
 export const authOptions: AuthOptions = {
   providers: [
-    // Enable GitHub provider only in production
-    ...(process.env.NODE_ENV === 'production' ? [
-      GithubProvider({
-        clientId: process.env.GITHUB_ID!,
-        clientSecret: process.env.GITHUB_SECRET!,
-        authorization: {
-          params: {
-            redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/github`
-          }
+    GithubProvider({
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
+      authorization: {
+        params: {
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/github`
         }
-      })
-    ] : []),
-
-    // Development credentials provider
-    ...(process.env.NODE_ENV !== 'production' ? [
-      CredentialsProvider({
-        name: 'Credentials',
-        credentials: {
-          email: { label: "Email", type: "email" },
-          password: { label: "Password", type: "password" }
-        },
-        async authorize(credentials) {
-          if (!credentials) return null;
-
+      },
+      // profile: (profile: GithubProfile) => ({
+      //   id: profile.id.toString(),
+      //   name: profile.name || profile.login,
+      //   userName: profile.login,
+      //   email: profile.email || null,
+      //   image: profile.avatar_url,
+      // })
+    }),
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials) return null;
+        if (process.env.NODE_ENV !== 'production') {
           // In development, check against our hardcoded users
           const user = devCredentials.find(
             u => u.email === credentials.email && u.password === credentials.password
           );
-
           if (user) {
             return {
               id: user.id,
@@ -65,11 +65,21 @@ export const authOptions: AuthOptions = {
               name: user.name,
             };
           }
-
           return null;
         }
-      })
-    ] : []),
+        // In production, check against your database (implement password check as needed)
+        const existingUser = await getUserByEmail(credentials.email);
+        // TODO: Add password hash check for production security
+        if (existingUser) {
+          return {
+            id: existingUser.id,
+            email: existingUser.email,
+            name: existingUser.name,
+          };
+        }
+        return null;
+      }
+    })
   ],
   session: {
     strategy: "jwt" as SessionStrategy,
