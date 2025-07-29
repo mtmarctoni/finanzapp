@@ -1,73 +1,26 @@
-import { createClient } from "@vercel/postgres"
 import * as XLSX from "xlsx"
 import { formatDate } from "@/lib/utils"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { getExportEntries } from "@/lib/actions"
 
 const { NEXT_PUBLIC_APP_NAME } = process.env
 
 export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+    }
+    const userId = session.user.id
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search") || ""
     const tipo = searchParams.get("tipo") || ""
     const from = searchParams.get("from") || ""
     const to = searchParams.get("to") || ""
 
-    // Build the WHERE clause based on filters
-    const whereClause = []
-    const params = []
-    let paramIndex = 1
-
-    if (search) {
-      whereClause.push(`(
-        accion ILIKE $${paramIndex} OR 
-        que ILIKE $${paramIndex} OR 
-        plataforma_pago ILIKE $${paramIndex} OR
-        detalle1 ILIKE $${paramIndex} OR
-        detalle2 ILIKE $${paramIndex}
-      )`)
-      params.push(`%${search}%`)
-      paramIndex++
-    }
-
-    if (tipo) {
-      whereClause.push(`tipo = $${paramIndex}`)
-      params.push(tipo)
-      paramIndex++
-    }
-
-    if (from) {
-      // Use local time without Z to prevent timezone offset issues
-      whereClause.push(`fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`)
-      params.push(from)
-      paramIndex++
-    }
-
-    if (to) {
-      // Use local time without Z to prevent timezone offset issues
-      whereClause.push(`fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`)
-      params.push(to)
-      paramIndex++
-    }
-
-    const whereStatement = whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : ""
-
-    // Get entries with filters
-    const client = createClient()
-    await client.connect()
-
-    let entries
-    try {
-      const query = `
-        SELECT * FROM finance_entries 
-        ${whereStatement}
-        ORDER BY fecha DESC
-      `
-
-      const result = await client.query(query, params)
-      entries = result.rows
-    } finally {
-      await client.end()
-    }
+    // Get entries with filters from actions
+    const entries = await getExportEntries({ search, tipo, from, to }, userId)
 
     // Format data for Excel
     const data = entries.map((entry) => ({

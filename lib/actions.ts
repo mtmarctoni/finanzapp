@@ -235,7 +235,7 @@ export async function getEntries(filters: EntryFilter, session: { user: { id: st
     const countQuery = `SELECT COUNT(*) FROM finance_entries ${whereStatment}`
     const countResult = await pool.query(countQuery)
     console.log('countResult', countResult)
- 
+
     const total = countResult.rows[0].count;
 
     // Build the entries query with parameters
@@ -258,6 +258,63 @@ export async function getEntries(filters: EntryFilter, session: { user: { id: st
     }
   } finally {
     await pool.end()
+  }
+}
+
+// Get entries for export (with filters)
+export async function getExportEntries({ search = "", tipo = "", from = "", to = "" }, userId: string) {
+  const whereClause = [];
+  const params = [];
+  let paramIndex = 1;
+
+  if (search) {
+    whereClause.push(`(
+      accion ILIKE $${paramIndex} OR 
+      que ILIKE $${paramIndex} OR 
+      plataforma_pago ILIKE $${paramIndex} OR
+      detalle1 ILIKE $${paramIndex} OR
+      detalle2 ILIKE $${paramIndex}
+    )`);
+    params.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  if (tipo) {
+    whereClause.push(`tipo = $${paramIndex}`);
+    params.push(tipo);
+    paramIndex++;
+  }
+
+  if (from) {
+    whereClause.push(`fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`);
+    params.push(from);
+    paramIndex++;
+  }
+
+  if (to) {
+    whereClause.push(`fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`);
+    params.push(to);
+    paramIndex++;
+  }
+
+  // Always filter by user
+  whereClause.push(`user_id = $${paramIndex}`);
+  params.push(userId);
+
+  const whereStatement = whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : "";
+
+  const client = createClient();
+  await client.connect();
+  try {
+    const query = `
+      SELECT * FROM finance_entries 
+      ${whereStatement}
+      ORDER BY fecha DESC
+    `;
+    const result = await client.query(query, params);
+    return result.rows;
+  } finally {
+    await client.end();
   }
 }
 
