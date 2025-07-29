@@ -61,11 +61,13 @@ export async function getSummaryStats(month?: string, session: Session | null = 
           SUM(CASE WHEN accion = 'Gasto' THEN cantidad ELSE 0 END) as expenses,
           SUM(CASE WHEN accion = 'Inversión' THEN cantidad ELSE 0 END) as investments
         FROM finance_entries
-        WHERE fecha >= NOW() - INTERVAL '6 months'
+        WHERE fecha >= NOW() - INTERVAL '6 months' AND user_id = $1
         GROUP BY date_trunc('month', fecha)
         ORDER BY month DESC
         LIMIT 6
-      `);
+      `,
+        [session?.user?.id]
+      );
 
       const monthlyTrends = trendsResult.rows.map(row => ({
         month: row.month.toISOString().split('T')[0],
