@@ -14,7 +14,7 @@
 // }
 // );
 
-export { default } from "next-auth/middleware";
+export { default as proxy } from "next-auth/middleware";
 
 export const config = {
   matcher: [

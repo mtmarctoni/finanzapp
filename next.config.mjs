@@ -8,9 +8,6 @@ const nextConfig = {
     GITHUB_SECRET: process.env.GITHUB_SECRET,
     ALLOWED_USERS: process.env.ALLOWED_USERS,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -21,7 +18,7 @@ const nextConfig = {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-  },
+  }
 }
 
 export default nextConfig
