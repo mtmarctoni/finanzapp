@@ -65,7 +65,7 @@
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
-    "uuid": "latest",
+    "uuid": "^9.0.1",
     "vaul": "^1.1.2",
     "xlsx": "latest",
     "zod": "latest"
@@ -88,8 +88,7 @@
     "tailwindcss": "^4.0.12",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
-    "typescript": "^5",
-    "uuid": "^9.0.1"
+    "typescript": "^5"
   },
   "overrides": {
     "@types/react": "19.2.7",
