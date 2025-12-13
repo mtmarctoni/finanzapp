@@ -52,6 +52,22 @@ function Calendar({
   React.useEffect(() => {
     setSelectedDate(selected as Date | undefined);
   }, [selected]);
+  // Determine mode-specific props for DayPicker
+  const dayPickerMode: "single" | "multiple" | "range" = props.mode ?? "single";
+  let dayPickerSelected: unknown = selected;
+  let dayPickerOnSelect: unknown = onSelect;
+
+  if (dayPickerMode === "single") {
+    dayPickerSelected = selected as Date | undefined;
+    dayPickerOnSelect = handleSelect;
+  } else if (dayPickerMode === "multiple") {
+    dayPickerSelected = selected as Date[] | undefined;
+    dayPickerOnSelect = onSelect as ((date: Date[] | undefined) => void) | undefined;
+  } else if (dayPickerMode === "range") {
+    dayPickerSelected = selected as { from: Date; to?: Date } | undefined;
+    dayPickerOnSelect = onSelect as ((range: { from: Date; to?: Date } | undefined) => void) | undefined;
+  }
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -100,9 +116,9 @@ function Calendar({
       }}
       // Use Spanish locale for proper month names
       // Day names are handled via CSS
-      mode="single"
-      selected={selectedDate as any}
-      onSelect={handleSelect as any}
+      mode={dayPickerMode}
+      selected={dayPickerSelected}
+      onSelect={dayPickerOnSelect}
       modifiers={{
         selected: selectedDate,
         today: new Date()
@@ -151,15 +167,5 @@ function Calendar({
 Calendar.displayName = "Calendar"
 
 export { Calendar }
-function useState(selectedTime: { hour: number; minute: number }): [any, any] {
-  throw new Error("Function not implemented.")
-}
 
-function useCallback(arg0: (date: Date | undefined) => void, arg1: (((date: Date | undefined) => void) | undefined)[]) {
-  throw new Error("Function not implemented.")
-}
-
-function useEffect(arg0: () => void, arg1: any[]) {
-  throw new Error("Function not implemented.")
-}
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge"
 import { format } from 'date-fns'
 import { useToast } from "@/hooks/use-toast"
 import { CATEGORIES } from "@/types/categories"
-import { useSession } from 'next-auth/react'
 
 interface GenerateError {
   error: string
@@ -18,7 +17,6 @@ interface GenerateError {
 }
 
 export default function RecurringRecords() {
-  const { data: session } = useSession()
   const [recurringRecords, setRecurringRecords] = useState<RecurringRecord[]>([])
   const [newRecord, setNewRecord] = useState({
     name: '',
@@ -38,13 +36,7 @@ export default function RecurringRecords() {
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const { toast } = useToast()
 
-  const userId = session?.user.id || ''
-
-  useEffect(() => {
-    fetchRecurringRecords()
-  }, [])
-
-  const fetchRecurringRecords = async () => {
+  const fetchRecurringRecords = useCallback(async () => {
     try {
       const response = await fetch('/api/recurring')
       if (!response.ok) throw new Error('Failed to fetch recurring records')
@@ -58,7 +50,12 @@ export default function RecurringRecords() {
         variant: 'destructive'
       })
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchRecurringRecords()
+  }, [fetchRecurringRecords])
+
 
   const handleAddRecord = async () => {
     if (!newRecord.name || !newRecord.amount || !newRecord.accion) return

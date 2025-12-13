@@ -4,12 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSession, signIn, signOut } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 export default function UserPage() {
   const { data: session } = useSession()
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSignIn = async () => {

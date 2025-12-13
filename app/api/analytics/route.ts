@@ -1,24 +1,21 @@
 // app/api/analytics/route.ts
-import { createPool } from '@vercel/postgres';
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createPool } from "@vercel/postgres";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  
+
   // Get all possible filter parameters
-  const search = searchParams.get('search');
-  const action = searchParams.get('action') || 'todos';
-  const fromDate = searchParams.get('from');
-  const toDate = searchParams.get('to');
+  const search = searchParams.get("search");
+  const action = searchParams.get("action") || "todos";
+  const fromDate = searchParams.get("from");
+  const toDate = searchParams.get("to");
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: 'Not authenticated' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   try {
@@ -27,9 +24,9 @@ export async function GET(request: NextRequest) {
     try {
       // Build WHERE clause
       const whereClauses: string[] = [`user_id = '${session.user.id}'`];
-      const queryParams: any[] = [];
+      const queryParams: string[] = [];
       let paramIndex = 1;
-      
+
       if (search) {
         const searchTerm = `%${search.toLowerCase()}%`;
         whereClauses.push(`(
@@ -42,26 +39,29 @@ export async function GET(request: NextRequest) {
         queryParams.push(searchTerm);
         paramIndex++;
       }
-      
-      if (action && action !== 'todos') {
+
+      if (action && action !== "todos") {
         whereClauses.push(`accion = $${paramIndex}`);
         queryParams.push(action);
         paramIndex++;
       }
-      
+
       if (fromDate) {
         whereClauses.push(`fecha >= $${paramIndex}`);
         queryParams.push(fromDate);
         paramIndex++;
       }
-      
+
       if (toDate) {
-        whereClauses.push(`fecha <= $${paramIndex}::date + INTERVAL '1 day - 1 second'`);
+        whereClauses.push(
+          `fecha <= $${paramIndex}::date + INTERVAL '1 day - 1 second'`
+        );
         queryParams.push(toDate);
         paramIndex++;
       }
 
-      const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+      const whereClause =
+        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
       // Get data for temporal chart (grouped by month and action)
       const temporalData = await pool.query(
@@ -112,22 +112,22 @@ export async function GET(request: NextRequest) {
         temporalData: temporalData.rows,
         categoryData: categoryData.rows,
         sums: {
-          gastos: Math.abs(sums['Gasto'] || 0),
-          ingresos: Math.abs(sums['Ingreso'] || 0),
-          inversion: Math.abs(sums['Inversión'] || 0),
+          gastos: Math.abs(sums["Gasto"] || 0),
+          ingresos: Math.abs(sums["Ingreso"] || 0),
+          inversion: Math.abs(sums["Inversión"] || 0),
         },
       });
     } catch (error) {
-      console.error('Database query error:', error);
+      console.error("Database query error:", error);
       return NextResponse.json(
-        { error: 'Error querying database' },
+        { error: "Error querying database" },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Database connection error:', error);
+    console.error("Database connection error:", error);
     return NextResponse.json(
-      { error: 'Error connecting to database' },
+      { error: "Error connecting to database" },
       { status: 500 }
     );
   }

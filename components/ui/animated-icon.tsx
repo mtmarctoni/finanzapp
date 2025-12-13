@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
@@ -32,27 +31,15 @@ export function AnimatedIcon({
   children,
   ...props 
 }: AnimatedIconProps) {
-  const [isMounted, setIsMounted] = useState(false)
 
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return (
-      <div className={cn("h-5 w-5 opacity-0", className)} {...props}>
-        {children}
-      </div>
-    )
-  }
 
 
   return (
-    <div 
+    <div
       className={cn(
         iconVariants({ active, className }),
         "h-5 w-5"
-      )} 
+      )}
       {...props}
     >
       {children}

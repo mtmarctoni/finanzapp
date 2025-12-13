@@ -1,7 +1,7 @@
 // app/analytics/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from 'date-fns';
@@ -17,7 +17,6 @@ import {
   Legend, 
   ArcElement,
   ChartData,
-  ChartOptions,
   ChartDataset
 } from 'chart.js';
 import { SearchFilter } from "@/components/search-filter";
@@ -64,26 +63,21 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   
   // Initialize filters from URL params
-  const initialFilters = () => {
+  const initialFilters = useCallback(() => {
     const search = searchParams.get('search') || '';
     const accion = searchParams.get('accion') || 'todos';
     const from = searchParams.get('from') ? new Date(searchParams.get('from') as string) : undefined;
     const to = searchParams.get('to') ? new Date(searchParams.get('to') as string) : undefined;
-    
     return { search, accion, from, to };
-  };
-  
+  }, [searchParams]);
+
   const [filters, setFilters] = useState<Filters>(initialFilters());
 
   useEffect(() => {
     setFilters(initialFilters());
-  }, [searchParams]);
+  }, [initialFilters]);
 
-  useEffect(() => {
-    fetchData();
-  }, [filters]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -103,7 +97,13 @@ export default function AnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+  , [filters]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
 
   // Prepare data for temporal chart
   const getTemporalChartData = () => {
@@ -195,7 +195,7 @@ export default function AnalyticsPage() {
     plugins: {
       tooltip: {
         callbacks: {
-          label: (context: any) => {
+          label: (context: import('chart.js').TooltipItem<'bar'>) => {
             const label = context.label || '';
             const value = context.raw as number;
             return `${label}: ${value.toFixed(2)} €`;
@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: any) => `${value} €`
+          callback: (value: number | string) => `${value} €`
         }
       }
     }
@@ -319,10 +319,10 @@ export default function AnalyticsPage() {
                     },
                     tooltip: {
                       callbacks: {
-                        label: (context: any) => {
+                        label: (context: import('chart.js').TooltipItem<'doughnut'>) => {
                           const label = context.label || '';
                           const value = context.raw as number;
-                          const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+                          const total = (context.dataset.data as number[]).reduce((a, b) => a + b, 0);
                           const percentage = Math.round((value / total) * 100);
                           return `${label}: ${value.toFixed(2)} € (${percentage}%)`;
                         }

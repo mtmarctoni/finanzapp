@@ -7,7 +7,7 @@ import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon,
 import MonthlyTrendsChart from "@/components/monthly-trends-chart"
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface MonthlyTrend {
   month: string
@@ -69,7 +69,7 @@ export default function Dashboard() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
-  const fetchStats = async (showAllType?: 'income' | 'expenses' | 'investments') => {
+  const fetchStats = useCallback(async (showAllType?: 'income' | 'expenses' | 'investments') => {
     try {
       setIsLoading(true)
       const params = new URLSearchParams({
@@ -104,11 +104,11 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [selectedMonth])
 
   useEffect(() => {
     fetchStats()
-  }, [selectedMonth])
+  }, [fetchStats, selectedMonth])
 
   const renderLoading = () => (
     <div className="flex items-center justify-center min-h-[200px]">

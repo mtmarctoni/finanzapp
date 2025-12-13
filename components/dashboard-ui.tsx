@@ -6,7 +6,7 @@ import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon 
 import MonthlyTrendsChart from "@/components/monthly-trends-chart"
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 interface MonthlyTrend {
   month: string

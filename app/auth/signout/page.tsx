@@ -2,11 +2,9 @@
 
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function SignOut() {
-  const router = useRouter();
 
   useEffect(() => {
     // Sign out the user
