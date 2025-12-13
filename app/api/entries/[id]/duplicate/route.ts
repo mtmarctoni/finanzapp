@@ -1,23 +1,20 @@
-import { createClient } from '@vercel/postgres';
-import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createClient } from "@vercel/postgres";
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  
+
   if (!session?.user?.id) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const entryId = params.id;
+  const { id } = await params;
   const userId = session.user.id;
 
   try {
@@ -28,9 +25,9 @@ export async function POST(
       // First, get the entry to duplicate
       const { rows } = await client.sql`
         SELECT * FROM finance_entries 
-        WHERE id = ${entryId} AND user_id = ${userId}
+        WHERE id = ${id} AND user_id = ${userId}
       `;
-      
+
       if (rows.length === 0) {
         return NextResponse.json(
           { error: "Entry not found or access denied" },
@@ -40,7 +37,7 @@ export async function POST(
 
       const entry = rows[0];
       const newId = uuidv4();
-      
+
       // Create a new entry with the same data but a new ID
       const result = await client.sql`
         INSERT INTO finance_entries (

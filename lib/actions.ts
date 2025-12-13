@@ -1,141 +1,155 @@
-"use server"
+"use server";
 
-import { createClient, createPool } from "@vercel/postgres"
-import { revalidatePath } from "next/cache"
-import { v4 as uuidv4 } from "uuid"
-
-interface User {
-  id: string
-  name: string
-  email: string
-}
+import { createClient, createPool } from "@vercel/postgres";
+import { revalidatePath } from "next/cache";
+import { v4 as uuidv4 } from "uuid";
 
 interface EntryFilter {
-  search?: string
-  accion?: string
-  tipo?: string
-  from?: string
-  to?: string
-  page: number
-  itemsPerPage: number
+  search?: string;
+  accion?: string;
+  tipo?: string;
+  from?: string;
+  to?: string;
+  page: number;
+  itemsPerPage: number;
 }
 
 interface Entry {
-  id: string
-  fecha: string
-  tipo: string
-  accion: string
-  que: string
-  plataforma_pago: string
-  cantidad: number
-  detalle1?: string
-  detalle2?: string
+  id: string;
+  fecha: string;
+  tipo: string;
+  accion: string;
+  que: string;
+  plataforma_pago: string;
+  cantidad: number;
+  detalle1?: string;
+  detalle2?: string;
 }
 
 interface PaginatedEntries {
-  entries: Entry[]
-  total: number
-  totalPages: number
+  entries: Entry[];
+  total: number;
+  totalPages: number;
 }
 
-export async function createUser(formData: {
-  name: string
-  email: string
-}) {
-  const id = uuidv4()
+export async function createUser(formData: { name: string; email: string }) {
+  const id = uuidv4();
   try {
-    const client = createClient()
-    await client.connect()
+    const client = createClient();
+    await client.connect();
 
     try {
       await client.sql`
         INSERT INTO users (id, name, email)
         VALUES (${id}, ${formData.name}, ${formData.email})
-      `
+      `;
     } finally {
-      await client.end()
+      await client.end();
     }
   } catch (error) {
-    console.error("Database Error:", error)
-    throw new Error("Failed to create user.")
+    console.error("Database Error:", error);
+    throw new Error("Failed to create user.");
   }
 
-  revalidatePath("/")
+  revalidatePath("/");
 }
 
 export async function getUserByEmail(email: string) {
   try {
-    const client = createClient()
-    await client.connect()
+    const client = createClient();
+    await client.connect();
 
     try {
       const result = await client.sql`
         SELECT id, name, email
         FROM users
         WHERE email = ${email}
-      `
-      return result.rows[0]
+      `;
+      return result.rows[0];
     } finally {
-      await client.end()
+      await client.end();
     }
   } catch (error) {
-    console.error("Database Error:", error)
-    throw new Error("Failed to get user.")
+    console.error("Database Error:", error);
+    throw new Error("Failed to get user.");
   }
 }
 
-export async function createEntry(formData: {
-  fecha: string
-  tipo: string
-  accion: string
-  que: string
-  plataforma_pago: string
-  cantidad: number
-  detalle1?: string
-  detalle2?: string
-}, session: { user: { id: string } }) {
-  const entryId = uuidv4()
-  const { fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2 } = formData
+export async function createEntry(
+  formData: {
+    fecha: string;
+    tipo: string;
+    accion: string;
+    que: string;
+    plataforma_pago: string;
+    cantidad: number;
+    detalle1?: string;
+    detalle2?: string;
+  },
+  session: { user: { id: string } }
+) {
+  const entryId = uuidv4();
+  const {
+    fecha,
+    tipo,
+    accion,
+    que,
+    plataforma_pago,
+    cantidad,
+    detalle1,
+    detalle2,
+  } = formData;
 
   try {
-    const client = createClient()
-    await client.connect()
+    const client = createClient();
+    await client.connect();
 
     try {
       await client.sql`
         INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id)
-        VALUES (${entryId}, ${fecha}::timestamptz, ${tipo}, ${accion}, ${que}, ${plataforma_pago}, ${cantidad}, ${detalle1 || null}, ${detalle2 || null}, ${session.user.id})
-      `
+        VALUES (${entryId}, ${fecha}::timestamptz, ${tipo}, ${accion}, ${que}, ${plataforma_pago}, ${cantidad}, ${
+        detalle1 || null
+      }, ${detalle2 || null}, ${session.user.id})
+      `;
     } finally {
-      await client.end()
+      await client.end();
     }
   } catch (error) {
-    console.error("Database Error:", error)
-    throw new Error("Failed to create entry.")
+    console.error("Database Error:", error);
+    throw new Error("Failed to create entry.");
   }
 
-  revalidatePath("/")
+  revalidatePath("/");
 }
 
 export async function updateEntry(
   entryId: string,
   formData: {
-    fecha: string
-    tipo: string
-    accion: string
-    que: string
-    plataforma_pago: string
-    cantidad: number
-    detalle1?: string
-    detalle2?: string
+    fecha: string;
+    tipo: string;
+    accion: string;
+    que: string;
+    plataforma_pago: string;
+    cantidad: number;
+    detalle1?: string;
+    detalle2?: string;
   },
   session: { user: { id: string } }
 ) {
-  const { fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2 } = formData
+  const {
+    fecha,
+    tipo,
+    accion,
+    que,
+    plataforma_pago,
+    cantidad,
+    detalle1,
+    detalle2,
+  } = formData;
 
   try {
-    const client = createClient()
-    await client.connect()
+    const client = createClient();
+    await client.connect();
 
     try {
       await client.sql`
@@ -151,47 +165,53 @@ export async function updateEntry(
             updated_at = NOW()
         WHERE id = ${entryId}
           AND user_id = ${session.user.id}
-      `
+      `;
     } finally {
-      await client.end()
+      await client.end();
     }
   } catch (error) {
-    console.error("Database Error:", error)
-    throw new Error("Failed to update entry.")
+    console.error("Database Error:", error);
+    throw new Error("Failed to update entry.");
   }
 
-  revalidatePath("/")
+  revalidatePath("/");
 }
 
-export async function deleteEntry(formData: FormData, session: { user: { id: string } }) {
-  const client = createClient()
-  await client.connect()
+export async function deleteEntry(
+  formData: FormData,
+  session: { user: { id: string } }
+) {
+  const client = createClient();
+  await client.connect();
 
   try {
     await client.sql`
       DELETE FROM finance_entries
-      WHERE id = ${String(formData.get('entryId'))}
+      WHERE id = ${String(formData.get("entryId"))}
       AND user_id = ${session.user.id}
-    `
-    revalidatePath("/")
+    `;
+    revalidatePath("/");
   } finally {
-    await client.end()
+    await client.end();
   }
 }
 
-export async function getEntries(filters: EntryFilter, session: { user: { id: string } }): Promise<PaginatedEntries> {
-  console.log('Getting entries with filters:', filters);
-  const userId = String(session.user.id)
-  const { search, accion, tipo, from, to, page, itemsPerPage } = filters
-  const offset = (page - 1) * itemsPerPage
+export async function getEntries(
+  filters: EntryFilter,
+  session: { user: { id: string } }
+): Promise<PaginatedEntries> {
+  console.log("Getting entries with filters:", filters);
+  const userId = String(session.user.id);
+  const { search, accion, tipo, from, to, page, itemsPerPage } = filters;
+  const offset = (page - 1) * itemsPerPage;
 
-  const pool = createPool()
+  const pool = createPool();
 
   try {
-    console.log('Getting entries with filters:', filters);
+    console.log("Getting entries with filters:", filters);
     // Build WHERE clause
-    const whereClauses: string[] = []
-    const params: (string | number)[] = []
+    const whereClauses: string[] = [];
+    const params: (string | number)[] = [];
 
     if (search) {
       // Create pattern with wildcards
@@ -206,11 +226,22 @@ export async function getEntries(filters: EntryFilter, session: { user: { id: st
         detalle2 ILIKE '${searchPattern}'
       `);
       // Push the pattern for each condition
-      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+      params.push(
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern
+      );
     }
 
-    if (accion && accion !== 'todos') {
+    if (accion && accion !== "todos") {
       whereClauses.push(`accion = '${accion}'`);
+    }
+
+    if (tipo && tipo !== "todos") {
+      whereClauses.push(`tipo = '${tipo}'`);
     }
 
     if (from) {
@@ -225,16 +256,17 @@ export async function getEntries(filters: EntryFilter, session: { user: { id: st
 
     // Add user filter
     // console.log('USER ID', userId)
-    whereClauses.push(`user_id = '${userId}'`)
+    whereClauses.push(`user_id = '${userId}'`);
 
     // Build final WHERE clause
-    const whereStatment = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : ''
-    console.log('Final WHERE clause:', whereStatment);
+    const whereStatment =
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+    console.log("Final WHERE clause:", whereStatment);
 
     // Build the full query with parameters
-    const countQuery = `SELECT COUNT(*) FROM finance_entries ${whereStatment}`
-    const countResult = await pool.query(countQuery)
-    console.log('countResult', countResult)
+    const countQuery = `SELECT COUNT(*) FROM finance_entries ${whereStatment}`;
+    const countResult = await pool.query(countQuery);
+    console.log("countResult", countResult);
 
     const total = countResult.rows[0].count;
 
@@ -246,23 +278,26 @@ export async function getEntries(filters: EntryFilter, session: { user: { id: st
       LIMIT ${itemsPerPage}
       OFFSET ${offset}
     `;
-    const entriesResult = await pool.query(entriesQuery)
+    const entriesResult = await pool.query(entriesQuery);
     // console.log('entriesResult', entriesResult)
-    const entries = entriesResult.rows as Entry[]
-    const totalPages = Math.ceil(total / itemsPerPage)
+    const entries = entriesResult.rows as Entry[];
+    const totalPages = Math.ceil(total / itemsPerPage);
     // console.log('entries', entries)
     return {
       entries,
       total,
-      totalPages
-    }
+      totalPages,
+    };
   } finally {
-    await pool.end()
+    await pool.end();
   }
 }
 
 // Get entries for export (with filters)
-export async function getExportEntries({ search = "", tipo = "", from = "", to = "" }, userId: string) {
+export async function getExportEntries(
+  { search = "", tipo = "", from = "", to = "" },
+  userId: string
+) {
   const whereClause = [];
   const params = [];
   let paramIndex = 1;
@@ -286,13 +321,17 @@ export async function getExportEntries({ search = "", tipo = "", from = "", to =
   }
 
   if (from) {
-    whereClause.push(`fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`);
+    whereClause.push(
+      `fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`
+    );
     params.push(from);
     paramIndex++;
   }
 
   if (to) {
-    whereClause.push(`fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`);
+    whereClause.push(
+      `fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`
+    );
     params.push(to);
     paramIndex++;
   }
@@ -301,7 +340,8 @@ export async function getExportEntries({ search = "", tipo = "", from = "", to =
   whereClause.push(`user_id = $${paramIndex}`);
   params.push(userId);
 
-  const whereStatement = whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : "";
+  const whereStatement =
+    whereClause.length > 0 ? `WHERE ${whereClause.join(" AND ")}` : "";
 
   const client = createClient();
   await client.connect();
@@ -317,4 +357,3 @@ export async function getExportEntries({ search = "", tipo = "", from = "", to =
     await client.end();
   }
 }
-

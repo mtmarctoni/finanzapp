@@ -1,11 +1,11 @@
-import { createPool } from '@vercel/postgres';
-import { NextRequest, NextResponse } from 'next/server';
+import { createPool } from "@vercel/postgres";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const id = params.id;
+  const { id } = await params;
 
   try {
     const pool = createPool();
@@ -15,14 +15,11 @@ export async function GET(
         SELECT * FROM finance_entries 
         WHERE id = '${id}'
       `;
-      
+
       const { rows } = await pool.query(query);
-      
+
       if (rows.length === 0) {
-        return NextResponse.json(
-          { error: "Entry not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Entry not found" }, { status: 404 });
       }
 
       return NextResponse.json(rows[0]);

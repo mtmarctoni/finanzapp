@@ -19,7 +19,8 @@ export function DatePicker({
   selected: Date | null | undefined;
   onSelect?: (date: Date | null | undefined) => void;
   placeholder?: string;
-  [key: string]: any;
+  // Allow passing arbitrary props to the Button, but type them as unknown for safety
+  [key: string]: unknown;
 }) {
   return (
     <Popover>
@@ -53,7 +54,7 @@ export function DatePicker({
 const es = {
   code: 'es',
   formatDistance: (() => {
-    const formatDistanceLocale: any = {
+    const formatDistanceLocale: Record<string, string> = {
       xSeconds: 'hace {{count}}s',
       xMinutes: 'hace {{count}}m',
       xHours: 'hace {{count}}h',
@@ -61,12 +62,11 @@ const es = {
       xMonths: 'hace {{count}}m',
       xYears: 'hace {{count}}a',
     };
-
-    return (token: string, count: number) => 
-      formatDistanceLocale[token].replace('{{count}}', count);
+    return (token: string, count: number) =>
+      formatDistanceLocale[token]?.replace('{{count}}', String(count)) ?? '';
   })(),
   formatRelative: (token: string) => {
-    const formatRelativeLocale: any = {
+    const formatRelativeLocale: Record<string, string> = {
       lastWeek: "'la' eeee 'pasado a las' p",
       yesterday: "'ayer a las' p",
       today: "'hoy a las' p",
@@ -74,7 +74,7 @@ const es = {
       nextWeek: "eeee 'a las' p",
       other: 'P',
     };
-    return formatRelativeLocale[token];
+    return formatRelativeLocale[token] ?? '';
   },
   localize: {
     month: (n: number) => {
