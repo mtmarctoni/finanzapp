@@ -14,15 +14,15 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    name: "Inicio",
-    href: "/",
+    name: "Dashboard",
+    href: "/dashboard",
     icon: Home,
   },
-  // {
-  //   name: "Dashboard",
-  //   href: "/dashboard",
-  //   icon: LayoutDashboard,
-  // },
+  {
+    name: "Registros",
+    href: "/records",
+    icon: PlusCircle,
+  },
   {
     name: "Gastos Recurrentes",
     href: "/recurring",

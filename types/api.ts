@@ -8,6 +8,8 @@ export type GetEntriesOptions = {
   to?: string
   page?: number
   itemsPerPage?: number
+  sortBy?: "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad"
+  sortOrder?: "asc" | "desc"
 }
 
 /**

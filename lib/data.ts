@@ -9,7 +9,7 @@ const ITEMS_PER_PAGE = 50
  * Fetches finance entries from the API with optional filtering and pagination
  */
 export async function getFinanceEntries(options: GetEntriesOptions = {}) {
-  const { search = "", accion = "todos", from = "", to = "", page = 1 } = options
+  const { search = "", accion = "todos", from = "", to = "", page = 1, itemsPerPage, sortBy, sortOrder } = options
 
   try {
     // Build query parameters for API request
@@ -19,7 +19,9 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
     if (from) params.set('from', from)
     if (to) params.set('to', to)
     params.set('page', page.toString())
-    params.set('itemsPerPage', ITEMS_PER_PAGE.toString())
+    params.set('itemsPerPage', (itemsPerPage ?? ITEMS_PER_PAGE).toString())
+    if (sortBy) params.set('sortBy', String(sortBy))
+    if (sortOrder) params.set('sortOrder', String(sortOrder))
 
     // Call API route instead of connecting directly to database
     // Use absolute URL to avoid parsing errors

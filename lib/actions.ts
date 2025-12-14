@@ -12,6 +12,8 @@ interface EntryFilter {
   to?: string;
   page: number;
   itemsPerPage: number;
+  sortBy?: string;
+  sortOrder?: string;
 }
 
 interface Entry {
@@ -202,7 +204,17 @@ export async function getEntries(
 ): Promise<PaginatedEntries> {
   console.log("Getting entries with filters:", filters);
   const userId = String(session.user.id);
-  const { search, accion, tipo, from, to, page, itemsPerPage } = filters;
+  const {
+    search,
+    accion,
+    tipo,
+    from,
+    to,
+    page,
+    itemsPerPage,
+    sortBy,
+    sortOrder,
+  } = filters;
   const offset = (page - 1) * itemsPerPage;
 
   const pool = createPool();
@@ -271,10 +283,25 @@ export async function getEntries(
     const total = countResult.rows[0].count;
 
     // Build the entries query with parameters
+    const allowedSortFields = new Set([
+      "fecha",
+      "accion",
+      "que",
+      "tipo",
+      "plataforma_pago",
+      "cantidad",
+    ]);
+    const sortField =
+      sortBy && allowedSortFields.has(String(sortBy))
+        ? String(sortBy)
+        : "fecha";
+    const sortDirection =
+      String(sortOrder)?.toLowerCase() === "asc" ? "ASC" : "DESC";
+
     const entriesQuery = `SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id
       FROM finance_entries
       ${whereStatment}
-      ORDER BY fecha DESC
+      ORDER BY ${sortField} ${sortDirection}
       LIMIT ${itemsPerPage}
       OFFSET ${offset}
     `;
@@ -291,6 +318,38 @@ export async function getEntries(
   } finally {
     await pool.end();
   }
+}
+
+export async function bulkDeleteEntries(
+  ids: string[],
+  session: { user: { id: string } }
+) {
+  if (!ids || ids.length === 0) return;
+  const client = createClient();
+  await client.connect();
+  try {
+    await client.query(
+      `DELETE FROM finance_entries
+       WHERE id = ANY($1::uuid[])
+       AND user_id = $2`,
+      [ids, session.user.id]
+    );
+    revalidatePath("/");
+  } finally {
+    await client.end();
+  }
+}
+
+export async function bulkDeleteEntriesAction(
+  formData: FormData,
+  session: { user: { id: string } }
+) {
+  const raw = String(formData.get("ids") || "");
+  const ids = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return bulkDeleteEntries(ids, session);
 }
 
 // Get entries for export (with filters)

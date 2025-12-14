@@ -13,6 +13,8 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get('to') || '';
   const page = parseInt(searchParams.get('page') || '1');
   const itemsPerPage = parseInt(searchParams.get('itemsPerPage') || ITEMS_PER_PAGE_DEFAULT.toString());
+  const sortBy = searchParams.get('sortBy') || '';
+  const sortOrder = searchParams.get('sortOrder') || '';
 
   const session = await getServerSession(authOptions);
 
@@ -30,7 +32,9 @@ export async function GET(request: NextRequest) {
       from,
       to,
       page,
-      itemsPerPage
+      itemsPerPage,
+      sortBy,
+      sortOrder
     };
 
     const result = await getEntries(filters, { user: { id: session.user.id } });

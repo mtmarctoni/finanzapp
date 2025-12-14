@@ -3,11 +3,12 @@
 import { getFinanceEntries } from "@/lib/data"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useSession } from "next-auth/react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, Copy } from "lucide-react"
 import Link from "next/link"
-import { deleteEntry } from "@/lib/actions"
+import { deleteEntry, bulkDeleteEntriesAction } from "@/lib/actions"
 import { duplicateEntry } from "@/lib/data"
 import { useTransition } from "react"
 import { useEffect, useState } from "react"
@@ -27,12 +28,15 @@ export default function FinanceTable({
     to?: string
     page?: string
     itemsPerPage?: string
+    sortBy?: string
+    sortOrder?: string
   }
 }) {
   // Add isPending state for optimistic UI updates
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const [entries, setEntries] = useState<PaginatedEntriesResponse>({ data: [], totalItems: 0, totalPages: 0, currentPage: 1 })
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   
   const search = searchParams?.search || ""
   const accion = searchParams?.accion || "todos"
@@ -41,30 +45,105 @@ export default function FinanceTable({
   const { data: session } = useSession() || ""
   const currentPage = Number(searchParams?.page) || 1
   const itemsPerPage = Number(searchParams?.itemsPerPage) || 10
+  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad">(searchParams?.sortBy as any || "fecha")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as any) || "desc")
   
   console.log('FinanceTable received params:', { search, accion, from, to, currentPage, itemsPerPage })
 
   useEffect(() => {
     const getEntries = async () => {
-      console.log('Fetching entries with params:', { search, accion, from, to, page: currentPage, itemsPerPage })
-      const result = await getFinanceEntries({ search, accion, from, to, page: currentPage, itemsPerPage }) as PaginatedEntriesResponse
+      console.log('Fetching entries with params:', { search, accion, from, to, page: currentPage, itemsPerPage, sortBy, sortOrder })
+      const result = await getFinanceEntries({ search, accion, from, to, page: currentPage, itemsPerPage, sortBy, sortOrder }) as any
       console.log('Received entries:', result)
-      setEntries(result)
+      setEntries({
+        data: result.data ?? [],
+        totalItems: (result.totalItems ?? result.total ?? 0) as number,
+        totalPages: result.totalPages ?? 0,
+        currentPage: result.currentPage ?? currentPage,
+      })
     }
     getEntries()
-  }, [search, accion, from, to, currentPage, itemsPerPage])
+  }, [search, accion, from, to, currentPage, itemsPerPage, sortBy, sortOrder])
+
+  const allSelected = entries.data.length > 0 && selectedIds.length === entries.data.length
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(entries.data.map((e) => e.id))
+    }
+  }
+
+  const toggleOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    )
+  }
+
+  const handleSort = (field: "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad") => {
+    const nextOrder = sortBy === field && sortOrder === "desc" ? "asc" : "desc"
+    setSortBy(field)
+    setSortOrder(nextOrder)
+    const params = new URLSearchParams(searchParams as Record<string, string>)
+    params.set("sortBy", field)
+    params.set("sortOrder", nextOrder)
+    router.push(`/records?${params.toString()}`)
+  }
   
   return (
     <div className="rounded-md border w-full overflow-x-auto">
+      <div className="flex items-center justify-between p-3">
+        <div className="text-sm text-muted-foreground">
+          {selectedIds.length} seleccionados
+        </div>
+        <form
+          action={(formData) => {
+            startTransition(async () => {
+              if (!session?.user?.id) {
+                throw new Error('User session not available');
+              }
+              await bulkDeleteEntriesAction(formData, { user: { id: session.user.id } })
+              const remaining = entries.data.filter((e) => !selectedIds.includes(e.id))
+              setEntries({
+                ...entries,
+                data: remaining,
+                totalItems: Math.max(0, entries.totalItems - selectedIds.length)
+              })
+              setSelectedIds([])
+            })
+          }}
+        >
+          <input type="hidden" name="ids" value={selectedIds.join(",")} />
+          <Button
+            variant="destructive"
+            size="sm"
+            type="submit"
+            disabled={isPending || selectedIds.length === 0}
+            aria-label="Eliminar entradas seleccionadas"
+          >
+            Eliminar seleccionados
+          </Button>
+        </form>
+      </div>
       <Table className="w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[100px]">Fecha</TableHead>
-            <TableHead>Accion</TableHead>
-            <TableHead>Qué</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Plataforma pago</TableHead>
-            <TableHead>Cantidad</TableHead>
+            <TableHead className="w-[40px]">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={toggleAll}
+                aria-label="Seleccionar todas las filas"
+              />
+            </TableHead>
+            <TableHead className="w-[100px]" onClick={() => handleSort("fecha")} role="button" aria-label="Ordenar por fecha">
+              Fecha
+            </TableHead>
+            <TableHead onClick={() => handleSort("accion")} role="button" aria-label="Ordenar por acción">Accion</TableHead>
+            <TableHead onClick={() => handleSort("que")} role="button" aria-label="Ordenar por qué">Qué</TableHead>
+            <TableHead onClick={() => handleSort("tipo")} role="button" aria-label="Ordenar por tipo">Tipo</TableHead>
+            <TableHead onClick={() => handleSort("plataforma_pago")} role="button" aria-label="Ordenar por plataforma pago">Plataforma pago</TableHead>
+            <TableHead onClick={() => handleSort("cantidad")} role="button" aria-label="Ordenar por cantidad">Cantidad</TableHead>
             <TableHead>Detalle 1</TableHead>
             <TableHead>Detalle 2</TableHead>
             <TableHead>Acciones</TableHead>
@@ -73,14 +152,20 @@ export default function FinanceTable({
         <TableBody>
           {entries.data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+              <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                 No hay entradas. Añade una nueva entrada para comenzar.
               </TableCell>
             </TableRow>
           ) : (
             entries.data.map((entry) => (
               <TableRow key={entry.id}>
-                {/* true = include time */}
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.includes(entry.id)}
+                    onCheckedChange={() => toggleOne(entry.id)}
+                    aria-label={`Seleccionar fila ${entry.id}`}
+                  />
+                </TableCell>
                 <TableCell className="font-medium">{formatDate(entry.fecha)}</TableCell>
                 <TableCell>
                   <span 
@@ -110,6 +195,7 @@ export default function FinanceTable({
                         variant="outline"
                         size="sm"
                         title="Editar"
+                        aria-label={`Editar entrada ${entry.id}`}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -135,15 +221,23 @@ export default function FinanceTable({
                               from, 
                               to, 
                               page: currentPage, 
-                              itemsPerPage 
-                            }) as PaginatedEntriesResponse;
-                            setEntries(result);
+                              itemsPerPage,
+                              sortBy,
+                              sortOrder
+                            }) as any;
+                            setEntries({
+                              data: result.data ?? [],
+                              totalItems: (result.totalItems ?? result.total ?? 0) as number,
+                              totalPages: result.totalPages ?? 0,
+                              currentPage: result.currentPage ?? currentPage,
+                            });
                           });
                         } catch (error) {
                           console.error('Error duplicando entrada:', error);
                           alert('Error al duplicar la entrada');
                         }
                       }}
+                      aria-label={`Duplicar entrada ${entry.id}`}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -174,6 +268,7 @@ export default function FinanceTable({
                         size="sm"
                         type="submit"
                         disabled={isPending}
+                        aria-label={`Eliminar entrada ${entry.id}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -196,9 +291,9 @@ export default function FinanceTable({
               const params = new URLSearchParams(searchParams as Record<string, string>)
               params.set('page', '1')
               params.set('itemsPerPage', String(itemsPerPage))
-              router.push(`/?${params.toString()}`)
+              router.push(`/records?${params.toString()}`)
             }}
-          >
+            >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
           
@@ -210,7 +305,7 @@ export default function FinanceTable({
               const params = new URLSearchParams(searchParams as Record<string, string>)
               params.set('page', String(currentPage - 1))
               params.set('itemsPerPage', String(itemsPerPage))
-              router.push(`/?${params.toString()}`)
+              router.push(`/records?${params.toString()}`)
             }}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -228,7 +323,7 @@ export default function FinanceTable({
               const params = new URLSearchParams(searchParams as Record<string, string>)
               params.set('page', String(currentPage + 1))
               params.set('itemsPerPage', String(itemsPerPage))
-              router.push(`/?${params.toString()}`)
+              router.push(`/records?${params.toString()}`)
             }}
           >
             <ChevronRight className="h-4 w-4" />
@@ -242,7 +337,7 @@ export default function FinanceTable({
               const params = new URLSearchParams(searchParams as Record<string, string>)
               params.set('page', String(entries.totalPages))
               params.set('itemsPerPage', String(itemsPerPage))
-              router.push(`/?${params.toString()}`)
+              router.push(`/records?${params.toString()}`)
             }}
           >
             <ChevronsRight className="h-4 w-4" />

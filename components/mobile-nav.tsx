@@ -14,13 +14,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    name: "Inicio",
-    href: "/",
+    name: "Dashboard",
+    href: "/dashboard",
     icon: Home,
   },
   {
-    name: "Dashboard",
-    href: "/dashboard",
+    name: "Registros",
+    href: "/records",
     icon: LayoutDashboard,
   },
   {
