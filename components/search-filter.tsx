@@ -61,21 +61,29 @@ export function SearchFilter({
       onSearch(filterObj)
     } else {
       // Default behavior: update URL
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (accion && accion !== 'todos') params.set("accion", accion);
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
+      const params = new URLSearchParams(current);
+      // apply filters
+      if (search) params.set("search", search); else params.delete("search");
+      if (accion && accion !== 'todos') params.set("accion", accion); else params.delete("accion");
       if (fromDate) {
         const year = fromDate.getFullYear();
         const month = String(fromDate.getMonth() + 1).padStart(2, '0');
         const day = String(fromDate.getDate()).padStart(2, '0');
         params.set("from", `${year}-${month}-${day}`);
+      } else {
+        params.delete("from");
       }
       if (toDate) {
         const year = toDate.getFullYear();
         const month = String(toDate.getMonth() + 1).padStart(2, '0');
         const day = String(toDate.getDate()).padStart(2, '0');
         params.set("to", `${year}-${month}-${day}`);
+      } else {
+        params.delete("to");
       }
+      // reset pagination when applying filters
+      params.set("page", "1");
       router.push(`${pathname}?${params.toString()}`);
     }
   };
@@ -85,7 +93,14 @@ export function SearchFilter({
     if (onSearch) {
       onSearch({ search: "", accion: "todos" });
     } else {
-      router.push(pathname);
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
+      const params = new URLSearchParams(current);
+      params.delete("search");
+      params.delete("accion");
+      params.delete("from");
+      params.delete("to");
+      params.set("page", "1");
+      router.push(`${pathname}?${params.toString()}`);
     }
   };
 

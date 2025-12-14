@@ -5,7 +5,6 @@ import { PlusCircle, FileDown } from "lucide-react"
 import FinanceTable from "@/components/finance-table"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { SearchFilter } from "@/components/search-filter"
-import { cookies } from "next/headers"
 import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from "@/config"
 
 export const dynamic = "force-dynamic"
@@ -13,16 +12,23 @@ export const dynamic = "force-dynamic"
 export default async function RecordsPage({
   searchParams,
 }: {
-  searchParams?: {
+  searchParams?: Promise<{
     search?: string
     accion?: string
     from?: string
     to?: string
     page?: string
     itemsPerPage?: string
-  }
+  }>
 }) {
-  const { search = "", accion = DEFAULT_ACCION_FILTER, from = "", to = "", page = "1", itemsPerPage = String(ITEMS_PER_PAGE) } = searchParams || {}
+  const {
+    search = "",
+    accion = DEFAULT_ACCION_FILTER,
+    from = "",
+    to = "",
+    page = "1",
+    itemsPerPage = String(ITEMS_PER_PAGE),
+  } = await searchParams ?? {}
 
   const filterParams = { search, accion, from, to, page, itemsPerPage }
 

@@ -221,66 +221,64 @@ export async function getEntries(
 
   try {
     console.log("Getting entries with filters:", filters);
-    // Build WHERE clause
     const whereClauses: string[] = [];
     const params: (string | number)[] = [];
+    let paramIndex = 1;
 
     if (search) {
-      // Create pattern with wildcards
-      const searchPattern = `%${search}%`;
-      // We need to use different parameter numbers for each condition
-      whereClauses.push(`
-        accion ILIKE '${searchPattern}' OR
-        que ILIKE '${searchPattern}' OR
-        tipo ILIKE '${searchPattern}' OR
-        plataforma_pago ILIKE '${searchPattern}' OR
-        detalle1 ILIKE '${searchPattern}' OR
-        detalle2 ILIKE '${searchPattern}'
-      `);
-      // Push the pattern for each condition
-      params.push(
-        searchPattern,
-        searchPattern,
-        searchPattern,
-        searchPattern,
-        searchPattern,
-        searchPattern
+      whereClauses.push(
+        `(
+          accion ILIKE $${paramIndex} OR
+          que ILIKE $${paramIndex} OR
+          tipo ILIKE $${paramIndex} OR
+          plataforma_pago ILIKE $${paramIndex} OR
+          detalle1 ILIKE $${paramIndex} OR
+          detalle2 ILIKE $${paramIndex}
+        )`
       );
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
     if (accion && accion !== "todos") {
-      whereClauses.push(`accion = '${accion}'`);
+      whereClauses.push(`accion = $${paramIndex}`);
+      params.push(accion);
+      paramIndex++;
     }
 
     if (tipo && tipo !== "todos") {
-      whereClauses.push(`tipo = '${tipo}'`);
+      whereClauses.push(`tipo = $${paramIndex}`);
+      params.push(tipo);
+      paramIndex++;
     }
 
     if (from) {
-      // Use local time without Z to prevent timezone offset issues
-      whereClauses.push(`fecha >= '${from}T00:00:00.000'::timestamptz`);
+      whereClauses.push(
+        `fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`
+      );
+      params.push(from);
+      paramIndex++;
     }
 
     if (to) {
-      // Use local time without Z to prevent timezone offset issues
-      whereClauses.push(`fecha <= '${to}T23:59:59.999'::timestamptz`);
+      whereClauses.push(
+        `fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`
+      );
+      params.push(to);
+      paramIndex++;
     }
 
-    // Add user filter
-    // console.log('USER ID', userId)
-    whereClauses.push(`user_id = '${userId}'`);
+    whereClauses.push(`user_id = $${paramIndex}`);
+    params.push(userId);
+    paramIndex++;
 
-    // Build final WHERE clause
     const whereStatment =
       whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
-    console.log("Final WHERE clause:", whereStatment);
+    console.log("Final WHERE clause:", whereStatment, params);
 
-    // Build the full query with parameters
-    const countQuery = `SELECT COUNT(*) FROM finance_entries ${whereStatment}`;
-    const countResult = await pool.query(countQuery);
-    console.log("countResult", countResult);
-
-    const total = countResult.rows[0].count;
+    const countQuery = `SELECT COUNT(*)::int AS count FROM finance_entries ${whereStatment}`;
+    const countResult = await pool.query(countQuery, params);
+    const total = countResult.rows[0]?.count ?? 0;
 
     // Build the entries query with parameters
     const allowedSortFields = new Set([
@@ -302,13 +300,17 @@ export async function getEntries(
       FROM finance_entries
       ${whereStatment}
       ORDER BY ${sortField} ${sortDirection}
-      LIMIT ${itemsPerPage}
-      OFFSET ${offset}
+      LIMIT $${params.length + 1}
+      OFFSET $${params.length + 2}
     `;
-    const entriesResult = await pool.query(entriesQuery);
+    const entriesResult = await pool.query(entriesQuery, [
+      ...params,
+      itemsPerPage,
+      offset,
+    ]);
     // console.log('entriesResult', entriesResult)
     const entries = entriesResult.rows as Entry[];
-    const totalPages = Math.ceil(total / itemsPerPage);
+    const totalPages = Math.ceil((total || 0) / itemsPerPage);
     // console.log('entries', entries)
     return {
       entries,
