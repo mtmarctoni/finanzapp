@@ -94,40 +94,42 @@ export default function FinanceTable({
   
   return (
     <div className="rounded-md border w-full overflow-x-auto">
-      <div className="flex items-center justify-between p-3">
-        <div className="text-sm text-muted-foreground">
-          {selectedIds.length} seleccionados
-        </div>
-        <form
-          action={(formData) => {
-            startTransition(async () => {
-              if (!session?.user?.id) {
-                alert('Debes iniciar sesión para eliminar entradas');
-                return;
-              }
-              await deleteManyEntries(formData, { user: { id: session.user.id } })
-              const remaining = entries.data.filter((e) => !selectedIds.includes(e.id))
-              setEntries({
-                ...entries,
-                data: remaining,
-                totalItems: Math.max(0, entries.totalItems - selectedIds.length)
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between p-3 animate-in fade-in zoom-in-95">
+          <div className="text-sm text-muted-foreground">
+            {selectedIds.length} seleccionados
+          </div>
+          <form
+            action={(formData) => {
+              startTransition(async () => {
+                if (!session?.user?.id) {
+                  alert('Debes iniciar sesión para eliminar entradas');
+                  return;
+                }
+                await deleteManyEntries(formData, { user: { id: session.user.id } })
+                const remaining = entries.data.filter((e) => !selectedIds.includes(e.id))
+                setEntries({
+                  ...entries,
+                  data: remaining,
+                  totalItems: Math.max(0, entries.totalItems - selectedIds.length)
+                })
+                setSelectedIds([])
               })
-              setSelectedIds([])
-            })
-          }}
-        >
-          <input type="hidden" name="ids" value={selectedIds.join(",")} />
-          <Button
-            variant="destructive"
-            size="sm"
-            type="submit"
-            disabled={isPending || selectedIds.length === 0}
-            aria-label="Eliminar entradas seleccionadas"
+            }}
           >
-            Eliminar seleccionados
-          </Button>
-        </form>
-      </div>
+            <input type="hidden" name="ids" value={selectedIds.join(",")} />
+            <Button
+              variant="destructive"
+              size="sm"
+              type="submit"
+              disabled={isPending || selectedIds.length === 0}
+              aria-label="Eliminar entradas seleccionadas"
+            >
+              Eliminar seleccionados
+            </Button>
+          </form>
+        </div>
+      )}
       <Table className="w-full">
         <TableHeader>
           <TableRow>
