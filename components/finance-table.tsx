@@ -15,6 +15,7 @@ import { useEffect, useState } from "react"
 // import { Entry } from "@/lib/definitions"
 import { useRouter } from "next/navigation"
 import { PaginatedEntriesResponse } from "@/types/api"
+import { DEFAULT_ACCION_FILTER, DEFAULT_SORT_BY, DEFAULT_SORT_ORDER, ITEMS_PER_PAGE } from "@/config"
 
 // Using PaginatedEntriesResponse from types/api.ts instead of this interface
 
@@ -39,14 +40,14 @@ export default function FinanceTable({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   
   const search = searchParams?.search || ""
-  const accion = searchParams?.accion || "todos"
+  const accion = searchParams?.accion || DEFAULT_ACCION_FILTER
   const from = searchParams?.from || ""
   const to = searchParams?.to || ""
   const { data: session } = useSession() || ""
   const currentPage = Number(searchParams?.page) || 1
-  const itemsPerPage = Number(searchParams?.itemsPerPage) || 10
-  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad">(searchParams?.sortBy as any || "fecha")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as any) || "desc")
+  const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE
+  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad">(searchParams?.sortBy as any || DEFAULT_SORT_BY)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as any) || DEFAULT_SORT_ORDER)
   
   console.log('FinanceTable received params:', { search, accion, from, to, currentPage, itemsPerPage })
 

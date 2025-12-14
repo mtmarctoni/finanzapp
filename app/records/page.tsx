@@ -6,6 +6,7 @@ import FinanceTable from "@/components/finance-table"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { SearchFilter } from "@/components/search-filter"
 import { cookies } from "next/headers"
+import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from "@/config"
 
 export const dynamic = "force-dynamic"
 
@@ -21,7 +22,7 @@ export default async function RecordsPage({
     itemsPerPage?: string
   }
 }) {
-  const { search = "", accion = "todos", from = "", to = "", page = "1", itemsPerPage = "100" } = searchParams || {}
+  const { search = "", accion = DEFAULT_ACCION_FILTER, from = "", to = "", page = "1", itemsPerPage = String(ITEMS_PER_PAGE) } = searchParams || {}
 
   const filterParams = { search, accion, from, to, page, itemsPerPage }
 
@@ -61,4 +62,3 @@ export default async function RecordsPage({
     </main>
   )
 }
-
