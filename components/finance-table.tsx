@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useSession } from "next-auth/react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, Copy } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, Copy, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
 import { deleteEntry, bulkDeleteEntriesAction } from "@/lib/actions"
 import { duplicateEntry } from "@/lib/data"
@@ -137,14 +137,138 @@ export default function FinanceTable({
                 aria-label="Seleccionar todas las filas"
               />
             </TableHead>
-            <TableHead className="w-[100px]" onClick={() => handleSort("fecha")} role="button" aria-label="Ordenar por fecha">
-              Fecha
+            <TableHead
+              className="w-[100px] group cursor-pointer select-none"
+              onClick={() => handleSort("fecha")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("fecha")}
+              role="button"
+              tabIndex={0}
+              aria-label="Ordenar por fecha"
+              aria-sort={sortBy === "fecha" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Fecha
+                {sortBy === "fecha" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
             </TableHead>
-            <TableHead onClick={() => handleSort("accion")} role="button" aria-label="Ordenar por acción">Accion</TableHead>
-            <TableHead onClick={() => handleSort("que")} role="button" aria-label="Ordenar por qué">Qué</TableHead>
-            <TableHead onClick={() => handleSort("tipo")} role="button" aria-label="Ordenar por tipo">Tipo</TableHead>
-            <TableHead onClick={() => handleSort("plataforma_pago")} role="button" aria-label="Ordenar por plataforma pago">Plataforma pago</TableHead>
-            <TableHead onClick={() => handleSort("cantidad")} role="button" aria-label="Ordenar por cantidad">Cantidad</TableHead>
+            <TableHead
+              className="group cursor-pointer select-none"
+              onClick={() => handleSort("accion")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("accion")}
+              role="button"
+              tabIndex={0}
+              aria-label="Ordenar por acción"
+              aria-sort={sortBy === "accion" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Accion
+                {sortBy === "accion" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
+            </TableHead>
+            <TableHead
+              className="group cursor-pointer select-none"
+              onClick={() => handleSort("que")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("que")}
+              role="button"
+              tabIndex={0}
+              aria-label="Ordenar por qué"
+              aria-sort={sortBy === "que" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Qué
+                {sortBy === "que" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
+            </TableHead>
+            <TableHead
+              className="group cursor-pointer select-none"
+              onClick={() => handleSort("tipo")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("tipo")}
+              role="button"
+              tabIndex={0}
+              aria-label="Ordenar por tipo"
+              aria-sort={sortBy === "tipo" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Tipo
+                {sortBy === "tipo" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
+            </TableHead>
+            <TableHead
+              className="group cursor-pointer select-none"
+              onClick={() => handleSort("plataforma_pago")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("plataforma_pago")}
+              role="button"
+              tabIndex={0}
+              aria-label="Ordenar por plataforma pago"
+              aria-sort={sortBy === "plataforma_pago" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Plataforma pago
+                {sortBy === "plataforma_pago" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
+            </TableHead>
+            <TableHead
+              className="group cursor-pointer select-none"
+              onClick={() => handleSort("cantidad")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("cantidad")}
+              role="button"
+              tabIndex={0}
+              aria-label="Ordenar por cantidad"
+              aria-sort={sortBy === "cantidad" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Cantidad
+                {sortBy === "cantidad" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
+            </TableHead>
             <TableHead>Detalle 1</TableHead>
             <TableHead>Detalle 2</TableHead>
             <TableHead>Acciones</TableHead>
