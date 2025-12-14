@@ -1,204 +1,75 @@
 // app/analytics/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Bar, Doughnut } from 'react-chartjs-2';
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  Title, 
-  Tooltip, 
-  Legend, 
-  ArcElement,
-  ChartData,
-  ChartDataset
-} from 'chart.js';
-import { SearchFilter } from "@/components/search-filter";
 
-// Register ChartJS components
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+import { AnalyticsFilter } from "@/components/analytics-filter";
+import { useAnalyticsData } from "@/hooks/use-analytics-data";
+import { getTemporalChartData, getCategoryChartData } from "@/lib/analytics-charts";
+import { SummaryCards } from "@/components/analytics/SummaryCards";
+import { PerActionCards } from "@/components/analytics/PerActionCards";
+import { TemporalChart } from "@/components/analytics/TemporalChart";
+import { NetTrendChart } from "@/components/analytics/NetTrendChart";
+import { CategoryChart } from "@/components/analytics/CategoryChart";
 
-interface AnalyticsData {
-  temporalData: Array<{
-    month: string;
-    action: string;
-    total: number;
-  }>;
-  categoryData: Array<{
-    category: string;
-    action: string;
-    total: number;
-  }>;
-  sums: {
-    gastos: number;
-    ingresos: number;
-    inversion: number;
-  };
-}
-
-interface Filters {
-  search: string;
-  accion: string;
-  from?: Date;
-  to?: Date;
-}
 
 export default function AnalyticsPage() {
-  const searchParams = useSearchParams();
-  const [data, setData] = useState<AnalyticsData>({
-    temporalData: [],
-    categoryData: [],
-    sums: {
-      gastos: 0,
-      ingresos: 0,
-      inversion: 0,
-    },
+  const { data, filters, setFilters, loading } = useAnalyticsData();
+
+  // Compute income - expenses (excluding investments) per period ("balance")
+  const netIncomeExpenseLabels = Array.from(new Set(data.temporalData.map(item => item.period))).sort();
+  const balance = netIncomeExpenseLabels.map(period => {
+    const ingresos = data.temporalData
+      .filter(item => item.period === period && item.action === "Ingreso")
+      .reduce((sum, item) => sum + Number(item.total || 0), 0);
+    const gastos = data.temporalData
+      .filter(item => item.period === period && item.action === "Gasto")
+      .reduce((sum, item) => sum + Number(item.total || 0), 0);
+    return ingresos - Math.abs(gastos);
   });
-  const [loading, setLoading] = useState(true);
-  
-  // Initialize filters from URL params
-  const initialFilters = useCallback(() => {
-    const search = searchParams.get('search') || '';
-    const accion = searchParams.get('accion') || 'todos';
-    const from = searchParams.get('from') ? new Date(searchParams.get('from') as string) : undefined;
-    const to = searchParams.get('to') ? new Date(searchParams.get('to') as string) : undefined;
-    return { search, accion, from, to };
-  }, [searchParams]);
+  const accBalance = balance.reduce((acc: number[], curr) => {
+    if (acc.length === 0) return [curr];
+    acc.push(acc[acc.length - 1] + curr);
+    return acc;
+  }, []);
 
-  const [filters, setFilters] = useState<Filters>(initialFilters());
-
-  useEffect(() => {
-    setFilters(initialFilters());
-  }, [initialFilters]);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      
-      if (filters.search) params.set('search', filters.search);
-      if (filters.accion && filters.accion !== 'todos') params.set('action', filters.accion);
-      if (filters.from) params.set('from', filters.from.toISOString().split('T')[0]);
-      if (filters.to) params.set('to', filters.to.toISOString().split('T')[0]);
-      
-      const response = await fetch(`/api/analytics?${params.toString()}`);
-      if (!response.ok) throw new Error('Error fetching analytics data');
-      
-      const result = await response.json();
-      setData(result);
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-    } finally {
-      setLoading(false);
+  const monthsInRange = (() => {
+    const msPerDay = 24 * 60 * 60 * 1000;
+    let start: Date | undefined;
+    let end: Date | undefined;
+    if (filters.from && filters.to) {
+      start = new Date(filters.from);
+      end = new Date(filters.to);
+    } else if ((data.temporalData || []).length > 0) {
+      const periods = (data.temporalData || []).map(t => new Date(t.period));
+      start = new Date(Math.min(...periods.map(p => p.getTime())));
+      end = new Date(Math.max(...periods.map(p => p.getTime())));
     }
-  }
-  , [filters]);
+    if (!start || !end) return 0;
+    const startMs = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0).getTime();
+    const endMs = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999).getTime();
+    const days = Math.max(0, (endMs - startMs) / msPerDay);
+    return days / 30;
+  })();
+  const yearsInRange = monthsInRange / 12;
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-
-  // Prepare data for temporal chart
-  const getTemporalChartData = () => {
-    const months = Array.from(new Set(data.temporalData.map(item => item.month))).sort();
-    const actions = Array.from(new Set(data.temporalData.map(item => item.action)));
-    
-    const datasets: ChartDataset<'bar', number[]>[] = actions.map(action => {
-      const color = action === 'Ingreso' 
-        ? 'rgba(75, 192, 192, 0.6)' 
-        : action === 'Gasto' 
-          ? 'rgba(255, 99, 132, 0.6)' 
-          : 'rgba(54, 162, 235, 0.6)';
-
-      return {
-        label: action,
-        data: months.map(month => {
-          const item = data.temporalData.find(d => d.month === month && d.action === action);
-          return item ? Math.abs(item.total) : 0;
-        }),
-        backgroundColor: color,
-        borderColor: color.replace('0.6', '1'),
-        borderWidth: 1,
-      } as ChartDataset<'bar', number[]>;
-    });
-
-    // Add a total dataset
-    if (datasets.length > 0) {
-      const totalData = months.map(month => {
-        return data.temporalData
-          .filter(item => item.month === month)
-          .reduce((sum, item) => sum + Math.abs(item.total), 0);
-      });
-
-      datasets.push({
-        label: 'Total',
-        data: totalData,
-        backgroundColor: 'rgba(201, 203, 207, 0.6)',
-        borderColor: 'rgba(201, 203, 207, 1)',
-        borderWidth: 1,
-        borderDash: [5, 5],
-        borderDashOffset: 0,
-      } as ChartDataset<'bar', number[]>);
-    }
-
-    return {
-      labels: months.map(month => format(new Date(month), 'MMM yyyy', { locale: es })),
-      datasets,
-    } as ChartData<'bar', number[], string>;
-  };
-
-  // Prepare data for category chart
-  const getCategoryChartData = () => {
-    // Group by category and sum amounts
-    const categoryTotals = data.categoryData.reduce((acc, item) => {
-      if (!acc[item.category]) {
-        acc[item.category] = 0;
-      }
-      acc[item.category] += Math.abs(item.total);
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Convert to array and sort by total
-    const sortedData = Object.entries(categoryTotals)
-      .map(([category, total]) => ({ category, total }))
-      .sort((a, b) => b.total - a.total);
-
-    const colors = [
-      '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-      '#FF9F40', '#8AC24A', '#FF5252', '#607D8B', '#9C27B0'
-    ];
-    
-    // Add total to the chart title
-    const total = sortedData.reduce((sum, item) => sum + item.total, 0);
-    
-    return {
-      labels: sortedData.map(item => item.category),
-      datasets: [{
-        data: sortedData.map(item => item.total),
-        backgroundColor: sortedData.map((_, index) => colors[index % colors.length]),
-        borderWidth: 1,
-      }],
-      total,
-    };
-  };
-
+  // Chart options (can be further extracted if needed)
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       tooltip: {
         callbacks: {
-          label: (context: import('chart.js').TooltipItem<'bar'>) => {
+          label: (context: any) => {
             const label = context.label || '';
             const value = context.raw as number;
-            return `${label}: ${value.toFixed(2)} €`;
+            const index = context.dataIndex;
+            const datasetLabel = context.dataset.label as string;
+            const periodIso = (data.temporalData || [])
+              .map((td: any) => td.period)
+              .sort()[index];
+            const match = (data.temporalData || []).find((d: any) => d.action === datasetLabel && d.period === periodIso);
+            const countText = match?.count ? ` • ${match.count} mov.` : '';
+            return `${label} — ${datasetLabel}: ${value.toFixed(2)} €${countText}`;
           }
         }
       }
@@ -216,133 +87,111 @@ export default function AnalyticsPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Analíticas Financieras</h1>
-      
-      {/* Search and Filters */}
       <div className="mb-6">
-        <SearchFilter 
-          defaultValues={{
-            search: filters.search,
-            accion: filters.accion,
-            fromDate: filters.from,
-            toDate: filters.to
-          }}
-          onSearch={(newFilters) => {
-            setFilters({
-              search: newFilters.search,
-              accion: newFilters.accion,
-              from: newFilters.from,
-              to: newFilters.to
-            });
-          }}
-          showActionFilter={true}
-          className="bg-white p-4 rounded-lg shadow-sm"
+        <AnalyticsFilter
+          value={filters}
+          onChange={setFilters}
+          actions={[...new Set(data.temporalData.map(d => d.action))]}
+          categories={[...new Set(data.categoryData.map(d => d.category))]}
+          platforms={[...new Set([
+            ...data.temporalData.map((d: any) => d.platform).filter(Boolean),
+            ...data.categoryData.map((d: any) => d.platform).filter(Boolean)
+          ])]}
+          types={[...new Set([
+            ...data.temporalData.map((d: any) => d.type).filter(Boolean),
+            ...data.categoryData.map((d: any) => d.type).filter(Boolean)
+          ])]}
+          years={[2025, 2024, 2023]}
         />
       </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Gastos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">
-              {data.sums.gastos.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Ingresos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {data.sums.ingresos.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Inversión</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {data.sums.inversion.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      <SummaryCards sums={data.sums} metrics={data.metrics} monthsInRange={monthsInRange} yearsInRange={yearsInRange} />
+      <PerActionCards metrics={data.metrics} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Temporal Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Evolución Temporal</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : data.temporalData.length > 0 ? (
-              <Bar
-                data={getTemporalChartData()}
-                options={chartOptions}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                No hay datos disponibles para el rango seleccionado
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Category Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribución por Categoría</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : data.categoryData.length > 0 ? (
-              <Doughnut
-                data={getCategoryChartData()}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'right' as const,
-                    },
-                    tooltip: {
-                      callbacks: {
-                        label: (context: import('chart.js').TooltipItem<'doughnut'>) => {
-                          const label = context.label || '';
-                          const value = context.raw as number;
-                          const total = (context.dataset.data as number[]).reduce((a, b) => a + b, 0);
-                          const percentage = Math.round((value / total) * 100);
-                          return `${label}: ${value.toFixed(2)} € (${percentage}%)`;
-                        }
-                      }
-                    },
-                    title: {
-                      display: true,
-                      text: `Total: ${getCategoryChartData().total.toFixed(2)} €`,
-                      position: 'top',
-                    }
+        <TemporalChart data={getTemporalChartData(data, data.metrics?.groupBy || 'month')} options={chartOptions} loading={loading} />
+        <NetTrendChart
+          data={{
+            labels: netIncomeExpenseLabels.map(p => {
+              const d = new Date(p);
+              return (data.metrics?.groupBy === 'year')
+                ? d.getFullYear().toString()
+                : d.toLocaleString('es-ES', { month: 'short', year: 'numeric' });
+            }),
+            datasets: [
+              {
+                label: 'Neto',
+                data: (data.netTemporal || []).map((n: any) => n.net),
+                borderColor: 'rgba(99, 102, 241, 1)',
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+              },
+              {
+                label: 'Balance',
+                data: balance,
+                borderColor: 'rgba(34,197,94,1)',
+                backgroundColor: 'rgba(34,197,94,0.1)',
+                borderDash: [6, 3],
+              },
+              {
+                label: 'Acc Balance',
+                data: accBalance,
+                borderColor: 'rgba(234,179,8,1)',
+                backgroundColor: 'rgba(234,179,8,0.1)',
+                borderDash: [2, 2],
+              }
+            ]
+          }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: (context: any) => {
+                    const value = context.raw as number;
+                    return `Neto: ${value.toFixed(2)} €`;
                   }
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
-                No hay datos disponibles
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                }
+              }
+            },
+            scales: {
+              y: {
+                ticks: { callback: (value: number | string) => `${value} €` }
+              }
+            }
+          }}
+          loading={loading}
+        />
+        <CategoryChart
+          data={getCategoryChartData(data)}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'right' as const },
+              tooltip: {
+                callbacks: {
+                  label: (context: any) => {
+                    const label = context.label || '';
+                    const value = context.raw as number;
+                    const total = (context.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
+                    const percentage = Math.round((value / total) * 100);
+                    const countsByCategory = (data.categoryData || []).reduce((acc: any, cur: any) => {
+                      acc[cur.category] = (acc[cur.category] || 0) + (cur.count || 0);
+                      return acc;
+                    }, {});
+                    const count = countsByCategory[label] || 0;
+                    return `${label}: ${value.toFixed(2)} € (${percentage}%) • ${count} mov.`;
+                  }
+                }
+              },
+              title: {
+                display: true,
+                text: `Total: ${getCategoryChartData(data).total.toFixed(2)} €`,
+                position: 'top',
+              }
+            }
+          }}
+          loading={loading}
+        />
       </div>
     </div>
   );

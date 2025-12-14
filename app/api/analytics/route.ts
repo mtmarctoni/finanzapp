@@ -9,9 +9,26 @@ export async function GET(request: NextRequest) {
 
   // Get all possible filter parameters
   const search = searchParams.get("search");
-  const action = searchParams.get("action") || "todos";
   const fromDate = searchParams.get("from");
   const toDate = searchParams.get("to");
+  const groupBy = (searchParams.get("groupBy") || "month").toLowerCase() === "year" ? "year" : "month";
+  const useActivePeriods = (searchParams.get("useActivePeriods") || "false").toLowerCase() === "true";
+  const minAmountParam = searchParams.get("minAmount");
+  const maxAmountParam = searchParams.get("maxAmount");
+  const minAmount = minAmountParam ? Number(minAmountParam) : undefined;
+  const maxAmount = maxAmountParam ? Number(maxAmountParam) : undefined;
+  // Support both 'action' (recommended) and legacy 'accion'
+  const actionValues = searchParams.getAll("action");
+  const accionLegacy = searchParams.get("accion");
+  const actions =
+    actionValues.length > 0
+      ? actionValues
+      : accionLegacy
+      ? [accionLegacy]
+      : [];
+  const categories = searchParams.getAll("category");
+  const platforms = searchParams.getAll("platform");
+  const types = searchParams.getAll("type");
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -24,7 +41,7 @@ export async function GET(request: NextRequest) {
     try {
       // Build WHERE clause
       const whereClauses: string[] = [`user_id = '${session.user.id}'`];
-      const queryParams: string[] = [];
+      const queryParams: any[] = [];
       let paramIndex = 1;
 
       if (search) {
@@ -40,10 +57,10 @@ export async function GET(request: NextRequest) {
         paramIndex++;
       }
 
-      if (action && action !== "todos") {
-        whereClauses.push(`accion = $${paramIndex}`);
-        queryParams.push(action);
-        paramIndex++;
+      if (actions && actions.length > 0) {
+        const placeholders = actions.map(() => `$${paramIndex++}`).join(", ");
+        whereClauses.push(`accion IN (${placeholders})`);
+        for (const a of actions) queryParams.push(a);
       }
 
       if (fromDate) {
@@ -60,19 +77,51 @@ export async function GET(request: NextRequest) {
         paramIndex++;
       }
 
+      if (categories && categories.length > 0) {
+        const placeholders = categories.map(() => `$${paramIndex++}`).join(", ");
+        whereClauses.push(`que IN (${placeholders})`);
+        for (const c of categories) queryParams.push(c);
+      }
+
+      if (platforms && platforms.length > 0) {
+        const placeholders = platforms.map(() => `$${paramIndex++}`).join(", ");
+        whereClauses.push(`plataforma_pago IN (${placeholders})`);
+        for (const p of platforms) queryParams.push(p);
+      }
+
+      if (types && types.length > 0) {
+        const placeholders = types.map(() => `$${paramIndex++}`).join(", ");
+        whereClauses.push(`tipo IN (${placeholders})`);
+        for (const t of types) queryParams.push(t);
+      }
+
+      if (typeof minAmount === "number" && !Number.isNaN(minAmount)) {
+        whereClauses.push(`cantidad >= $${paramIndex}`);
+        queryParams.push(minAmount);
+        paramIndex++;
+      }
+
+      if (typeof maxAmount === "number" && !Number.isNaN(maxAmount)) {
+        whereClauses.push(`cantidad <= $${paramIndex}`);
+        queryParams.push(maxAmount);
+        paramIndex++;
+      }
+
       const whereClause =
         whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
       // Get data for temporal chart (grouped by month and action)
+      const truncUnit = groupBy === "year" ? "year" : "month";
       const temporalData = await pool.query(
         `SELECT 
-          date_trunc('month', fecha) as month,
+          date_trunc('${truncUnit}', fecha) as period,
           accion as action,
-          SUM(cantidad) as total
+          SUM(cantidad) as total,
+          COUNT(*) as count
         FROM finance_entries
         ${whereClause}
-        GROUP BY date_trunc('month', fecha), accion
-        ORDER BY month, accion`,
+        GROUP BY date_trunc('${truncUnit}', fecha), accion
+        ORDER BY period, accion`,
         queryParams
       );
 
@@ -81,7 +130,8 @@ export async function GET(request: NextRequest) {
         `SELECT 
           que as category,
           accion as action,
-          SUM(cantidad) as total
+          SUM(cantidad) as total,
+          COUNT(*) as count
         FROM finance_entries
         ${whereClause}
         GROUP BY que, accion
@@ -94,11 +144,22 @@ export async function GET(request: NextRequest) {
       const actionSums = await pool.query(
         `SELECT 
           accion as action,
-          SUM(cantidad) as total
+          SUM(cantidad) as total,
+          COUNT(*) as count
         FROM finance_entries
         ${whereClause}
         GROUP BY accion
         HAVING SUM(cantidad) != 0`,
+        queryParams
+      );
+
+      // Overall totals and counts
+      const overall = await pool.query(
+        `SELECT 
+          COALESCE(SUM(cantidad), 0) as total_amount,
+          COUNT(*) as entry_count
+        FROM finance_entries
+        ${whereClause}`,
         queryParams
       );
 
@@ -107,6 +168,77 @@ export async function GET(request: NextRequest) {
         acc[row.action] = row.total;
         return acc;
       }, {} as Record<string, number>);
+      const countsByAction = actionSums.rows.reduce((acc, row) => {
+        acc[row.action] = Number(row.count || 0);
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Compute periodCount
+      let periodCount = 0;
+      if (useActivePeriods) {
+        // count distinct periods present in temporalData
+        const periodSet = new Set<string>();
+        for (const row of temporalData.rows as any[]) {
+          // Normalize to ISO date string (YYYY-MM-01 for month, YYYY-01-01 for year)
+          const dt = new Date(row.period);
+          const iso =
+            truncUnit === "year"
+              ? `${dt.getUTCFullYear()}-01-01`
+              : `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-01`;
+          periodSet.add(iso);
+        }
+        periodCount = periodSet.size;
+      } else {
+        // count all periods in range inclusive based on from/to; fallback to active if missing bounds
+        if (fromDate && toDate) {
+          const start = new Date(fromDate);
+          const end = new Date(toDate);
+          if (truncUnit === "year") {
+            const startYear = start.getUTCFullYear();
+            const endYear = end.getUTCFullYear();
+            periodCount = Math.max(0, endYear - startYear + 1);
+          } else {
+            const startYear = start.getUTCFullYear();
+            const startMonth = start.getUTCMonth();
+            const endYear = end.getUTCFullYear();
+            const endMonth = end.getUTCMonth();
+            periodCount = Math.max(0, (endYear - startYear) * 12 + (endMonth - startMonth) + 1);
+          }
+        } else {
+          // If bounds are missing, fall back to active periods
+          const periodSet = new Set<string>();
+          for (const row of temporalData.rows as any[]) {
+            const dt = new Date(row.period);
+            const iso =
+              truncUnit === "year"
+                ? `${dt.getUTCFullYear()}-01-01`
+                : `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-01`;
+            periodSet.add(iso);
+          }
+          periodCount = periodSet.size;
+        }
+      }
+
+      const totalAmount = Number(overall.rows[0]?.total_amount || 0);
+      const entryCount = Number(overall.rows[0]?.entry_count || 0);
+
+      // Build netTemporal from temporalData rows
+      const netByPeriod = new Map<string, number>();
+      for (const row of temporalData.rows as any[]) {
+        const key = new Date(row.period).toISOString();
+        const amt = Number(row.total || 0);
+        const act: string = row.action;
+        const current = netByPeriod.get(key) || 0;
+        if (act === "Ingreso") {
+          netByPeriod.set(key, current + amt);
+        } else {
+          // Treat Gasto and Inversión as outflows
+          netByPeriod.set(key, current - Math.abs(amt));
+        }
+      }
+      const netTemporal = Array.from(netByPeriod.entries())
+        .map(([periodIso, net]) => ({ period: periodIso, net }))
+        .sort((a, b) => (a.period < b.period ? -1 : 1));
 
       return NextResponse.json({
         temporalData: temporalData.rows,
@@ -116,6 +248,21 @@ export async function GET(request: NextRequest) {
           ingresos: Math.abs(sums["Ingreso"] || 0),
           inversion: Math.abs(sums["Inversión"] || 0),
         },
+        metrics: {
+          totalAmount: Math.abs(totalAmount),
+          entryCount,
+          periodCount,
+          avgPerPeriodAmount: periodCount > 0 ? Math.abs(totalAmount) / periodCount : 0,
+          avgPerPeriodCount: periodCount > 0 ? entryCount / periodCount : 0,
+          perAction: {
+            Ingreso: { amount: Math.abs(sums["Ingreso"] || 0), count: countsByAction["Ingreso"] || 0 },
+            Gasto: { amount: Math.abs(sums["Gasto"] || 0), count: countsByAction["Gasto"] || 0 },
+            Inversión: { amount: Math.abs(sums["Inversión"] || 0), count: countsByAction["Inversión"] || 0 },
+          },
+          groupBy: truncUnit,
+          useActivePeriods,
+        },
+        netTemporal,
       });
     } catch (error) {
       console.error("Database query error:", error);
