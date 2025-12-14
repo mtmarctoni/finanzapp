@@ -3,37 +3,9 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Repeat, BarChart3, Home, PlusCircle } from "lucide-react"
+import { PlusCircle } from "lucide-react"
 import { Button } from "./ui/button"
-
-type NavItem = {
-  name: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
-const navItems: NavItem[] = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
-    name: "Registros",
-    href: "/records",
-    icon: PlusCircle,
-  },
-  {
-    name: "Gastos Recurrentes",
-    href: "/recurring",
-    icon: Repeat,
-  },
-  {
-    name: "Análisis",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-]
+import { NAV_ITEMS, isActivePath } from "@/config"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -48,12 +20,13 @@ export function Sidebar() {
         </div>
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
+            {NAV_ITEMS.map((item) => {
+              const isActive = isActivePath(pathname, item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                     isActive && "bg-muted text-primary"

@@ -3,37 +3,9 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Home, LayoutDashboard, Repeat, BarChart3, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { AnimatedIcon } from "@/components/ui/animated-icon"
-
-type NavItem = {
-  name: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
-const navItems: NavItem[] = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
-  },
-  {
-    name: "Registros",
-    href: "/records",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Recurrente",
-    href: "/recurring",
-    icon: Repeat,
-  },
-  {
-    name: "Análisis",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-]
+import { NAV_ITEMS, isActivePath } from "@/config"
 
 export function MobileNav() {
   const pathname = usePathname()
@@ -43,12 +15,13 @@ export function MobileNav() {
 
   return (
     <nav className="mobile-nav fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background/95 backdrop-blur-sm md:hidden">
-      {navItems.map((item) => {
-        const isActive = pathname === item.href
+      {NAV_ITEMS.map((item) => {
+        const isActive = isActivePath(pathname, item.href)
         return (
           <Link
             key={item.href}
             href={item.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
               "group relative flex flex-1 flex-col items-center justify-center p-2 text-xs font-medium transition-all duration-200",
               isActive 
