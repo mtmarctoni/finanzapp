@@ -322,27 +322,7 @@ export async function getEntries(
   }
 }
 
-export async function bulkDeleteEntries(
-  ids: string[],
-  session: { user: { id: string } }
-) {
-  if (!ids || ids.length === 0) return;
-  const client = createClient();
-  await client.connect();
-  try {
-    await client.query(
-      `DELETE FROM finance_entries
-       WHERE id = ANY($1::uuid[])
-       AND user_id = $2`,
-      [ids, session.user.id]
-    );
-    revalidatePath("/");
-  } finally {
-    await client.end();
-  }
-}
-
-export async function bulkDeleteEntriesAction(
+export async function deleteManyEntries(
   formData: FormData,
   session: { user: { id: string } }
 ) {
@@ -351,7 +331,12 @@ export async function bulkDeleteEntriesAction(
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  return bulkDeleteEntries(ids, session);
+  for (const id of ids) {
+    const fd = new FormData();
+    fd.set("entryId", id);
+    await deleteEntry(fd, session);
+  }
+  revalidatePath("/");
 }
 
 // Get entries for export (with filters)

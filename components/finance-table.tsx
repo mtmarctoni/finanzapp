@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, Copy, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
-import { deleteEntry, bulkDeleteEntriesAction } from "@/lib/actions"
+import { deleteEntry, deleteManyEntries } from "@/lib/actions"
 import { duplicateEntry } from "@/lib/data"
 import { useTransition } from "react"
 import { useEffect, useState } from "react"
@@ -102,9 +102,10 @@ export default function FinanceTable({
           action={(formData) => {
             startTransition(async () => {
               if (!session?.user?.id) {
-                throw new Error('User session not available');
+                alert('Debes iniciar sesión para eliminar entradas');
+                return;
               }
-              await bulkDeleteEntriesAction(formData, { user: { id: session.user.id } })
+              await deleteManyEntries(formData, { user: { id: session.user.id } })
               const remaining = entries.data.filter((e) => !selectedIds.includes(e.id))
               setEntries({
                 ...entries,
