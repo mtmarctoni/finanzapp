@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
     plugins: {
       tooltip: {
         callbacks: {
-          label: (context: any) => {
+          label: (context: import('chart.js').TooltipItem<'bar'>) => {
             const label = context.label || '';
             const value = context.raw as number;
             const index = context.dataIndex;

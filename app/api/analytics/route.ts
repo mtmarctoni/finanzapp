@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     try {
       // Build WHERE clause
       const whereClauses: string[] = [`user_id = '${session.user.id}'`];
-      const queryParams: any[] = [];
+      const queryParams: string[] = [];
       let paramIndex = 1;
 
       if (search) {
