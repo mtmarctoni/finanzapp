@@ -133,7 +133,7 @@ export default function FinanceTable({
       <Table className="w-full">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[40px]">
+            <TableHead className="w-10">
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={toggleAll}
@@ -141,10 +141,10 @@ export default function FinanceTable({
               />
             </TableHead>
             <TableHead
-              className="w-[100px] group cursor-pointer select-none"
+              className="w-25 group cursor-pointer select-none"
               onClick={() => handleSort("fecha")}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("fecha")}
-              role="button"
+              role="columnheader"
               tabIndex={0}
               aria-label="Ordenar por fecha"
               aria-sort={sortBy === "fecha" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
@@ -166,7 +166,7 @@ export default function FinanceTable({
               className="group cursor-pointer select-none"
               onClick={() => handleSort("accion")}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("accion")}
-              role="button"
+              role="columnheader"
               tabIndex={0}
               aria-label="Ordenar por acción"
               aria-sort={sortBy === "accion" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
@@ -188,7 +188,7 @@ export default function FinanceTable({
               className="group cursor-pointer select-none"
               onClick={() => handleSort("que")}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("que")}
-              role="button"
+              role="columnheader"
               tabIndex={0}
               aria-label="Ordenar por qué"
               aria-sort={sortBy === "que" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
@@ -210,7 +210,7 @@ export default function FinanceTable({
               className="group cursor-pointer select-none"
               onClick={() => handleSort("tipo")}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("tipo")}
-              role="button"
+              role="columnheader"
               tabIndex={0}
               aria-label="Ordenar por tipo"
               aria-sort={sortBy === "tipo" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
@@ -232,7 +232,7 @@ export default function FinanceTable({
               className="group cursor-pointer select-none"
               onClick={() => handleSort("plataforma_pago")}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("plataforma_pago")}
-              role="button"
+              role="columnheader"
               tabIndex={0}
               aria-label="Ordenar por plataforma pago"
               aria-sort={sortBy === "plataforma_pago" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
@@ -254,7 +254,7 @@ export default function FinanceTable({
               className="group cursor-pointer select-none"
               onClick={() => handleSort("cantidad")}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("cantidad")}
-              role="button"
+              role="columnheader"
               tabIndex={0}
               aria-label="Ordenar por cantidad"
               aria-sort={sortBy === "cantidad" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
