@@ -312,7 +312,14 @@ export default function FinanceTable({
                 <TableCell>{entry.tipo}</TableCell>
                 <TableCell>{entry.plataforma_pago}</TableCell>
                 <TableCell className={entry.accion === 'Gasto' ? 'text-red-500' : entry.accion === 'Ingreso' ? 'text-green-500' : 'text-blue-500'}>
-                  {formatCurrency(entry.cantidad)}
+                  <div className="flex flex-col items-center gap-1">
+                    {formatCurrency(entry.cantidad)}
+                    {entry.plataforma_pago.toLowerCase() === 'joyntlanda' && entry.accion === 'Gasto' && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700/70`}>
+                        {formatCurrency(entry.cantidad * 2)}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>{entry.detalle1}</TableCell>
                 <TableCell>{entry.detalle2}</TableCell>
