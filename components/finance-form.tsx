@@ -29,6 +29,8 @@ const formSchema = z.object({
   detalle2: z.string().optional(),
 })
 
+type FinanceFormValues = z.infer<typeof formSchema>
+
 export function FinanceForm({ entry }: { entry?: Entry }) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -59,7 +61,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     fetchOptions()
   }, [])
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FinanceFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: entry
       ? {
@@ -100,7 +102,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     // Create a new object without hora and minuto properties
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { hora, minuto, ...otherValues } = values;
-    let formattedValues = {
+    const formattedValues = {
       ...otherValues,
       fecha: dateWithTime.toISOString()
     };
