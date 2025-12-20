@@ -41,7 +41,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
           accion: entry.accion || "",
           que: entry.que || "",
           plataforma_pago: entry.plataforma_pago || "",
-          cantidad: entry.cantidad || 0,
+          cantidad: entry.plataforma_pago.toLowerCase() === 'joyntlanda' && entry.accion === 'Gasto' ? entry.cantidad * 2 : entry.cantidad,
           detalle1: entry.detalle1 || "",
           detalle2: entry.detalle2 || "",
         }
@@ -59,6 +59,8 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
         },
   })
 
+  const plataformaPago = form.watch('plataforma_pago')
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // Combine date and time into a single ISO string
     const dateWithTime = new Date(values.fecha);
@@ -67,10 +69,16 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     // Create a new object without hora and minuto properties
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { hora, minuto, ...otherValues } = values;
-    const formattedValues = {
+    let formattedValues = {
       ...otherValues,
       fecha: dateWithTime.toISOString()
     };
+
+    // For joyntlanda and Gasto, the entered cantidad is the total, so save half as my part
+    if (formattedValues.plataforma_pago.toLowerCase() === 'joyntlanda' && formattedValues.accion === 'Gasto') {
+      formattedValues.cantidad /= 2;
+    }
+    
     console.log('FECHA:', formattedValues.fecha)
     
     if (!session?.user?.id) {
@@ -206,7 +214,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                 name="cantidad"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cantidad</FormLabel>
+                    <FormLabel>{plataformaPago.toLowerCase() === 'joyntlanda' && form.watch('accion') === 'Gasto' ? 'Total Amount' : 'Cantidad'}</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
