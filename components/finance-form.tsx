@@ -12,6 +12,7 @@ import { createEntry, updateEntry } from "@/lib/actions"
 import { useSession } from "next-auth/react"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Entry } from "@/lib/definitions"
+import { shouldSplitTransaction } from "@/lib/utils"
 
 const formSchema = z.object({
   fecha: z.string().min(1, { message: "La fecha es requerida" }),
@@ -41,7 +42,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
           accion: entry.accion || "",
           que: entry.que || "",
           plataforma_pago: entry.plataforma_pago || "",
-          cantidad: entry.plataforma_pago.toLowerCase() === 'joyntlanda' && entry.accion === 'Gasto' ? entry.cantidad * 2 : entry.cantidad,
+          cantidad: shouldSplitTransaction(entry.plataforma_pago, entry.detalle1, entry.accion) ? entry.cantidad * 2 : entry.cantidad,
           detalle1: entry.detalle1 || "",
           detalle2: entry.detalle2 || "",
         }
@@ -60,6 +61,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
   })
 
   const plataformaPago = form.watch('plataforma_pago')
+  const detalle1 = form.watch('detalle1')
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // Combine date and time into a single ISO string
@@ -74,8 +76,8 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
       fecha: dateWithTime.toISOString()
     };
 
-    // For joyntlanda and Gasto, the entered cantidad is the total, so save half as my part
-    if (formattedValues.plataforma_pago.toLowerCase() === 'joyntlanda' && formattedValues.accion === 'Gasto') {
+    // For joyntlanda transactions, the entered cantidad is the total, so save half as my part
+    if (shouldSplitTransaction(formattedValues.plataforma_pago, formattedValues.detalle1, formattedValues.accion)) {
       formattedValues.cantidad /= 2;
     }
     
@@ -214,7 +216,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                 name="cantidad"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{plataformaPago.toLowerCase() === 'joyntlanda' && form.watch('accion') === 'Gasto' ? 'Total Amount' : 'Cantidad'}</FormLabel>
+                    <FormLabel>{shouldSplitTransaction(plataformaPago, detalle1, form.watch('accion')) ? 'Total Amount' : 'Cantidad'}</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
