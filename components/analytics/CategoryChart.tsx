@@ -1,7 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Doughnut } from 'react-chartjs-2';
-import React from "react";
 import { ChartData, ChartOptions } from 'chart.js';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface CategoryChartProps {
   data: ChartData<'doughnut', number[], string> & { total?: number };
