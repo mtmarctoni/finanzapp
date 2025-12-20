@@ -11,5 +11,5 @@ export default async function Home({
     page?: string
   }
 }) {
-  redirect("/dashboard")
+  redirect("/records")
 }
