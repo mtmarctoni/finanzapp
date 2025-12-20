@@ -1,7 +1,7 @@
 "use client"
 
 import { getFinanceEntries } from "@/lib/data"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { formatCurrency, formatDate, shouldSplitTransaction } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useSession } from "next-auth/react"
@@ -314,7 +314,7 @@ export default function FinanceTable({
                 <TableCell className={entry.accion === 'Gasto' ? 'text-red-500' : entry.accion === 'Ingreso' ? 'text-green-500' : 'text-blue-500'}>
                   <div className="flex flex-col items-center gap-1">
                     {formatCurrency(entry.cantidad)}
-                    {entry.plataforma_pago.toLowerCase() === 'joyntlanda' && entry.accion === 'Gasto' && (
+                    {shouldSplitTransaction(entry.plataforma_pago, entry.detalle1, entry.accion) && (
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700/70`}>
                         {formatCurrency(entry.cantidad * 2)}
                       </span>
