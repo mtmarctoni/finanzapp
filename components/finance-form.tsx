@@ -210,6 +210,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Seleccionar tipo..."
+                        loading={optionsLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -229,6 +230,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Seleccionar qué..."
+                        loading={optionsLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -248,6 +250,7 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="Seleccionar plataforma..."
+                        loading={optionsLoading}
                       />
                     </FormControl>
                     <FormMessage />
