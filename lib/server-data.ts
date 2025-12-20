@@ -1,12 +1,16 @@
-import { createPool } from '@vercel/postgres';
-import type { Entry } from './definitions';
-import { Session } from 'next-auth';
+import { createPool } from "@vercel/postgres";
+import type { Entry } from "./definitions";
+import { Session } from "next-auth";
 
 /**
  * Server-side function to get summary statistics
  * This is used by server components
  */
-export async function getSummaryStats(month?: string, session: Session | null = null, request?: Request) {
+export async function getSummaryStats(
+  month?: string,
+  session: Session | null = null,
+  request?: Request
+) {
   try {
     const pool = createPool();
 
@@ -54,7 +58,8 @@ export async function getSummaryStats(month?: string, session: Session | null = 
       `);
 
       // Get monthly trends (last 6 months)
-      const trendsResult = await pool.query(`
+      const trendsResult = await pool.query(
+        `
         SELECT 
           date_trunc('month', fecha) as month,
           SUM(CASE WHEN accion = 'Ingreso' THEN cantidad ELSE 0 END) as income,
@@ -69,16 +74,16 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         [session?.user?.id]
       );
 
-      const monthlyTrends = trendsResult.rows.map(row => ({
-        month: row.month.toISOString().split('T')[0],
+      const monthlyTrends = trendsResult.rows.map((row) => ({
+        month: row.month.toISOString().split("T")[0],
         income: Number(row.income),
         expenses: Number(row.expenses),
-        investments: Number(row.investments)
+        investments: Number(row.investments),
       }));
 
       // Get expense categories (with limit based on showAll parameter)
       const url = request ? new URL(request.url) : null;
-      const showAll = url ? url.searchParams.get('showAll') === 'true' : false;
+      const showAll = url ? url.searchParams.get("showAll") === "true" : false;
       const expenseCategories = await pool.query(`
         SELECT 
           que as category,
@@ -88,7 +93,7 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         AND accion = 'Gasto'
         GROUP BY que
         ORDER BY total DESC
-        ${showAll ? '' : 'LIMIT 5'}
+        ${showAll ? "" : "LIMIT 5"}
       `);
 
       // Get income categories (with limit based on showAll parameter)
@@ -101,7 +106,7 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         AND accion = 'Ingreso'
         GROUP BY que
         ORDER BY total DESC
-        ${showAll ? '' : 'LIMIT 5'}
+        ${showAll ? "" : "LIMIT 5"}
       `);
 
       // Get investment performance
@@ -120,7 +125,10 @@ export async function getSummaryStats(month?: string, session: Session | null = 
       // Calculate savings rate
       const totalIncome = Number(incomeResult.rows[0].total);
       const totalExpenses = Number(expenseResult.rows[0].total);
-      const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+      const savingsRate =
+        totalIncome > 0
+          ? ((totalIncome - totalExpenses) / totalIncome) * 100
+          : 0;
 
       return {
         totalIncome,
@@ -134,12 +142,12 @@ export async function getSummaryStats(month?: string, session: Session | null = 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         topCategories: expenseCategories.rows.map((row: any) => ({
           category: row.category,
-          total: Number(row.total)
+          total: Number(row.total),
         })),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         investmentPerformance: investmentPerformance.rows.map((row: any) => ({
           investment: row.investment,
-          total: Number(row.total)
+          total: Number(row.total),
         })),
         savingsRate: savingsRate,
         expenseBreakdown: {
@@ -147,21 +155,21 @@ export async function getSummaryStats(month?: string, session: Session | null = 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           categories: expenseCategories.rows.map((row: any) => ({
             category: row.category,
-            total: Number(row.total)
+            total: Number(row.total),
           })),
           averageMonthly: totalExpenses / 12,
-          hasMore: !showAll && expenseCategories.rows.length >= 5
+          hasMore: !showAll && expenseCategories.rows.length >= 5,
         },
         incomeBreakdown: {
           total: totalIncome,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           categories: incomeCategories.rows.map((row: any) => ({
             category: row.category,
-            total: Number(row.total)
+            total: Number(row.total),
           })),
           averageMonthly: totalIncome / 12,
-          hasMore: !showAll && incomeCategories.rows.length >= 5
-        }
+          hasMore: !showAll && incomeCategories.rows.length >= 5,
+        },
       };
     } finally {
       await pool.end();
@@ -183,8 +191,8 @@ export async function getSummaryStats(month?: string, session: Session | null = 
       expenseBreakdown: {
         total: 0,
         categories: [],
-        averageMonthly: 0
-      }
+        averageMonthly: 0,
+      },
     };
   }
 }
@@ -192,12 +200,16 @@ export async function getSummaryStats(month?: string, session: Session | null = 
 /**
  * Server-side function to get a single entry by ID
  */
-export async function getEntryById(id: string, session: Session | null = null): Promise<Entry | null> {
+export async function getEntryById(
+  id: string,
+  session: Session | null = null
+): Promise<Entry | null> {
   try {
     const pool = createPool();
 
     try {
-      const result = await pool.query(`
+      const result = await pool.query(
+        `
         SELECT 
           id, 
           fecha, 
@@ -211,7 +223,9 @@ export async function getEntryById(id: string, session: Session | null = null): 
         FROM finance_entries
         WHERE id = $1
         ${session?.user?.id ? " AND user_id = '" + session.user.id + "'" : ""}
-      `, [id]);
+      `,
+        [id]
+      );
 
       if (result.rows.length === 0) {
         return null;
@@ -222,9 +236,73 @@ export async function getEntryById(id: string, session: Session | null = null): 
       await pool.end();
     }
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch entry.');
+    console.error("Database Error:", error);
+    throw new Error("Failed to fetch entry.");
   }
 }
 
+/**
+ * Server-side function to get distinct options for form dropdowns
+ * Returns options ordered by frequency of use for each field
+ */
+export async function getFormOptions(session: Session | null = null) {
+  if (!session?.user?.id) {
+    throw new Error("Not authenticated");
+  }
 
+  try {
+    const pool = createPool();
+
+    try {
+      // Get distinct values for each field, ordered by frequency of use
+      const [tipoResult, queResult, plataformaResult] = await Promise.all([
+        pool.query(
+          `
+          SELECT tipo as value, COUNT(*) as count
+          FROM finance_entries
+          WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
+          GROUP BY tipo
+          ORDER BY count DESC, tipo ASC
+        `,
+          [session.user.id]
+        ),
+        pool.query(
+          `
+          SELECT que as value, COUNT(*) as count
+          FROM finance_entries
+          WHERE user_id = $1 AND que IS NOT NULL AND que != ''
+          GROUP BY que
+          ORDER BY count DESC, que ASC
+        `,
+          [session.user.id]
+        ),
+        pool.query(
+          `
+          SELECT plataforma_pago as value, COUNT(*) as count
+          FROM finance_entries
+          WHERE user_id = $1 AND plataforma_pago IS NOT NULL AND plataforma_pago != ''
+          GROUP BY plataforma_pago
+          ORDER BY count DESC, plataforma_pago ASC
+        `,
+          [session.user.id]
+        ),
+      ]);
+
+      // Extract just the values, ordered by frequency
+      const tipo = tipoResult.rows.map((row) => row.value);
+      const que = queResult.rows.map((row) => row.value);
+      const plataforma_pago = plataformaResult.rows.map((row) => row.value);
+
+      return {
+        tipo,
+        que,
+        plataforma_pago,
+      };
+    } finally {
+      await pool.end();
+    }
+  } catch (error) {
+    console.error("Database Error:", error);
+    throw new Error("Failed to fetch form options.");
+  }
+}

@@ -13,6 +13,8 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Entry } from "@/lib/definitions"
 import { shouldSplitTransaction } from "@/lib/utils"
+import { Combobox } from "@/components/ui/combobox"
+import { useEffect, useState } from "react"
 
 const formSchema = z.object({
   fecha: z.string().min(1, { message: "La fecha es requerida" }),
@@ -30,6 +32,33 @@ const formSchema = z.object({
 export function FinanceForm({ entry }: { entry?: Entry }) {
   const router = useRouter()
   const { data: session } = useSession()
+  const [tipoOptions, setTipoOptions] = useState<string[]>([])
+  const [queOptions, setQueOptions] = useState<string[]>([])
+  const [plataformaOptions, setPlataformaOptions] = useState<string[]>([])
+  const [optionsLoading, setOptionsLoading] = useState(true)
+
+  // Fetch dynamic options on mount
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const response = await fetch('/api/options')
+        if (response.ok) {
+          const data = await response.json()
+          setTipoOptions(data.tipo)
+          setQueOptions(data.que)
+          setPlataformaOptions(data.plataforma_pago)
+        }
+      } catch (error) {
+        console.error('Failed to fetch options:', error)
+        // Keep empty arrays on error
+      } finally {
+        setOptionsLoading(false)
+      }
+    }
+
+    fetchOptions()
+  }, [])
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: entry
@@ -176,7 +205,12 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Combobox
+                        options={tipoOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar tipo..."
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -190,7 +224,12 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                   <FormItem>
                     <FormLabel>Qué</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Combobox
+                        options={queOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar qué..."
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,7 +243,12 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
                   <FormItem>
                     <FormLabel>Plataforma de pago</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Combobox
+                        options={plataformaOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar plataforma..."
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
