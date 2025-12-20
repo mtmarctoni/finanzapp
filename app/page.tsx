@@ -1,15 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams?: {
-    search?: string
-    accion?: string
-    from?: string
-    to?: string
-    page?: string
-  }
-}) {
+export default async function Home() {
   redirect("/records")
 }
