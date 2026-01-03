@@ -22,24 +22,26 @@ interface UseCryptoDataReturn {
   currentPage: number;
   isLoading: boolean;
   error: string | null;
-  
+
   // Holdings
   holdings: CryptoHoldingsSummary[];
   holdingsLoading: boolean;
-  
+
   // Options
   cryptoSymbols: string[];
   wallets: string[];
   transactionTypes: { value: string; label: string }[];
   optionsLoading: boolean;
-  
+
   // Actions
   refetch: () => Promise<void>;
   deleteTransaction: (id: string) => Promise<boolean>;
   refetchHoldings: () => Promise<void>;
 }
 
-export function useCryptoData(options: UseCryptoDataOptions = {}): UseCryptoDataReturn {
+export function useCryptoData(
+  options: UseCryptoDataOptions = {}
+): UseCryptoDataReturn {
   const { autoFetch = true, ...filterOptions } = options;
 
   // Transactions state
@@ -57,14 +59,16 @@ export function useCryptoData(options: UseCryptoDataOptions = {}): UseCryptoData
   // Options state
   const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([]);
   const [wallets, setWallets] = useState<string[]>([]);
-  const [transactionTypes, setTransactionTypes] = useState<{ value: string; label: string }[]>([]);
+  const [transactionTypes, setTransactionTypes] = useState<
+    { value: string; label: string }[]
+  >([]);
   const [optionsLoading, setOptionsLoading] = useState(false);
 
   // Fetch transactions
   const fetchTransactions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const result = await getCryptoTransactions(filterOptions);
       setTransactions(result.data || []);
@@ -119,14 +123,17 @@ export function useCryptoData(options: UseCryptoDataOptions = {}): UseCryptoData
   }, []);
 
   // Delete transaction
-  const handleDelete = useCallback(async (id: string): Promise<boolean> => {
-    const success = await deleteCryptoTransaction(id);
-    if (success) {
-      // Refetch transactions and holdings after deletion
-      await Promise.all([fetchTransactions(), fetchHoldings()]);
-    }
-    return success;
-  }, [fetchTransactions, fetchHoldings]);
+  const handleDelete = useCallback(
+    async (id: string): Promise<boolean> => {
+      const success = await deleteCryptoTransaction(id);
+      if (success) {
+        // Refetch transactions and holdings after deletion
+        await Promise.all([fetchTransactions(), fetchHoldings()]);
+      }
+      return success;
+    },
+    [fetchTransactions, fetchHoldings]
+  );
 
   // Auto-fetch on mount and when filters change
   useEffect(() => {

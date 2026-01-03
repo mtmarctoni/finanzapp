@@ -1,4 +1,8 @@
-import { getCryptoWallets, createCryptoWallet, getUsedWallets } from "@/lib/cryptoActions";
+import {
+  getCryptoWallets,
+  createCryptoWallet,
+  getUsedWallets,
+} from "@/lib/cryptoActions";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -39,9 +43,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    
-    const wallet = await createCryptoWallet(body, { user: { id: session.user.id } });
-    
+
+    const wallet = await createCryptoWallet(body, {
+      user: { id: session.user.id },
+    });
+
     return NextResponse.json(wallet, { status: 201 });
   } catch (error) {
     console.error("Error creating wallet:", error);

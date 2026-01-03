@@ -1,7 +1,7 @@
-import { 
-  getCryptoTransactionById, 
-  updateCryptoTransaction, 
-  deleteCryptoTransaction 
+import {
+  getCryptoTransactionById,
+  updateCryptoTransaction,
+  deleteCryptoTransaction,
 } from "@/lib/cryptoActions";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -19,12 +19,17 @@ export async function GET(
 
   try {
     const { id } = await params;
-    const transaction = await getCryptoTransactionById(id, { user: { id: session.user.id } });
-    
+    const transaction = await getCryptoTransactionById(id, {
+      user: { id: session.user.id },
+    });
+
     if (!transaction) {
-      return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Transaction not found" },
+        { status: 404 }
+      );
     }
-    
+
     return NextResponse.json(transaction);
   } catch (error) {
     console.error("Error fetching crypto transaction:", error);
@@ -48,13 +53,18 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    
-    const transaction = await updateCryptoTransaction(id, body, { user: { id: session.user.id } });
-    
+
+    const transaction = await updateCryptoTransaction(id, body, {
+      user: { id: session.user.id },
+    });
+
     if (!transaction) {
-      return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Transaction not found" },
+        { status: 404 }
+      );
     }
-    
+
     return NextResponse.json(transaction);
   } catch (error) {
     console.error("Error updating crypto transaction:", error);
@@ -77,12 +87,17 @@ export async function DELETE(
 
   try {
     const { id } = await params;
-    const deleted = await deleteCryptoTransaction(id, { user: { id: session.user.id } });
-    
+    const deleted = await deleteCryptoTransaction(id, {
+      user: { id: session.user.id },
+    });
+
     if (!deleted) {
-      return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Transaction not found" },
+        { status: 404 }
+      );
     }
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting crypto transaction:", error);

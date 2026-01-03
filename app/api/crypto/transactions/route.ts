@@ -1,4 +1,9 @@
-import { getCryptoTransactions, createCryptoTransaction, getCryptoSymbols, getUsedWallets } from "@/lib/cryptoActions";
+import {
+  getCryptoTransactions,
+  createCryptoTransaction,
+  getCryptoSymbols,
+  getUsedWallets,
+} from "@/lib/cryptoActions";
 import { ITEMS_PER_PAGE } from "@/config";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -39,8 +44,10 @@ export async function GET(request: NextRequest) {
       sortOrder,
     };
 
-    const result = await getCryptoTransactions(filters, { user: { id: session.user.id } });
-    
+    const result = await getCryptoTransactions(filters, {
+      user: { id: session.user.id },
+    });
+
     return NextResponse.json({
       data: result.transactions,
       total: result.total,
@@ -65,15 +72,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    
+
     const { transaction_type, to_wallet } = body;
 
     if (transaction_type === "genesis" && !to_wallet) {
-      return NextResponse.json({ error: "'to_wallet' is required for genesis transactions." }, { status: 400 });
+      return NextResponse.json(
+        { error: "'to_wallet' is required for genesis transactions." },
+        { status: 400 }
+      );
     }
 
-    const transaction = await createCryptoTransaction(body, { user: { id: session.user.id } });
-    
+    const transaction = await createCryptoTransaction(body, {
+      user: { id: session.user.id },
+    });
+
     return NextResponse.json(transaction, { status: 201 });
   } catch (error) {
     console.error("Error creating crypto transaction:", error);

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const holdings = await getCryptoHoldings({ user: { id: session.user.id } });
-    
+
     return NextResponse.json({
       data: holdings,
     });
