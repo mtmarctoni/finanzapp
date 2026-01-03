@@ -226,3 +226,5 @@ export async function getCryptoWallets(): Promise<{
     };
   }
 }
+
+export { duplicateCryptoTransaction } from "./cryptoActions";

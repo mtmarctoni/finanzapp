@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, A
 import Link from "next/link"
 import { useTransition, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { getCryptoTransactions, deleteCryptoTransaction } from "@/lib/crypto-data"
+import { getCryptoTransactions, deleteCryptoTransaction, duplicateCryptoTransaction } from "@/lib/crypto-data"
 import type { CryptoTransaction } from "@/types/finance"
 import { Badge } from "@/components/ui/badge"
 import { ITEMS_PER_PAGE } from "@/config"
@@ -347,6 +347,44 @@ export default function CryptoTransactionTable({
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Eliminar</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        title="Duplicar"
+                        onClick={async () => {
+                          if (!session?.user?.id) {
+                            alert('Debes iniciar sesión para duplicar transacciones');
+                            return;
+                          }
+
+                          try {
+                            await duplicateCryptoTransaction(transaction.id, { user: { id: session.user.id } });
+                            // Refresh the table after duplication
+                            const result = await getCryptoTransactions({
+                              search,
+                              transactionType,
+                              cryptoSymbol,
+                              from,
+                              to,
+                              page: currentPage,
+                              itemsPerPage,
+                              sortBy,
+                              sortOrder,
+                            })
+                            setTransactions({
+                              data: result.data ?? [],
+                              total: result.total ?? 0,
+                              totalPages: result.totalPages ?? 0,
+                              currentPage: result.currentPage ?? currentPage,
+                            })
+                          } catch (error) {
+                            console.error('Error duplicating transaction:', error);
+                            alert('Error al duplicar la transacción');
+                          }
+                        }}
+                      >
+                        Duplicar
                       </Button>
                     </div>
                   </TableCell>

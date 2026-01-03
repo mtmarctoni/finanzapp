@@ -336,6 +336,65 @@ export async function deleteCryptoTransaction(
   }
 }
 
+export async function duplicateCryptoTransaction(
+  id: string,
+  session: { user: { id: string } }
+): Promise<CryptoTransaction | null> {
+  const client = createClient();
+  await client.connect();
+
+  try {
+    // Fetch the existing transaction
+    const existing = await client.sql`
+      SELECT * FROM crypto_transactions 
+      WHERE id = ${id} AND user_id = ${session.user.id}
+    `;
+
+    if (existing.rows.length === 0) {
+      return null;
+    }
+
+    const transaction = existing.rows[0];
+    const newId = uuidv4();
+    const now = new Date();
+
+    // Insert a duplicate transaction with a new ID and timestamps
+    const result = await client.sql`
+      INSERT INTO crypto_transactions (
+        id, record_id, transaction_type, crypto_symbol, amount, 
+        price_at_transaction, to_crypto_symbol, to_amount,
+        from_wallet, to_wallet, fee, fee_crypto, notes,
+        transaction_date, external_tx_id, user_id, created_at, updated_at
+      ) VALUES (
+        ${newId},
+        ${transaction.record_id},
+        ${transaction.transaction_type},
+        ${transaction.crypto_symbol},
+        ${transaction.amount},
+        ${transaction.price_at_transaction},
+        ${transaction.to_crypto_symbol},
+        ${transaction.to_amount},
+        ${transaction.from_wallet},
+        ${transaction.to_wallet},
+        ${transaction.fee},
+        ${transaction.fee_crypto},
+        ${transaction.notes},
+        ${transaction.transaction_date},
+        ${transaction.external_tx_id},
+        ${session.user.id},
+        ${now.toISOString()},
+        ${now.toISOString()}
+      )
+      RETURNING *
+    `;
+
+    revalidatePath("/investment/crypto");
+    return mapDbRowToTransaction(result.rows[0]);
+  } finally {
+    await client.end();
+  }
+}
+
 // ============================================
 // CRYPTO WALLETS CRUD
 // ============================================
