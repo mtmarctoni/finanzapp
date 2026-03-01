@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { CategoryDatum, TemporalDatum } from "@/lib/analytics-charts";
+
+interface AnalyticsMetrics {
+  groupBy?: "month" | "year";
+  [key: string]: unknown;
+}
 
 export interface AnalyticsData {
-  temporalData: Array<any>;
-  categoryData: Array<any>;
+  temporalData: TemporalDatum[];
+  categoryData: CategoryDatum[];
   sums: {
     gastos: number;
     ingresos: number;
     inversion: number;
   };
-  metrics?: any;
+  metrics?: AnalyticsMetrics;
   netTemporal?: Array<{ period: string; net: number }>;
 }
 

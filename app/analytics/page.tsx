@@ -4,7 +4,13 @@
 
 import { AnalyticsFilter } from "@/components/analytics-filter";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
-import { getTemporalChartData, getCategoryChartData } from "@/lib/analytics-charts";
+import {
+  getTemporalChartData,
+  getCategoryChartData,
+  getTemporalChartOptions,
+  getLineChartOptions,
+  getDoughnutChartOptions,
+} from "@/lib/analytics-charts";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { PerActionCards } from "@/components/analytics/PerActionCards";
 import { TemporalChart } from "@/components/analytics/TemporalChart";
@@ -14,6 +20,8 @@ import { CategoryChart } from "@/components/analytics/CategoryChart";
 
 export default function AnalyticsPage() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
+  const temporalChartData = getTemporalChartData(data, data.metrics?.groupBy || 'month');
+  const categoryChartData = getCategoryChartData(data);
 
   // Compute income - expenses (excluding investments) per period ("balance")
   const netIncomeExpenseLabels = Array.from(new Set(data.temporalData.map(item => item.period))).sort();
@@ -52,38 +60,6 @@ export default function AnalyticsPage() {
   })();
   const yearsInRange = monthsInRange / 12;
 
-  // Chart options (can be further extracted if needed)
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      tooltip: {
-        callbacks: {
-          label: (context: import('chart.js').TooltipItem<'bar'>) => {
-            const label = context.label || '';
-            const value = context.raw as number;
-            const index = context.dataIndex;
-            const datasetLabel = context.dataset.label as string;
-            const periodIso = (data.temporalData || [])
-              .map((td: any) => td.period)
-              .sort()[index];
-            const match = (data.temporalData || []).find((d: any) => d.action === datasetLabel && d.period === periodIso);
-            const countText = match?.count ? ` • ${match.count} mov.` : '';
-            return `${label} — ${datasetLabel}: ${value.toFixed(2)} €${countText}`;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value: number | string) => `${value} €`
-        }
-      }
-    }
-  };
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Analíticas Financieras</h1>
@@ -94,12 +70,12 @@ export default function AnalyticsPage() {
           actions={[...new Set(data.temporalData.map(d => d.action))]}
           categories={[...new Set(data.categoryData.map(d => d.category))]}
           platforms={[...new Set([
-            ...data.temporalData.map((d: any) => d.platform).filter(Boolean),
-            ...data.categoryData.map((d: any) => d.platform).filter(Boolean)
+            ...data.temporalData.map(d => d.platform).filter(Boolean),
+            ...data.categoryData.map(d => d.platform).filter(Boolean)
           ])]}
           types={[...new Set([
-            ...data.temporalData.map((d: any) => d.type).filter(Boolean),
-            ...data.categoryData.map((d: any) => d.type).filter(Boolean)
+            ...data.temporalData.map(d => d.type).filter(Boolean),
+            ...data.categoryData.map(d => d.type).filter(Boolean)
           ])]}
           years={[2025, 2024, 2023]}
         />
@@ -107,7 +83,7 @@ export default function AnalyticsPage() {
       <SummaryCards sums={data.sums} metrics={data.metrics} monthsInRange={monthsInRange} yearsInRange={yearsInRange} />
       <PerActionCards metrics={data.metrics} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TemporalChart data={getTemporalChartData(data, data.metrics?.groupBy || 'month')} options={chartOptions} loading={loading} />
+        <TemporalChart data={temporalChartData} options={getTemporalChartOptions(data.temporalData)} loading={loading} />
         <NetTrendChart
           data={{
             labels: netIncomeExpenseLabels.map(p => {
@@ -119,7 +95,7 @@ export default function AnalyticsPage() {
             datasets: [
               {
                 label: 'Neto',
-                data: (data.netTemporal || []).map((n: any) => n.net),
+                data: (data.netTemporal || []).map((n) => n.net),
                 borderColor: 'rgba(99, 102, 241, 1)',
                 backgroundColor: 'rgba(99, 102, 241, 0.2)',
               },
@@ -139,57 +115,12 @@ export default function AnalyticsPage() {
               }
             ]
           }}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              tooltip: {
-                callbacks: {
-                  label: (context: any) => {
-                    const value = context.raw as number;
-                    return `Neto: ${value.toFixed(2)} €`;
-                  }
-                }
-              }
-            },
-            scales: {
-              y: {
-                ticks: { callback: (value: number | string) => `${value} €` }
-              }
-            }
-          }}
+          options={getLineChartOptions()}
           loading={loading}
         />
         <CategoryChart
-          data={getCategoryChartData(data)}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'right' as const },
-              tooltip: {
-                callbacks: {
-                  label: (context: any) => {
-                    const label = context.label || '';
-                    const value = context.raw as number;
-                    const total = (context.dataset.data as number[]).reduce((a: number, b: number) => a + b, 0);
-                    const percentage = Math.round((value / total) * 100);
-                    const countsByCategory = (data.categoryData || []).reduce((acc: any, cur: any) => {
-                      acc[cur.category] = (acc[cur.category] || 0) + (cur.count || 0);
-                      return acc;
-                    }, {});
-                    const count = countsByCategory[label] || 0;
-                    return `${label}: ${value.toFixed(2)} € (${percentage}%) • ${count} mov.`;
-                  }
-                }
-              },
-              title: {
-                display: true,
-                text: `Total: ${getCategoryChartData(data).total.toFixed(2)} €`,
-                position: 'top',
-              }
-            }
-          }}
+          data={categoryChartData}
+          options={getDoughnutChartOptions(categoryChartData.total, data.categoryData)}
           loading={loading}
         />
       </div>
