@@ -80,8 +80,13 @@ export default function AnalyticsPage() {
           years={[2025, 2024, 2023]}
         />
       </div>
-      <SummaryCards sums={data.sums} metrics={data.metrics} monthsInRange={monthsInRange} yearsInRange={yearsInRange} />
-      <PerActionCards metrics={data.metrics} />
+      <SummaryCards
+        sums={data.sums}
+        metrics={data.metrics as Parameters<typeof SummaryCards>[0]['metrics']}
+        monthsInRange={monthsInRange}
+        yearsInRange={yearsInRange}
+      />
+      <PerActionCards metrics={data.metrics as Parameters<typeof PerActionCards>[0]['metrics']} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TemporalChart data={temporalChartData} options={getTemporalChartOptions(data.temporalData)} loading={loading} />
         <NetTrendChart
