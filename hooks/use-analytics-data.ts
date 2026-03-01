@@ -1,15 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { CategoryDatum, TemporalDatum } from "@/lib/analytics-charts";
+
+interface AnalyticsMetrics {
+  groupBy?: "month" | "year";
+  [key: string]: unknown;
+}
 
 export interface AnalyticsData {
-  temporalData: Array<any>;
-  categoryData: Array<any>;
+  temporalData: TemporalDatum[];
+  categoryData: CategoryDatum[];
   sums: {
     gastos: number;
     ingresos: number;
     inversion: number;
   };
-  metrics?: any;
+  metrics?: AnalyticsMetrics;
   netTemporal?: Array<{ period: string; net: number }>;
 }
 
@@ -94,8 +100,8 @@ export function useAnalyticsData() {
       (Array.isArray(filters.actions)
         ? filters.actions
         : filters.actions
-        ? [filters.actions]
-        : []
+          ? [filters.actions]
+          : []
       ).forEach((a) => params.append("action", a));
       if (filters.from)
         params.set("from", filters.from.toISOString().split("T")[0]);
@@ -103,20 +109,20 @@ export function useAnalyticsData() {
       (Array.isArray(filters.categories)
         ? filters.categories
         : filters.categories
-        ? [filters.categories]
-        : []
+          ? [filters.categories]
+          : []
       ).forEach((c) => params.append("category", c));
       (Array.isArray(filters.platforms)
         ? filters.platforms
         : filters.platforms
-        ? [filters.platforms]
-        : []
+          ? [filters.platforms]
+          : []
       ).forEach((p) => params.append("platform", p));
       (Array.isArray(filters.types)
         ? filters.types
         : filters.types
-        ? [filters.types]
-        : []
+          ? [filters.types]
+          : []
       ).forEach((t) => params.append("type", t));
       if (typeof filters.minAmount === "number")
         params.set("minAmount", String(filters.minAmount));

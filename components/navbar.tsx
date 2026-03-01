@@ -5,6 +5,7 @@ import { UserIcon } from "lucide-react"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navbar() {
   const { data: session } = useSession()
@@ -40,6 +41,7 @@ export function Navbar() {
           {session?.user?.name ? `Hola, ${session.user.name}` : 'Finanzas Personales'}
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {session && (
             <Button
               variant="ghost"

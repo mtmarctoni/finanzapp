@@ -7,7 +7,8 @@ import { ArrowDownIcon, ArrowUpIcon, TrendingUpIcon, BarChart2Icon, PercentIcon,
 import MonthlyTrendsChart from "@/components/monthly-trends-chart"
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useEffect, useCallback } from 'react'
+import Link from "next/link"
+import { useState, useEffect, useCallback, useMemo } from 'react'
 
 interface MonthlyTrend {
   month: string
@@ -69,6 +70,17 @@ export default function Dashboard() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
+  const monthOptions = useMemo(() => {
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - index, 1)
+      return {
+        value: format(date, 'yyyy-MM-01'),
+        label: format(date, 'MMMM yyyy', { locale: es }),
+      }
+    })
+  }, [])
+
   const fetchStats = useCallback(async (showAllType?: 'income' | 'expenses' | 'investments') => {
     try {
       setIsLoading(true)
@@ -108,15 +120,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchStats()
-  }, [fetchStats, selectedMonth])
+  }, [fetchStats])
 
   const renderLoading = () => (
-    <div className="flex items-center justify-center min-h-[200px]">
+    <div className="flex items-center justify-center min-h-50">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
     </div>
   )
 
   if (!stats) return renderLoading()
+
+  const finalBalance = stats.totalIncome - stats.totalExpense - stats.totalInvestment
+
+  const getPercentage = (value: number, total: number) => {
+    if (total <= 0) return 0
+    return Math.min(100, (value / total) * 100)
+  }
   
   const handleShowAll = (type: 'income' | 'expenses' | 'investments') => {
     fetchStats(type)
@@ -128,31 +147,24 @@ export default function Dashboard() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Resumen Financiero</h2>
         <select
-          className="rounded-md border px-3 py-2"
+          className="rounded-md border bg-background px-3 py-2"
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(e.target.value)}
         >
-          {Array.from({ length: 12 }, (_, i) => {
-  const now = new Date();
-  // Always set to the 1st day of the month to avoid rollover issues
-  const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-  const month = format(date, 'yyyy-MM-01');
-  const monthName = format(date, 'MMMM yyyy', { locale: es });
-  return (
-    <option key={month} value={month}>{monthName}</option>
-  )
-})}
+          {monthOptions.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
       </div>
 
       {/* Navigation Links */}
       <div className="flex space-x-4">
-        <a href="/recurring" className="text-blue-500 hover:text-blue-700">
+        <Link href="/recurring" className="text-primary hover:underline">
           <span className="flex items-center space-x-2">
             <ArrowUpIcon className="h-4 w-4" />
             <span>Registros Recurrentes</span>
           </span>
-        </a>
+        </Link>
       </div>
 
       {/* Main Stats Grid */}
@@ -196,7 +208,7 @@ export default function Dashboard() {
             <PercentIcon className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalIncome - stats.totalExpense - stats.totalInvestment)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(finalBalance)}</div>
             <p className="text-xs text-muted-foreground">Flujo mensual</p>
           </CardContent>
         </Card>
@@ -236,10 +248,21 @@ export default function Dashboard() {
 
               <div className="space-y-2">
                 {stats.incomeBreakdown?.categories?.map((category: Category) => (
-                  <div key={category.category} className="flex justify-between items-center">
-                    <span className="text-sm">{category.category}</span>
-                    <div className="text-right">
-                      <span className="font-medium">{formatCurrency(category.total)}</span>
+                  <div key={category.category} className="space-y-1">
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-sm">{category.category}</span>
+                      <div className="text-right">
+                        <span className="font-medium">{formatCurrency(category.total)}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {getPercentage(category.total, stats.incomeBreakdown?.total || 0).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-1.5 rounded-full bg-primary"
+                        style={{ width: `${getPercentage(category.total, stats.incomeBreakdown?.total || 0)}%` }}
+                      />
                     </div>
                   </div>
                 )) || <p className="text-sm text-muted-foreground">No hay datos de ingresos disponibles</p>}
@@ -287,10 +310,21 @@ export default function Dashboard() {
 
               <div className="space-y-2">
                 {stats.expenseBreakdown.categories.map((category: Category) => (
-                  <div key={category.category} className="flex justify-between items-center">
-                    <span className="text-sm">{category.category}</span>
-                    <div className="text-right">
-                      <span className="font-medium">{formatCurrency(category.total)}</span>
+                  <div key={category.category} className="space-y-1">
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-sm">{category.category}</span>
+                      <div className="text-right">
+                        <span className="font-medium">{formatCurrency(category.total)}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {getPercentage(category.total, stats.expenseBreakdown.total).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-1.5 rounded-full bg-destructive"
+                        style={{ width: `${getPercentage(category.total, stats.expenseBreakdown.total)}%` }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -338,10 +372,21 @@ export default function Dashboard() {
 
               <div className="space-y-2">
                 {stats.investmentPerformance.map((investment: Investment) => (
-                  <div key={investment.investment} className="flex justify-between items-center">
-                    <span className="text-sm">{investment.investment}</span>
-                    <div className="text-right">
-                      <span className="font-medium">{formatCurrency(investment.total)}</span>
+                  <div key={investment.investment} className="space-y-1">
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-sm">{investment.investment}</span>
+                      <div className="text-right">
+                        <span className="font-medium">{formatCurrency(investment.total)}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {getPercentage(investment.total, stats.totalInvestment).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-1.5 rounded-full bg-secondary"
+                        style={{ width: `${getPercentage(investment.total, stats.totalInvestment)}%` }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -387,9 +432,9 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div className="w-full bg-muted rounded-full h-2.5">
                 <div 
-                  className="bg-green-500 h-2.5 rounded-full transition-all duration-300"
+                  className="bg-primary h-2.5 rounded-full transition-all duration-300"
                   style={stats.savingsRate > 0 ? { width: `${stats.savingsRate}%` } : { width: '0%' }}
                 />
               </div>

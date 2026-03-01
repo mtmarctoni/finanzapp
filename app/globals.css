@@ -30,7 +30,7 @@
   --popover: #ffffff;
   --popover-foreground: #1E1E1E;
   --primary: #1FB35E;
-  --primary-foreground: #FFFAFA;
+  --primary-foreground: #05210F;
   --secondary: #A4C8E1;
   --secondary-foreground: #2D2D2D;
   --muted: #A4C8E1;
@@ -38,32 +38,32 @@
   --accent: #A4C8E1;
   --accent-foreground: #2D2D2D;
   --destructive: #FF4D00;
-  --destructive-foreground: #A4C8E1;
+  --destructive-foreground: #1E1E1E;
   --border: #D1D1D1;
   --input: #D1D1D1;
   --ring: #1FB35E;
 }
 
 .dark {
-  --background: #1E1E1E;
-  --foreground: #A4C8E1;
-  --card: #1E1E1E;
-  --card-foreground: #A4C8E1;
-  --popover: #1E1E1E;
-  --popover-foreground: #A4C8E1;
-  --primary: #1FB35E;
-  --primary-foreground: #A4C8E1;
-  --secondary: #2D2D2D;
-  --secondary-foreground: #A4C8E1;
-  --muted: #2D2D2D;
-  --muted-foreground: #A3A3A3;
-  --accent: #2D2D2D;
-  --accent-foreground: #A4C8E1;
-  --destructive: #FF4D00;
-  --destructive-foreground: #A4C8E1;
-  --border: #2D2D2D;
-  --input: #2D2D2D;
-  --ring: #1FB35E;
+  --background: #070B12;
+  --foreground: #E6EDF7;
+  --card: #0B111B;
+  --card-foreground: #E6EDF7;
+  --popover: #0B111B;
+  --popover-foreground: #E6EDF7;
+  --primary: #22C55E;
+  --primary-foreground: #031109;
+  --secondary: #172131;
+  --secondary-foreground: #E2E8F0;
+  --muted: #121A27;
+  --muted-foreground: #9AA8BF;
+  --accent: #1D2A3D;
+  --accent-foreground: #ECF3FF;
+  --destructive: #B91C1C;
+  --destructive-foreground: #FFFFFF;
+  --border: #263245;
+  --input: #263245;
+  --ring: #22C55E;
 }
 
 /* Custom Scrollbar Styles */

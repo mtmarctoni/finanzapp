@@ -11,8 +11,8 @@ export interface AnalyticsFilterProps {
   onChange: (filters: any) => void;
   actions: string[];
   categories: string[];
-  platforms: string[];
-  types: string[];
+  platforms: (string | null | undefined)[];
+  types: (string | null | undefined)[];
   years: number[];
 }
 
@@ -75,7 +75,7 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
           <SelectValue placeholder="Plataformas" />
         </SelectTrigger>
         <SelectContent>
-          {platforms.map(p => (
+          {platforms.filter((p): p is string => p !== null && p !== undefined).map(p => (
             <SelectItem key={p} value={p}>{p}</SelectItem>
           ))}
         </SelectContent>
@@ -88,7 +88,7 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
           <SelectValue placeholder="Tipos" />
         </SelectTrigger>
         <SelectContent>
-          {types.map(t => (
+          {types.filter((t): t is string => t !== null && t !== undefined).map(t => (
             <SelectItem key={t} value={t}>{t}</SelectItem>
           ))}
         </SelectContent>
@@ -118,8 +118,12 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
         <PopoverContent align="start" className="p-0">
           <Calendar
             mode="range"
-            selected={{ from: value.from, to: value.to }}
-            onSelect={({ from, to }) => onChange({ ...value, from, to })}
+            selected={value.from && value.to ? { from: value.from, to: value.to } : undefined}
+            onSelect={(range) => {
+              if (range && typeof range === 'object' && 'from' in range && 'to' in range) {
+                onChange({ ...value, from: range.from, to: range.to });
+              }
+            }}
             autoFocus
           />
         </PopoverContent>

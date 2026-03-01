@@ -1,119 +1,73 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RecurringRecord } from '@/types/finance'
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { format } from 'date-fns'
-import { useToast } from "@/hooks/use-toast"
-import { CATEGORIES } from "@/types/categories"
+import { useEffect, useMemo, useState } from 'react'
 
-interface GenerateError {
-  error: string
-  details?: string
-}
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { RecordDetailPanel } from '@/components/recurring/record-detail-panel'
+import { RecordForm } from '@/components/recurring/record-form'
+import { RecordsControls } from '@/components/recurring/records-controls'
+import { RecordsList } from '@/components/recurring/records-list'
+import { SummaryCards } from '@/components/recurring/summary-cards'
+import { useRecurringRecords } from '@/components/recurring/use-recurring-records'
+import { INITIAL_RECURRING_FORM, FilterState, RecurringFormData, SortState } from '@/components/recurring/types'
+import { calculateMonthlyEstimate } from '@/components/recurring/utils'
+import { RecurringRecord } from '@/types/finance'
+import { useToast } from '@/hooks/use-toast'
 
 export default function RecurringRecords() {
-  const [recurringRecords, setRecurringRecords] = useState<RecurringRecord[]>([])
-  const [newRecord, setNewRecord] = useState({
-    name: '',
-    accion: '',
-    tipo: '',
-    detalle1: '',
-    detalle2: '',
-    amount: '0',
-    frequency: 'monthly',
-    active: true,
-    dia: 1,
-    plataforma_pago: 'any'
-  })
-  const [editingRecord, setEditingRecord] = useState<RecurringRecord | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [generateDate, setGenerateDate] = useState(new Date())
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const { recurringRecords, loading, addRecord, updateRecord, deleteRecord, generateRecords } = useRecurringRecords()
   const { toast } = useToast()
 
-  const fetchRecurringRecords = useCallback(async () => {
-    try {
-      const response = await fetch('/api/recurring')
-      if (!response.ok) throw new Error('Failed to fetch recurring records')
-      const data = await response.json()
-      setRecurringRecords(data)
-    } catch (error: unknown) {
-      console.error('Error fetching recurring records:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al cargar los registros recurrentes',
-        variant: 'destructive'
-      })
-    }
-  }, [toast])
+  const [formData, setFormData] = useState<RecurringFormData>(INITIAL_RECURRING_FORM)
+  const [editingRecord, setEditingRecord] = useState<RecurringRecord | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [filter, setFilter] = useState<FilterState>('all')
+  const [sortBy, setSortBy] = useState<SortState>('day')
+  const [search, setSearch] = useState('')
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
+  const [generateDate, setGenerateDate] = useState(new Date())
+
+  const resetForm = () => {
+    setEditingRecord(null)
+    setFormData(INITIAL_RECURRING_FORM)
+  }
 
   useEffect(() => {
-    fetchRecurringRecords()
-  }, [fetchRecurringRecords])
+    if (!recurringRecords.length) {
+      setSelectedRecordId(null)
+      return
+    }
 
+    const selectedExists = recurringRecords.some((record) => record.id === selectedRecordId)
+    if (!selectedExists) setSelectedRecordId(recurringRecords[0].id)
+  }, [recurringRecords, selectedRecordId])
+
+  const validateForm = () => {
+    if (!formData.name || !formData.amount || !formData.accion || !formData.tipo) {
+      toast({
+        title: 'Datos incompletos',
+        description: 'Completa nombre, acción, categoría y monto para crear el registro.',
+        variant: 'destructive',
+      })
+      return false
+    }
+    return true
+  }
 
   const handleAddRecord = async () => {
-    if (!newRecord.name || !newRecord.amount || !newRecord.accion) return
+    if (!validateForm()) return
 
-    try {
-      setLoading(true)
-      const response = await fetch('/api/recurring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newRecord.name,
-          accion: newRecord.accion,
-          tipo: newRecord.tipo,
-          detalle1: newRecord.detalle1,
-          detalle2: newRecord.detalle2,
-          amount: parseFloat(newRecord.amount),
-          frequency: newRecord.frequency,
-          active: newRecord.active,
-          dia: newRecord.dia,
-          plataforma_pago: newRecord.plataforma_pago
-        })
-      })
-
-      if (!response.ok) throw new Error('Failed to add recurring record')
-
-      setNewRecord({
-        name: '',
-        accion: '',
-        tipo: '',
-        detalle1: '',
-        detalle2: '',
-        amount: '0',
-        frequency: 'monthly',
-        active: true,
-        dia: 1,
-        plataforma_pago: 'any'
-      })
-      fetchRecurringRecords()
-      toast({
-        title: 'Éxito',
-        description: 'Registro recurrente añadido correctamente',
-        variant: 'default'
-      })
-    } catch (error: unknown) {
-      console.error('Error adding recurring record:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al añadir el registro recurrente',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
+    const ok = await addRecord(formData)
+    if (ok) {
+      resetForm()
+      setFormOpen(false)
     }
   }
 
-  const handleEditRecord = async (record: RecurringRecord) => {
+  const handleEditRecord = (record: RecurringRecord) => {
     setEditingRecord(record)
-    setNewRecord({
+    setFormOpen(true)
+    setFormData({
       name: record.name,
       accion: record.accion,
       tipo: record.tipo || '',
@@ -123,390 +77,132 @@ export default function RecurringRecords() {
       frequency: record.frequency,
       active: record.active,
       dia: record.dia,
-      plataforma_pago: record.plataforma_pago
+      plataforma_pago: record.plataforma_pago,
     })
   }
 
   const handleUpdateRecord = async () => {
-    if (!editingRecord || !newRecord.accion) return
+    if (!editingRecord || !validateForm()) return
 
-    try {
-      setLoading(true)
-      const response = await fetch('/api/recurring', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingRecord.id,
-          name: newRecord.name,
-          accion: newRecord.accion,
-          tipo: newRecord.tipo,
-          detalle1: newRecord.detalle1,
-          detalle2: newRecord.detalle2,
-          amount: parseFloat(newRecord.amount),
-          frequency: newRecord.frequency,
-          active: newRecord.active,
-          dia: newRecord.dia,
-          plataforma_pago: newRecord.plataforma_pago
-        })
-      })
-
-      if (!response.ok) throw new Error('Failed to update recurring record')
-
-      setEditingRecord(null)
-      setNewRecord({
-        name: '',
-        accion: '',
-        tipo: '',
-        detalle1: '',
-        detalle2: '',
-        amount: '0',
-        frequency: 'monthly',
-        active: true,
-        dia: 1,
-        plataforma_pago: 'any'
-      })
-      fetchRecurringRecords()
-      toast({
-        title: 'Éxito',
-        description: 'Registro recurrente actualizado correctamente',
-        variant: 'default'
-      })
-    } catch (error: unknown) {
-      console.error('Error updating recurring record:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al actualizar el registro recurrente',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
+    const ok = await updateRecord(editingRecord.id, formData)
+    if (ok) {
+      resetForm()
+      setFormOpen(false)
     }
   }
 
   const handleDeleteRecord = async (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este registro recurrente?')) return
-
-    try {
-      setLoading(true)
-      const response = await fetch('/api/recurring', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      })
-
-      if (!response.ok) throw new Error('Failed to delete recurring record')
-
-      fetchRecurringRecords()
-      toast({
-        title: 'Éxito',
-        description: 'Registro recurrente eliminado correctamente',
-        variant: 'default'
-      })
-    } catch (error: unknown) {
-      console.error('Error deleting recurring record:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al eliminar el registro recurrente',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
+    await deleteRecord(id)
   }
 
   const handleGenerateRecords = async () => {
-    if (!confirm('¿Estás seguro de que deseas generar los registros recurrentes para hoy?')) return
-
-    try {
-      setLoading(true)
-      const response = await fetch('/api/recurring/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          date: format(generateDate, 'yyyy-MM-dd')
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json() as GenerateError
-        throw new Error(errorData.details || 'Failed to generate recurring records')
-      }
-
-      const result = await response.json()
-      toast({
-        title: 'Éxito',
-        description: `Generados ${result.generated} registros`,
-        variant: 'default'
-      })
-      fetchRecurringRecords()
-    } catch (error: unknown) {
-      console.error('Error generating recurring records:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al generar los registros recurrentes',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
+    await generateRecords(generateDate)
   }
 
-  const filteredRecords = recurringRecords.filter(record => {
-    if (filter === 'all') return true
-    if (filter === 'active') return record.active
-    if (filter === 'inactive') return !record.active
-    return true
-  })
+  const totalRecords = recurringRecords.length
+  const activeRecords = recurringRecords.filter((record) => record.active).length
+  const inactiveRecords = totalRecords - activeRecords
+  const monthlyEstimate = useMemo(() => calculateMonthlyEstimate(recurringRecords), [recurringRecords])
+
+  const filteredRecords = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+
+    const byFilter = recurringRecords.filter((record) => {
+      if (filter === 'active') return record.active
+      if (filter === 'inactive') return !record.active
+      return true
+    })
+
+    const bySearch = byFilter.filter((record) => {
+      if (!normalizedSearch) return true
+      const content = [
+        record.name,
+        record.accion,
+        record.tipo,
+        record.plataforma_pago,
+        record.detalle1,
+        record.detalle2,
+      ]
+        .join(' ')
+        .toLowerCase()
+      return content.includes(normalizedSearch)
+    })
+
+    return [...bySearch].sort((left, right) => {
+      if (sortBy === 'name') return left.name.localeCompare(right.name)
+      if (sortBy === 'amount') return right.amount - left.amount
+      return left.dia - right.dia
+    })
+  }, [filter, recurringRecords, search, sortBy])
+
+  const selectedRecord = filteredRecords.find((record) => record.id === selectedRecordId) ?? null
+  const hasActiveFilters = search.trim().length > 0 || filter !== 'all' || sortBy !== 'day'
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold">Registros Recurrentes</h2>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-          <Input
-            type="date"
-            value={format(generateDate, 'yyyy-MM-dd')}
-            onChange={(e) => setGenerateDate(new Date(e.target.value))}
-            className="w-full sm:w-48"
+    <div className="space-y-6">
+      <SummaryCards
+        totalRecords={totalRecords}
+        activeRecords={activeRecords}
+        inactiveRecords={inactiveRecords}
+        monthlyEstimate={monthlyEstimate}
+      />
+
+      <Collapsible open={formOpen} onOpenChange={setFormOpen}>
+        <RecordsControls
+          loading={loading}
+          formOpen={formOpen}
+          isEditing={Boolean(editingRecord)}
+          generateDate={generateDate}
+          search={search}
+          filter={filter}
+          sortBy={sortBy}
+          resultsCount={filteredRecords.length}
+          hasActiveFilters={hasActiveFilters}
+          onGenerateDateChange={setGenerateDate}
+          onGenerateRecords={handleGenerateRecords}
+          onToggleForm={() => setFormOpen((prev) => !prev)}
+          onSearchChange={setSearch}
+          onFilterChange={setFilter}
+          onSortChange={setSortBy}
+          onClearFilters={() => {
+            setSearch('')
+            setFilter('all')
+            setSortBy('day')
+          }}
+        />
+
+        <CollapsibleTrigger className="sr-only">Alternar formulario de registro recurrente</CollapsibleTrigger>
+        <CollapsibleContent>
+          <RecordForm
+            formData={formData}
+            loading={loading}
+            isEditing={Boolean(editingRecord)}
+            onChange={setFormData}
+            onCancel={() => {
+              resetForm()
+              setFormOpen(false)
+            }}
+            onSubmit={editingRecord ? handleUpdateRecord : handleAddRecord}
           />
-          <Button onClick={handleGenerateRecords} disabled={loading} className="w-full sm:w-auto">
-            Generar Registros
-          </Button>
-          <Select value={filter} onValueChange={(value) => setFilter(value as 'all' | 'active' | 'inactive')}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue placeholder="Mostrar todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Mostrar todos</SelectItem>
-              <SelectItem value="active">Activos</SelectItem>
-              <SelectItem value="inactive">Inactivos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <div className="space-y-4 w-full">
-        {/* Add/Edit Record Form */}
-        <div className="bg-card rounded-lg p-4 sm:p-6 w-full">
-          <h3 className="font-semibold mb-6 text-lg">{editingRecord ? 'Editar Registro Recurrente' : 'Añadir Nuevo Registro Recurrente'}</h3>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <RecordsList
+          records={filteredRecords}
+          selectedRecordId={selectedRecordId}
+          loading={loading}
+          onSelectRecord={setSelectedRecordId}
+          onEditRecord={handleEditRecord}
+          onDeleteRecord={handleDeleteRecord}
+        />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {/* Basic Information */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium mb-1">Nombre</label>
-              <Input
-                value={newRecord.name}
-                onChange={(e) => setNewRecord({ ...newRecord, name: e.target.value })}
-                placeholder="Nombre del registro"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium mb-1">Tipo de Transacción</label>
-              <Select
-                value={newRecord.accion}
-                onValueChange={(value) => setNewRecord({ ...newRecord, accion: value })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Ingreso">Ingreso</SelectItem>
-                  <SelectItem value="Gasto">Gasto</SelectItem>
-                  <SelectItem value="Inversión">Inversión</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium mb-1">Día del Mes</label>
-              <Select
-                value={newRecord.dia.toString()}
-                onValueChange={(value) => setNewRecord({ ...newRecord, dia: parseInt(value) })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar día" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].map((day) => (
-                    <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <label className="block text-sm font-medium mb-1">Categoría</label>
-              <Select
-                value={newRecord.tipo}
-                onValueChange={(value) => setNewRecord({ ...newRecord, tipo: value })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Amount and Details */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium mb-1">Monto</label>
-              <Input
-                type="number"
-                value={newRecord.amount}
-                onChange={(e) => setNewRecord({ ...newRecord, amount: e.target.value })}
-                placeholder="Monto"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-3 col-span-2">
-              <label className="block text-sm font-medium mb-1">Detalle 1</label>
-              <Input
-                value={newRecord.detalle1}
-                onChange={(e) => setNewRecord({ ...newRecord, detalle1: e.target.value })}
-                placeholder="Detalle 1"
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-3 col-span-2">
-              <label className="block text-sm font-medium mb-1">Detalle 2</label>
-              <Input
-                value={newRecord.detalle2}
-                onChange={(e) => setNewRecord({ ...newRecord, detalle2: e.target.value })}
-                placeholder="Detalle 2"
-                className="w-full"
-              />
-            </div>
-
-            {/* Frequency and Payment Platform */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium mb-1">Frecuencia</label>
-              <Select
-                value={newRecord.frequency}
-                onValueChange={(value) => setNewRecord({ ...newRecord, frequency: value })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar frecuencia" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Mensual</SelectItem>
-                  <SelectItem value="weekly">Semanal</SelectItem>
-                  <SelectItem value="biweekly">Cada 2 semanas</SelectItem>
-                  <SelectItem value="yearly">Anual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3 col-span-2">
-              <label className="block text-sm font-medium mb-1">Plataforma de Pago</label>
-              <Input
-                value={newRecord.plataforma_pago}
-                onChange={(e) => setNewRecord({ ...newRecord, plataforma_pago: e.target.value })}
-                placeholder="Plataforma de pago (ej: PayPal, Transferencia, etc.)"
-                className="w-full"
-              />
-            </div>
-
-            {/* Active Status */}
-            <div className="space-y-3 col-span-4">
-              <label className="block text-sm font-medium mb-1">Activo</label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={newRecord.active}
-                  onCheckedChange={(checked) => setNewRecord({ ...newRecord, active: checked as boolean })}
-                />
-                <span className="text-sm">Marcar como activo</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col sm:flex-row justify-end gap-2 w-full">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditingRecord(null)
-                setNewRecord({
-                  name: '',
-                  accion: '',
-                  tipo: '',
-                  detalle1: '',
-                  detalle2: '',
-                  amount: '0',
-                  frequency: 'monthly',
-                  active: true,
-                  dia: 1,
-                  plataforma_pago: 'any'
-                })
-              }}
-              disabled={loading}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={editingRecord ? handleUpdateRecord : handleAddRecord}
-              disabled={loading}
-            >
-              {editingRecord ? 'Guardar Cambios' : 'Añadir Registro'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Recurring Records List */}
-        <div className="space-y-4 w-full overflow-hidden">
-          <h3 className="font-semibold text-lg">Registros Recurrentes</h3>
-          <div className="space-y-2 w-full">
-            {filteredRecords.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No se encontraron registros recurrentes
-              </div>
-            ) : (
-              filteredRecords.map((record) => (
-                <div key={record.id} className="w-full">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 sm:p-4 bg-card rounded-lg gap-2 sm:gap-3 w-full">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="font-medium text-base truncate">{record.name}</h4>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {record.accion} - {record.tipo} - {record.frequency} - {record.plataforma_pago}
-                      </p>
-                      <div className="mt-1">
-                        <Badge variant={record.active ? "default" : "secondary"}>
-                          {record.active ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 sm:flex-initial whitespace-nowrap min-w-[80px]"
-                        onClick={() => handleEditRecord(record)}
-                        disabled={loading}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1 sm:flex-initial whitespace-nowrap min-w-[80px]"
-                        onClick={() => handleDeleteRecord(record.id)}
-                        disabled={loading}
-                      >
-                        Eliminar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <RecordDetailPanel
+          record={selectedRecord}
+          loading={loading}
+          onEdit={handleEditRecord}
+          onDelete={handleDeleteRecord}
+        />
       </div>
     </div>
   )
