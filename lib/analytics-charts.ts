@@ -33,17 +33,19 @@ const actionColorMap: Record<string, { background: string; border: string }> = {
     background: "rgba(239, 68, 68, 0.35)",
     border: "rgba(239, 68, 68, 1)",
   },
-  "Inversión": {
+  Inversión: {
     background: "rgba(59, 130, 246, 0.35)",
     border: "rgba(59, 130, 246, 1)",
   },
 };
 
 function getActionColors(action: string) {
-  return actionColorMap[action] ?? {
-    background: "rgba(168, 85, 247, 0.35)",
-    border: "rgba(168, 85, 247, 1)",
-  };
+  return (
+    actionColorMap[action] ?? {
+      background: "rgba(168, 85, 247, 0.35)",
+      border: "rgba(168, 85, 247, 1)",
+    }
+  );
 }
 
 function formatEuro(value: number) {
@@ -53,12 +55,15 @@ function formatEuro(value: number) {
   }).format(value);
 }
 
-export function getTemporalChartData(data: AnalyticsDataset, groupBy: "month" | "year") {
+export function getTemporalChartData(
+  data: AnalyticsDataset,
+  groupBy: "month" | "year",
+) {
   const periods = Array.from(
-    new Set(data.temporalData.map((item) => item.period))
+    new Set(data.temporalData.map((item) => item.period)),
   ).sort();
   const actions: string[] = Array.from(
-    new Set(data.temporalData.map((item) => item.action))
+    new Set(data.temporalData.map((item) => item.action)),
   );
 
   const datasets: ChartDataset<"bar", number[]>[] = actions.map(
@@ -68,7 +73,7 @@ export function getTemporalChartData(data: AnalyticsDataset, groupBy: "month" | 
         label: action,
         data: periods.map((period) => {
           const item = data.temporalData.find(
-            (d) => d.period === period && d.action === action
+            (d) => d.period === period && d.action === action,
           );
           return item ? Math.abs(Number(item.total)) : 0;
         }),
@@ -76,7 +81,7 @@ export function getTemporalChartData(data: AnalyticsDataset, groupBy: "month" | 
         borderColor: color.border,
         borderWidth: 1,
       } as ChartDataset<"bar", number[]>;
-    }
+    },
   );
 
   if (datasets.length > 0) {
@@ -108,11 +113,14 @@ export function getTemporalChartData(data: AnalyticsDataset, groupBy: "month" | 
 }
 
 export function getCategoryChartData(data: AnalyticsDataset) {
-  const categoryTotals = data.categoryData.reduce<Record<string, number>>((acc, item) => {
-    if (!acc[item.category]) acc[item.category] = 0;
-    acc[item.category] += Math.abs(Number(item.total));
-    return acc;
-  }, {});
+  const categoryTotals = data.categoryData.reduce<Record<string, number>>(
+    (acc, item) => {
+      if (!acc[item.category]) acc[item.category] = 0;
+      acc[item.category] += Math.abs(Number(item.total));
+      return acc;
+    },
+    {},
+  );
   const sortedData = Object.entries(categoryTotals)
     .map(([category, total]) => ({ category, total }))
     .sort((a, b) => b.total - a.total);
@@ -128,17 +136,14 @@ export function getCategoryChartData(data: AnalyticsDataset) {
     "#607D8B",
     "#9C27B0",
   ];
-  const total = sortedData.reduce(
-    (sum, item) => sum + item.total,
-    0
-  );
+  const total = sortedData.reduce((sum, item) => sum + item.total, 0);
   return {
     labels: sortedData.map((item) => item.category),
     datasets: [
       {
         data: sortedData.map((item) => item.total),
         backgroundColor: sortedData.map(
-          (_, index) => colors[index % colors.length]
+          (_, index) => colors[index % colors.length],
         ),
         borderWidth: 1,
       },
@@ -148,9 +153,11 @@ export function getCategoryChartData(data: AnalyticsDataset) {
 }
 
 export function getTemporalChartOptions(
-  temporalData: TemporalDatum[]
+  temporalData: TemporalDatum[],
 ): ChartOptions<"bar"> {
-  const sortedPeriods = Array.from(new Set(temporalData.map((item) => item.period))).sort();
+  const sortedPeriods = Array.from(
+    new Set(temporalData.map((item) => item.period)),
+  ).sort();
 
   return {
     responsive: true,
@@ -163,7 +170,7 @@ export function getTemporalChartOptions(
             const value = Number(context.raw || 0);
             const periodIso = sortedPeriods[context.dataIndex];
             const match = temporalData.find(
-              (entry) => entry.period === periodIso && entry.action === label
+              (entry) => entry.period === periodIso && entry.action === label,
             );
             const countText = match?.count ? ` • ${match.count} mov.` : "";
             return `${label}: ${formatEuro(value)}${countText}`;
@@ -189,7 +196,8 @@ export function getLineChartOptions(): ChartOptions<"line"> {
     plugins: {
       tooltip: {
         callbacks: {
-          label: (context) => `${context.dataset.label}: ${formatEuro(Number(context.raw || 0))}`,
+          label: (context) =>
+            `${context.dataset.label}: ${formatEuro(Number(context.raw || 0))}`,
         },
       },
     },
@@ -205,12 +213,16 @@ export function getLineChartOptions(): ChartOptions<"line"> {
 
 export function getDoughnutChartOptions(
   totalAmount: number,
-  categoryData: CategoryDatum[]
+  categoryData: CategoryDatum[],
 ): ChartOptions<"doughnut"> {
-  const countsByCategory = categoryData.reduce<Record<string, number>>((acc, current) => {
-    acc[current.category] = (acc[current.category] || 0) + (current.count || 0);
-    return acc;
-  }, {});
+  const countsByCategory = categoryData.reduce<Record<string, number>>(
+    (acc, current) => {
+      acc[current.category] =
+        (acc[current.category] || 0) + (current.count || 0);
+      return acc;
+    },
+    {},
+  );
 
   return {
     responsive: true,
@@ -228,8 +240,12 @@ export function getDoughnutChartOptions(
             const label = context.label || "";
             const value = Number(context.raw || 0);
             const chartValues = context.dataset.data as number[];
-            const total = chartValues.reduce((sum, current) => sum + current, 0);
-            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+            const total = chartValues.reduce(
+              (sum, current) => sum + current,
+              0,
+            );
+            const percentage =
+              total > 0 ? Math.round((value / total) * 100) : 0;
             const count = countsByCategory[label] || 0;
             return `${label}: ${formatEuro(value)} (${percentage}%) • ${count} mov.`;
           },

@@ -100,8 +100,8 @@ export function useAnalyticsData() {
       (Array.isArray(filters.actions)
         ? filters.actions
         : filters.actions
-        ? [filters.actions]
-        : []
+          ? [filters.actions]
+          : []
       ).forEach((a) => params.append("action", a));
       if (filters.from)
         params.set("from", filters.from.toISOString().split("T")[0]);
@@ -109,20 +109,20 @@ export function useAnalyticsData() {
       (Array.isArray(filters.categories)
         ? filters.categories
         : filters.categories
-        ? [filters.categories]
-        : []
+          ? [filters.categories]
+          : []
       ).forEach((c) => params.append("category", c));
       (Array.isArray(filters.platforms)
         ? filters.platforms
         : filters.platforms
-        ? [filters.platforms]
-        : []
+          ? [filters.platforms]
+          : []
       ).forEach((p) => params.append("platform", p));
       (Array.isArray(filters.types)
         ? filters.types
         : filters.types
-        ? [filters.types]
-        : []
+          ? [filters.types]
+          : []
       ).forEach((t) => params.append("type", t));
       if (typeof filters.minAmount === "number")
         params.set("minAmount", String(filters.minAmount));
