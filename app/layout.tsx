@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
 import AuthProvider from "@/components/context/AuthProvider"
 import { ThemeProvider } from "@/components/theme-provider"
+import { ChatWidget } from "@/components/ai/ChatWidget"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -44,6 +45,7 @@ export default function RootLayout({
               </div>
             </div>
             <Toaster />
+            <ChatWidget />
           </AuthProvider>
         </ThemeProvider>
       </body>
