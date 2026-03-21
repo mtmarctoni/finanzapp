@@ -16,7 +16,10 @@
     "reset:test": "tsx scripts/reset-test-user-data.ts"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^3.0.31",
+    "@ai-sdk/react": "^3.0.136",
     "@hookform/resolvers": "latest",
+    "@openrouter/ai-sdk-provider": "^2.3.3",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-aspect-ratio": "^1.1.1",
@@ -45,6 +48,7 @@
     "@radix-ui/react-toggle-group": "^1.1.1",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@vercel/postgres": "latest",
+    "ai": "^6.0.134",
     "chart.js": "^4.4.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

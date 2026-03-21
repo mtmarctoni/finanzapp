@@ -5,6 +5,7 @@ import { PlusCircle, FileDown } from "lucide-react"
 import FinanceTable from "@/components/finance-table"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { SearchFilter } from "@/components/search-filter"
+import { QuickEntryBar } from "@/components/ai/QuickEntryBar"
 import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from "@/config"
 
 export const dynamic = "force-dynamic"
@@ -57,6 +58,8 @@ export default async function RecordsPage({
           </Link>
         </div>
       </div>
+
+      <QuickEntryBar />
 
       <div className="mt-2">
         <SearchFilter />
