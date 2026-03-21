@@ -22,13 +22,16 @@ export function ChatWidget() {
   const {
     messages,
     status,
+    error,
     sendMessage,
     setMessages,
+    clearError,
   } = useChat({
     transport,
   });
 
   const isLoading = status === "streaming" || status === "submitted";
+  const hasError = status === "error" || !!error;
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -123,6 +126,18 @@ export function ChatWidget() {
                 <div className="bg-muted rounded-lg px-3 py-2">
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
+              </div>
+            )}
+
+            {hasError && (
+              <div className="mb-3 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
+                <span>Error: {error?.message ?? "Algo salió mal"}</span>
+                <button
+                  onClick={clearError}
+                  className="ml-2 text-xs underline hover:no-underline"
+                >
+                  Cerrar
+                </button>
               </div>
             )}
 
