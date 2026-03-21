@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { getModel, getFallbackModel } from "@/lib/ai/config";
+import { aiModel } from "@/lib/ai/config";
 import { PARSE_ENTRY_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { createClient } from "@vercel/postgres";
 import { v4 as uuidv4 } from "uuid";
@@ -39,23 +39,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let result;
-    try {
-      result = await generateObject({
-        model: getModel(),
-        schema: parsedEntrySchema,
-        system: PARSE_ENTRY_SYSTEM_PROMPT,
-        prompt: text,
-      });
-    } catch {
-      // Fallback to secondary model
-      result = await generateObject({
-        model: getFallbackModel(),
-        schema: parsedEntrySchema,
-        system: PARSE_ENTRY_SYSTEM_PROMPT,
-        prompt: text,
-      });
-    }
+    const result = await generateObject({
+      model: aiModel,
+      schema: parsedEntrySchema,
+      system: PARSE_ENTRY_SYSTEM_PROMPT,
+      prompt: text,
+    });
 
     const entry = result.object;
 

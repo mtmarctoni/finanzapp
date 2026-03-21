@@ -16,6 +16,7 @@
     "reset:test": "tsx scripts/reset-test-user-data.ts"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^3.0.31",
     "@ai-sdk/react": "^3.0.136",
     "@hookform/resolvers": "latest",
     "@openrouter/ai-sdk-provider": "^2.3.3",

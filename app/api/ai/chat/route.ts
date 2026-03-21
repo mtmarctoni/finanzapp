@@ -7,7 +7,7 @@ import {
   type UIMessage,
   convertToModelMessages,
 } from "ai";
-import { getChatModel, getChatFallbackModel } from "@/lib/ai/config";
+import { aiModel } from "@/lib/ai/config";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import {
   createFinanceEntryTool,
@@ -44,24 +44,13 @@ export async function POST(request: NextRequest) {
 
     const modelMessages = await convertToModelMessages(messages, { tools });
 
-    let result;
-    try {
-      result = streamText({
-        model: getChatModel(),
-        system: CHAT_SYSTEM_PROMPT,
-        messages: modelMessages,
-        tools,
-        stopWhen: stepCountIs(3),
-      });
-    } catch {
-      result = streamText({
-        model: getChatFallbackModel(),
-        system: CHAT_SYSTEM_PROMPT,
-        messages: modelMessages,
-        tools,
-        stopWhen: stepCountIs(3),
-      });
-    }
+    const result = streamText({
+      model: aiModel,
+      system: CHAT_SYSTEM_PROMPT,
+      messages: modelMessages,
+      tools,
+      stopWhen: stepCountIs(3),
+    });
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
