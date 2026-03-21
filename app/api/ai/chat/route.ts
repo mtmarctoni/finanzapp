@@ -7,7 +7,7 @@ import {
   type UIMessage,
   convertToModelMessages,
 } from "ai";
-import { getModel, getFallbackModel } from "@/lib/ai/config";
+import { getChatModel, getChatFallbackModel } from "@/lib/ai/config";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import {
   createFinanceEntryTool,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     let result;
     try {
       result = streamText({
-        model: getModel(),
+        model: getChatModel(),
         system: CHAT_SYSTEM_PROMPT,
         messages: modelMessages,
         tools,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       });
     } catch {
       result = streamText({
-        model: getFallbackModel(),
+        model: getChatFallbackModel(),
         system: CHAT_SYSTEM_PROMPT,
         messages: modelMessages,
         tools,
