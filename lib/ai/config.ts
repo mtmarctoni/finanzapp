@@ -48,10 +48,11 @@ const openrouter = createOpenRouter({
 });
 
 // Opencode Zen provider - uses OpenAI-compatible API
+// Correct endpoint for Big Pickle and Kimi K2.5 models
 const opencode = createOpenAICompatible({
   name: "opencode",
   apiKey: process.env.OPENCODE_API_KEY!,
-  baseURL: "https://api.opencode.ai/v1",
+  baseURL: "https://opencode.ai/zen/v1",
 });
 
 // Model configurations by provider
@@ -71,9 +72,9 @@ export const OPENCODE_MODELS = {
     description: "Free general-purpose model with good performance for most tasks",
   },
   // Paid tier models
-  kimi_2_5: {
+  kimi_k2_5: {
     id: "kimi-k2.5",
-    name: "Kimi 2.5",
+    name: "Kimi K2.5",
     tier: "paid" as const,
     description: "High-performance model for complex tasks (paid option)",
   },
