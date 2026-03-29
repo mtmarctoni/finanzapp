@@ -15,6 +15,8 @@ import type { Entry } from "@/lib/definitions"
 import { shouldSplitTransaction } from "@/lib/utils"
 import { Combobox } from "@/components/ui/combobox"
 import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Wand2, DollarSign } from "lucide-react"
 
 const formSchema = z.object({
   fecha: z.string().min(1, { message: "La fecha es requerida" }),
@@ -31,7 +33,31 @@ const formSchema = z.object({
 
 type FinanceFormValues = z.infer<typeof formSchema>
 
-export function FinanceForm({ entry }: { entry?: Entry }) {
+// Pre-filled data from AI parsing
+interface ParsedData {
+  fecha?: string
+  hora?: number
+  minuto?: number
+  tipo?: string
+  accion?: string
+  que?: string
+  plataforma_pago?: string
+  cantidad?: number
+  detalle1?: string
+  detalle2?: string
+  ai_text?: string
+  ai_provider?: string
+  ai_model?: string
+  ai_cost?: number
+  ai_paid?: boolean
+}
+
+interface FinanceFormProps {
+  entry?: Entry
+  parsedData?: ParsedData
+}
+
+export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
   const router = useRouter()
   const { data: session } = useSession()
   const [tipoOptions, setTipoOptions] = useState<string[]>([])
@@ -61,35 +87,80 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     fetchOptions()
   }, [])
 
+  // Build default values based on entry or parsedData
+  const getDefaultValues = (): FinanceFormValues => {
+    const now = new Date()
+    
+    if (entry) {
+      // Use the existing date when editing
+      return {
+        fecha: new Date(entry.fecha).toISOString().split('T')[0],
+        hora: new Date(entry.fecha).getHours(),
+        minuto: new Date(entry.fecha).getMinutes(),
+        tipo: entry.tipo || "",
+        accion: entry.accion || "",
+        que: entry.que || "",
+        plataforma_pago: entry.plataforma_pago || "",
+        cantidad: shouldSplitTransaction(entry.plataforma_pago, entry.detalle1, entry.accion) ? entry.cantidad * 2 : entry.cantidad,
+        detalle1: entry.detalle1 || "",
+        detalle2: entry.detalle2 || "",
+      }
+    }
+    
+    if (parsedData) {
+      // Use AI-parsed data
+      return {
+        fecha: parsedData.fecha || now.toISOString().split("T")[0],
+        hora: parsedData.hora ?? now.getHours(),
+        minuto: parsedData.minuto ?? now.getMinutes(),
+        tipo: parsedData.tipo || "",
+        accion: parsedData.accion || "",
+        que: parsedData.que || "",
+        plataforma_pago: parsedData.plataforma_pago || "",
+        cantidad: parsedData.cantidad || 0,
+        detalle1: parsedData.detalle1 || "",
+        detalle2: parsedData.detalle2 || "",
+      }
+    }
+    
+    // Default empty form
+    return {
+      fecha: now.toISOString().split("T")[0],
+      hora: now.getHours(),
+      minuto: now.getMinutes(),
+      tipo: "",
+      accion: "",
+      que: "",
+      plataforma_pago: "",
+      cantidad: 0,
+      detalle1: "",
+      detalle2: "",
+    }
+  }
+
   const form = useForm<FinanceFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: entry
-      ? {
-          // Use the existing date when editing
-          fecha: new Date(entry.fecha).toISOString().split('T')[0],
-          hora: new Date(entry.fecha).getHours(),
-          minuto: new Date(entry.fecha).getMinutes(),
-          tipo: entry.tipo || "",
-          accion: entry.accion || "",
-          que: entry.que || "",
-          plataforma_pago: entry.plataforma_pago || "",
-          cantidad: shouldSplitTransaction(entry.plataforma_pago, entry.detalle1, entry.accion) ? entry.cantidad * 2 : entry.cantidad,
-          detalle1: entry.detalle1 || "",
-          detalle2: entry.detalle2 || "",
-        }
-      : {
-          fecha: new Date().toISOString().split("T")[0],
-          hora: new Date().getHours(),
-          minuto: new Date().getMinutes(),
-          tipo: "",
-          accion: "",
-          que: "",
-          plataforma_pago: "",
-          cantidad: 0,
-          detalle1: "",
-          detalle2: "",
-        },
+    defaultValues: getDefaultValues(),
   })
+
+  // Update form when parsedData changes (in case it arrives after mount)
+  useEffect(() => {
+    if (parsedData && !entry) {
+      const now = new Date()
+      form.reset({
+        fecha: parsedData.fecha || now.toISOString().split("T")[0],
+        hora: parsedData.hora ?? now.getHours(),
+        minuto: parsedData.minuto ?? now.getMinutes(),
+        tipo: parsedData.tipo || "",
+        accion: parsedData.accion || "",
+        que: parsedData.que || "",
+        plataforma_pago: parsedData.plataforma_pago || "",
+        cantidad: parsedData.cantidad || 0,
+        detalle1: parsedData.detalle1 || "",
+        detalle2: parsedData.detalle2 || "",
+      })
+    }
+  }, [parsedData, entry, form])
 
   const plataformaPago = form.watch('plataforma_pago')
   const detalle1 = form.watch('detalle1')
@@ -130,6 +201,35 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
   return (
     <Card>
       <CardContent className="pt-6">
+        {/* AI Parse Info Banner */}
+        {parsedData && parsedData.ai_text && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Wand2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="font-medium text-blue-900 dark:text-blue-100">
+                Datos extraídos por IA
+              </span>
+            </div>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+              Texto original: &ldquo;{parsedData.ai_text}&rdquo;
+            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="text-xs">
+                {parsedData.ai_provider} / {parsedData.ai_model}
+              </Badge>
+              {parsedData.ai_paid && (
+                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Cost: ${parsedData.ai_cost?.toFixed(4) || "0.0000"}
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+              Revisa y confirma los datos antes de guardar
+            </p>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -315,4 +415,3 @@ export function FinanceForm({ entry }: { entry?: Entry }) {
     </Card>
   )
 }
-

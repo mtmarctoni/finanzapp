@@ -59,9 +59,14 @@ export default async function RecordsPage({
         </div>
       </div>
 
+      {/* AI Quick Entry - Prominent placement with card styling */}
       <QuickEntryBar />
 
-      <div className="mt-2">
+      {/* Search/Filter Section - Clear visual separation */}
+      <div className="border-t pt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-lg font-semibold text-muted-foreground">Buscar y Filtrar</h2>
+        </div>
         <SearchFilter />
       </div>
 

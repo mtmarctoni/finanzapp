@@ -4,14 +4,12 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { PARSE_ENTRY_SYSTEM_PROMPT } from "@/lib/ai/prompts";
-import { createClient } from "@vercel/postgres";
-import { v4 as uuidv4 } from "uuid";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/ai/rate-limit";
 import { raceFreeProviders, executePaidFallback, PAID_FALLBACK } from "@/lib/ai/fallback";
 import { hasUserConfirmedPaidFallback } from "@/app/api/ai/confirm-paid/route";
 
 const parsedEntrySchema = z.object({
-  fecha: z.string().describe("Transaction date in ISO 8601 format"),
+  fecha: z.string().describe("Transaction date in ISO 8601 format (YYYY-MM-DD)"),
   tipo: z.string().describe("Category of the transaction"),
   accion: z
     .enum(["Ingreso", "Gasto", "Inversión"])
@@ -23,40 +21,8 @@ const parsedEntrySchema = z.object({
   detalle2: z.string().optional().describe("Optional extra detail 2"),
 });
 
-// Rate limit config: 3 parse requests per minute per user
-const RATE_LIMIT_CONFIG = { maxRequests: 3, windowMs: 60 * 1000 };
-
-/**
- * Helper function to execute database operations with proper connection management.
- * Ensures client is always closed, even if connection fails.
- */
-async function withDbClient<T>(
-  operation: (client: ReturnType<typeof createClient>) => Promise<T>
-): Promise<T> {
-  const client = createClient();
-  
-  try {
-    await client.connect();
-    return await operation(client);
-  } finally {
-    try {
-      await client.end();
-    } catch (endError) {
-      // Log but don't throw - we want to preserve the original error
-      console.error("Error closing database client:", endError);
-    }
-  }
-}
-
-/**
- * Validates ISO 8601 date format before casting to timestamptz
- */
-function validateIsoDate(dateStr: string, fieldName: string): void {
-  const isoDateRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?)?$/;
-  if (!isoDateRegex.test(dateStr)) {
-    throw new Error(`Invalid ${fieldName} format. Expected ISO 8601 date (e.g., 2026-03-21)`);
-  }
-}
+// Rate limit config: 5 parse-for-form requests per minute per user
+const RATE_LIMIT_CONFIG = { maxRequests: 5, windowMs: 60 * 1000 };
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -75,9 +41,9 @@ export async function POST(request: NextRequest) {
   const userId = session.user.id;
   
     // Rate limiting check
-    const rateLimitResult = checkRateLimit(`parse:${userId}`, RATE_LIMIT_CONFIG);
+    const rateLimitResult = checkRateLimit(`parse-form:${userId}`, RATE_LIMIT_CONFIG);
     if (!rateLimitResult.allowed) {
-      console.warn(`[Rate Limit] User ${userId} exceeded parse rate limit`, {
+      console.warn(`[Rate Limit] User ${userId} exceeded parse-form rate limit`, {
         requestId,
         retryAfter: rateLimitResult.retryAfter,
       });
@@ -116,7 +82,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Log AI request start
-    console.log(`[Parse Entry Start] Request ${requestId}`, {
+    console.log(`[Parse Form Start] Request ${requestId}`, {
       userId,
       textLength: text.length,
       timestamp: new Date().toISOString(),
@@ -144,7 +110,7 @@ export async function POST(request: NextRequest) {
           },
         };
       },
-      { endpoint: "/api/ai/parse-entry" }
+      { endpoint: "/api/ai/parse-for-form" }
     );
     
     let entry: z.infer<typeof parsedEntrySchema>;
@@ -159,10 +125,10 @@ export async function POST(request: NextRequest) {
       providerUsed = freeResult.provider;
       modelUsed = freeResult.model;
       
-      console.log(`[Parse Entry] Free provider succeeded: ${providerUsed}/${modelUsed}`);
+      console.log(`[Parse Form] Free provider succeeded: ${providerUsed}/${modelUsed}`);
     } else {
       // All free providers failed
-      console.warn(`[Parse Entry] All free providers failed for user ${userId}`, {
+      console.warn(`[Parse Form] All free providers failed for user ${userId}`, {
         requestId,
         attempts: freeResult.attempts,
       });
@@ -211,7 +177,7 @@ export async function POST(request: NextRequest) {
               },
             };
           },
-          { endpoint: "/api/ai/parse-entry" }
+          { endpoint: "/api/ai/parse-for-form" }
         );
         
         if (paidResult.success) {
@@ -220,7 +186,7 @@ export async function POST(request: NextRequest) {
           providerUsed = PAID_FALLBACK.provider;
           modelUsed = PAID_FALLBACK.modelId;
           
-          console.log(`[Parse Entry] Paid fallback succeeded: ${providerUsed}/${modelUsed}, cost: $${costUsd.toFixed(6)}`);
+          console.log(`[Parse Form] Paid fallback succeeded: ${providerUsed}/${modelUsed}, cost: $${costUsd.toFixed(6)}`);
         } else {
           // Paid fallback also failed
           return NextResponse.json(
@@ -251,51 +217,50 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Validate date format before database operation
-    validateIsoDate(entry.fecha, "fecha");
+    // Calculate current time for the form
+    const now = new Date();
     
-    // Insert into database with connection management
-    const entryId = uuidv4();
-    
-    await withDbClient(async (client) => {
-      await client.sql`
-        INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id)
-        VALUES (
-          ${entryId},
-          ${entry.fecha}::timestamptz,
-          ${entry.tipo},
-          ${entry.accion},
-          ${entry.que},
-          ${entry.plataforma_pago},
-          ${entry.cantidad},
-          ${entry.detalle1 || null},
-          ${entry.detalle2 || null},
-          ${userId}
-        )
-      `;
-    });
+    // Parse the date string to create a proper date object
+    const fechaDate = new Date(entry.fecha);
+    if (isNaN(fechaDate.getTime())) {
+      // If date is invalid, use today
+      fechaDate.setTime(now.getTime());
+    }
     
     // Log successful request
     const duration = Date.now() - startTime;
-    console.log(`[Parse Entry Success] Request ${requestId} completed`, {
+    console.log(`[Parse Form Success] Request ${requestId} completed`, {
       userId,
       provider: providerUsed,
       model: modelUsed,
-      entryId,
       costUsd,
       durationMs: duration,
       timestamp: new Date().toISOString(),
     });
     
+    // Return parsed data for form pre-filling
+    // Note: We don't create the entry - we just return the data for the user to confirm
     return NextResponse.json(
       {
         success: true,
-        entry,
-        entryId,
+        parsedData: {
+          fecha: fechaDate.toISOString().split('T')[0], // YYYY-MM-DD
+          hora: now.getHours(),
+          minuto: now.getMinutes(),
+          tipo: entry.tipo,
+          accion: entry.accion,
+          que: entry.que,
+          plataforma_pago: entry.plataforma_pago,
+          cantidad: entry.cantidad,
+          detalle1: entry.detalle1 || "",
+          detalle2: entry.detalle2 || "",
+        },
+        originalText: text,
         providerUsed,
         modelUsed,
         costUsd: costUsd > 0 ? costUsd : undefined,
         isPaidFallback: costUsd > 0,
+        redirectTo: "/new",
       },
       {
         headers: {
@@ -309,7 +274,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     const duration = Date.now() - startTime;
-    console.error(`[Parse Entry Error] Request ${requestId}:`, {
+    console.error(`[Parse Form Error] Request ${requestId}:`, {
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       userId,

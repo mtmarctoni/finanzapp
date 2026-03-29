@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import Link from "next/link"
 import { useTransition, useEffect, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { getCryptoTransactions, deleteCryptoTransaction, duplicateCryptoTransaction } from "@/lib/crypto-data"
 import type { CryptoTransaction } from "@/types/finance"
 import { Badge } from "@/components/ui/badge"
@@ -65,9 +65,9 @@ export default function CryptoTransactionTable({
   const currentPage = Number(searchParams?.page) || 1
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE
   const [sortBy, setSortBy] = useState<"transaction_date" | "crypto_symbol" | "amount" | "transaction_type">(
-    (searchParams?.sortBy as any) || "transaction_date"
+    (searchParams?.sortBy as "transaction_date" | "crypto_symbol" | "amount" | "transaction_type") || "transaction_date"
   )
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as any) || "desc")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as "asc" | "desc") || "desc")
 
   useEffect(() => {
     const fetchTransactions = async () => {

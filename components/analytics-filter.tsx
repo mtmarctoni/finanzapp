@@ -6,9 +6,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfYear, endOfYear, subMonths, startOfMonth, endOfMonth } from "date-fns";
 
+export interface AnalyticsFilterValue {
+  search?: string;
+  actions?: string | string[];
+  categories?: string | string[];
+  platforms?: string | string[];
+  types?: string | string[];
+  minAmount?: number;
+  maxAmount?: number;
+  from?: Date;
+  to?: Date;
+  groupBy?: "month" | "year";
+  useActivePeriods?: boolean;
+}
+
 export interface AnalyticsFilterProps {
-  value: any;
-  onChange: (filters: any) => void;
+  value: AnalyticsFilterValue;
+  onChange: (filters: AnalyticsFilterValue) => void;
   actions: string[];
   categories: string[];
   platforms: (string | null | undefined)[];
@@ -121,7 +135,7 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
             selected={value.from && value.to ? { from: value.from, to: value.to } : undefined}
             onSelect={(range) => {
               if (range && typeof range === 'object' && 'from' in range && 'to' in range) {
-                onChange({ ...value, from: range.from, to: range.to });
+                onChange({ ...value, from: range.from as Date, to: range.to as Date });
               }
             }}
             autoFocus
@@ -139,7 +153,7 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
       </div>
       <Select
         value={value.groupBy || "month"}
-        onValueChange={groupBy => onChange({ ...value, groupBy })}
+        onValueChange={groupBy => onChange({ ...value, groupBy: groupBy as "month" | "year" })}
       >
         <SelectTrigger className="w-28">
           <SelectValue placeholder="Agrupar por" />

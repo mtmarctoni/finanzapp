@@ -46,19 +46,19 @@ export default function FinanceTable({
   const { data: session } = useSession() || ""
   const currentPage = Number(searchParams?.page) || 1
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE
-  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad">(searchParams?.sortBy as any || DEFAULT_SORT_BY)
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as any) || DEFAULT_SORT_ORDER)
+  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad">((searchParams?.sortBy as "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad") || DEFAULT_SORT_BY)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as "asc" | "desc") || DEFAULT_SORT_ORDER)
   
   console.log('FinanceTable received params:', { search, accion, from, to, currentPage, itemsPerPage })
 
   useEffect(() => {
     const getEntries = async () => {
       console.log('Fetching entries with params:', { search, accion, from, to, page: currentPage, itemsPerPage, sortBy, sortOrder })
-      const result = await getFinanceEntries({ search, accion, from, to, page: currentPage, itemsPerPage, sortBy, sortOrder }) as any
+      const result = await getFinanceEntries({ search, accion, from, to, page: currentPage, itemsPerPage, sortBy, sortOrder }) as PaginatedEntriesResponse
       console.log('Received entries:', result)
       setEntries({
         data: result.data ?? [],
-        totalItems: (result.totalItems ?? result.total ?? 0) as number,
+                              totalItems: (result.totalItems ?? (result as { total?: number }).total ?? 0) as number,
         totalPages: result.totalPages ?? 0,
         currentPage: result.currentPage ?? currentPage,
       })
@@ -359,10 +359,10 @@ export default function FinanceTable({
                               itemsPerPage,
                               sortBy,
                               sortOrder
-                            }) as any;
+                            }) as PaginatedEntriesResponse;
                             setEntries({
                               data: result.data ?? [],
-                              totalItems: (result.totalItems ?? result.total ?? 0) as number,
+        totalItems: (result.totalItems ?? (result as { total?: number }).total ?? 0) as number,
                               totalPages: result.totalPages ?? 0,
                               currentPage: result.currentPage ?? currentPage,
                             });

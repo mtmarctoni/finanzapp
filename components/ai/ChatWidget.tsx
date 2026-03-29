@@ -1,22 +1,41 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, X, Send, Loader2 } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, DollarSign } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
+import { PaidFallbackDialog } from "./PaidFallbackDialog";
+
+interface FallbackError {
+  requiresConfirmation: boolean;
+  fallbackModel: string;
+  estimatedCost: string;
+  freeProviderErrors: string[];
+}
 
 export function ChatWidget() {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [fallbackError, setFallbackError] = useState<FallbackError | null>(
+    null
+  );
+  const [paidSessionActive, setPaidSessionActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/ai/chat" }),
-    []
+    () =>
+      new DefaultChatTransport({
+        api: "/api/ai/chat",
+        headers: paidSessionActive
+          ? { "X-Confirm-Paid": "true" }
+          : undefined,
+      }),
+    [paidSessionActive]
   );
 
   const {
@@ -45,6 +64,105 @@ export function ChatWidget() {
     }
   }, [isOpen]);
 
+  // Check for paid session confirmation status on mount
+  useEffect(() => {
+    const checkConfirmation = async () => {
+      try {
+        const response = await fetch("/api/ai/confirm-paid");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.confirmed) {
+            setPaidSessionActive(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking confirmation status:", error);
+      }
+    };
+
+    if (session) {
+      checkConfirmation();
+    }
+  }, [session]);
+
+  // Handle errors - check if it's a fallback error
+  useEffect(() => {
+    if (error) {
+      // Try to parse the error message as JSON safely
+      try {
+        // Check if error message looks like JSON before parsing
+        if (error.message && (error.message.trim().startsWith('{') || error.message.trim().startsWith('['))) {
+          const errorData = JSON.parse(error.message);
+          // Validate that it has the expected fallback error structure
+          if (errorData && typeof errorData === 'object' && errorData.requiresConfirmation === true) {
+            // Use microtask to avoid setting state synchronously in effect
+            queueMicrotask(() => {
+              setFallbackError({
+                requiresConfirmation: true,
+                fallbackModel: errorData.fallbackModel || "Kimi K2.5",
+                estimatedCost: errorData.estimatedCost || "$0.001 - $0.005",
+                freeProviderErrors: Array.isArray(errorData.freeProviderErrors) ? errorData.freeProviderErrors : [],
+              });
+            });
+          }
+        }
+      } catch {
+        // Not a JSON error or not a valid fallback error - ignore
+        console.log("Regular error:", error.message);
+      }
+    }
+  }, [error]);
+
+  // Custom send message handler with fallback support
+  const handleSendMessage = useCallback(
+    async (text: string) => {
+      setPendingMessage(text);
+
+      try {
+        await sendMessage({ text });
+      } catch (err) {
+        console.error("Send message error:", err);
+      }
+    },
+    [sendMessage]
+  );
+
+  // Handle paid fallback confirmation
+  const handleConfirmPaidFallback = useCallback(async () => {
+    if (!pendingMessage) return;
+
+    setPaidSessionActive(true);
+    setFallbackError(null);
+    clearError();
+
+    // Retry the message with paid fallback
+    try {
+      await sendMessage({ text: pendingMessage });
+    } catch (err) {
+      console.error("Retry error:", err);
+    }
+
+    setPendingMessage(null);
+  }, [pendingMessage, sendMessage, clearError]);
+
+  // Handle decline
+  const handleDeclinePaidFallback = useCallback(() => {
+    setFallbackError(null);
+    setPendingMessage(null);
+    clearError();
+  }, [clearError]);
+
+  // Clear paid session after 10 minutes
+  useEffect(() => {
+    if (!paidSessionActive) return;
+
+    const timeout = setTimeout(() => {
+      setPaidSessionActive(false);
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearTimeout(timeout);
+  }, [paidSessionActive]);
+
   if (!session) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,15 +174,26 @@ export function ChatWidget() {
     if (!text || isLoading) return;
 
     input.value = "";
-    await sendMessage({ text });
+    await handleSendMessage(text);
   };
 
   const handleClearChat = () => {
     setMessages([]);
+    setPaidSessionActive(false);
   };
 
   return (
     <>
+      {/* Paid Fallback Dialog */}
+      <PaidFallbackDialog
+        isOpen={!!fallbackError}
+        onClose={handleDeclinePaidFallback}
+        onConfirm={handleConfirmPaidFallback}
+        onDecline={handleDeclinePaidFallback}
+        estimatedCost={fallbackError?.estimatedCost || "$0.001 - $0.005"}
+        modelName={fallbackError?.fallbackModel || "Kimi K2.5"}
+      />
+
       {/* Floating trigger button */}
       {!isOpen && (
         <button
@@ -81,7 +210,15 @@ export function ChatWidget() {
         <div className="fixed bottom-20 right-4 z-50 lg:bottom-6 lg:right-6 w-[calc(100vw-2rem)] max-w-sm h-[28rem] bg-background border border-border rounded-lg shadow-xl flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold">Asistente financiero</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold">Asistente financiero</h3>
+              {paidSessionActive && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <DollarSign className="h-3 w-3" />
+                  Paid
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-1">
               {messages.length > 0 && (
                 <Button
@@ -129,7 +266,7 @@ export function ChatWidget() {
               </div>
             )}
 
-            {hasError && (
+            {hasError && !fallbackError && (
               <div className="mb-3 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
                 <span>Error: {error?.message ?? "Algo salió mal"}</span>
                 <button
@@ -146,6 +283,19 @@ export function ChatWidget() {
 
           {/* Input area */}
           <div className="border-t border-border p-3">
+            {paidSessionActive && (
+              <div className="mb-2 text-xs text-muted-foreground flex items-center justify-between">
+                <span className="text-yellow-600 dark:text-yellow-400">
+                  Using paid model (session expires in 10 min)
+                </span>
+                <button
+                  onClick={() => setPaidSessionActive(false)}
+                  className="text-xs underline hover:no-underline"
+                >
+                  Disable
+                </button>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="flex gap-2">
               <input
                 ref={inputRef}

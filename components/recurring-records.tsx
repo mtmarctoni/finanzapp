@@ -33,13 +33,16 @@ export default function RecurringRecords() {
   }
 
   useEffect(() => {
+    // Use a microtask to avoid setting state synchronously in effect body
     if (!recurringRecords.length) {
-      setSelectedRecordId(null)
+      queueMicrotask(() => setSelectedRecordId(null))
       return
     }
 
     const selectedExists = recurringRecords.some((record) => record.id === selectedRecordId)
-    if (!selectedExists) setSelectedRecordId(recurringRecords[0].id)
+    if (!selectedExists) {
+      queueMicrotask(() => setSelectedRecordId(recurringRecords[0]?.id ?? null))
+    }
   }, [recurringRecords, selectedRecordId])
 
   const validateForm = () => {

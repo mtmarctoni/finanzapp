@@ -57,7 +57,7 @@ describe('Data fetching functions', () => {
 
       // Check that fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(
-        `${baseURL}/api/entries?search=test&from=2023-01-01&to=2023-01-31&page=2&itemsPerPage=50`
+        `${baseURL}/api/entries?search=test&from=2023-01-01&to=2023-01-31&page=2&itemsPerPage=100`
       );
       
       // Check that the function returns the expected result
