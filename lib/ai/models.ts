@@ -69,9 +69,48 @@ export const MODELS = {
     id: "openrouter/free",
     description: "OpenRouter auto-router. Picks the best free model for your request. Handles tool use, vision, etc.",
   },
+  // Opencode Zen Models
+  big_pickle: {
+    id: "big-pickle",
+    provider: "opencode",
+    tier: "free",
+    description: "Free general-purpose model. Good for everyday finance tasks.",
+  },
+  kimi_2_5: {
+    id: "kimi-k2.5",
+    provider: "opencode",
+    tier: "paid",
+    description: "High-performance model for complex analysis and reasoning tasks.",
+  },
 } as const;
 
 export type ModelKey = keyof typeof MODELS;
+
+// Model selection by provider
+export const PROVIDER_MODELS = {
+  groq: {
+    primary: MODELS.llama_70b.id,
+    fallback: MODELS.gemma_27b.id,
+  },
+  openrouter: {
+    primary: MODELS.gemma_27b.id,
+    fallback: MODELS.openrouter_free.id,
+  },
+  opencode: {
+    primary: MODELS.big_pickle.id,
+    fallback: MODELS.kimi_2_5.id,
+  },
+} as const;
+
+// Helper to get primary model based on provider
+export function getPrimaryModelId(provider: "groq" | "openrouter" | "opencode"): string {
+  return PROVIDER_MODELS[provider].primary;
+}
+
+// Helper to get fallback model based on provider
+export function getFallbackModelId(provider: "groq" | "openrouter" | "opencode"): string {
+  return PROVIDER_MODELS[provider].fallback;
+}
 
 export const PRIMARY_MODEL_ID = MODELS.gemma_27b.id;
 export const FALLBACK_MODEL_ID = MODELS.openrouter_free.id;

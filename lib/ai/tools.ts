@@ -4,6 +4,38 @@ import { createClient } from "@vercel/postgres";
 import { v4 as uuidv4 } from "uuid";
 
 /**
+ * Helper function to execute database operations with proper connection management.
+ * Ensures client is always closed, even if connection fails.
+ */
+async function withDbClient<T>(
+  operation: (client: ReturnType<typeof createClient>) => Promise<T>
+): Promise<T> {
+  const client = createClient();
+  
+  try {
+    await client.connect();
+    return await operation(client);
+  } finally {
+    try {
+      await client.end();
+    } catch (endError) {
+      // Log but don't throw - we want to preserve the original error
+      console.error("Error closing database client:", endError);
+    }
+  }
+}
+
+/**
+ * Validates ISO 8601 date format before casting to timestamptz
+ */
+function validateIsoDate(dateStr: string, fieldName: string): void {
+  const isoDateRegex = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:\d{2})?)?$/;
+  if (!isoDateRegex.test(dateStr)) {
+    throw new Error(`Invalid ${fieldName} format. Expected ISO 8601 date (e.g., 2026-03-21)`);
+  }
+}
+
+/**
  * AI tool: Create a finance entry in the database.
  * The userId is injected at call time — not exposed to the AI.
  */
@@ -48,28 +80,34 @@ export function createFinanceEntryTool(userId: string) {
     }),
     execute: async (input) => {
       const entryId = uuidv4();
-      const client = createClient();
-      await client.connect();
-
+      
       try {
-        await client.sql`
-          INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id)
-          VALUES (${entryId}, ${input.fecha}::timestamptz, ${input.tipo}, ${input.accion}, ${input.que}, ${input.plataforma_pago}, ${input.cantidad}, ${input.detalle1 || null}, ${input.detalle2 || null}, ${userId})
-        `;
+        // Validate date format before database operation
+        validateIsoDate(input.fecha, "fecha");
+        
+        return await withDbClient(async (client) => {
+          await client.sql`
+            INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id)
+            VALUES (${entryId}, ${input.fecha}::timestamptz, ${input.tipo}, ${input.accion}, ${input.que}, ${input.plataforma_pago}, ${input.cantidad}, ${input.detalle1 || null}, ${input.detalle2 || null}, ${userId})
+          `;
 
-        return {
-          success: true as const,
-          entryId,
-          message: `Entrada creada: ${input.accion} de ${input.cantidad}\u20AC \u2014 ${input.que} (${input.tipo})`,
-        };
+          return {
+            success: true as const,
+            entryId,
+            message: `Entrada creada: ${input.accion} de ${input.cantidad}€ — ${input.que} (${input.tipo})`,
+          };
+        });
       } catch (error) {
-        console.error("AI tool createFinanceEntry error:", error);
+        console.error("AI tool createFinanceEntry error:", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userId,
+          entryId,
+          timestamp: new Date().toISOString(),
+        });
         return {
           success: false as const,
           message: "Error al crear la entrada en la base de datos.",
         };
-      } finally {
-        await client.end();
       }
     },
   });
@@ -96,38 +134,41 @@ export function getRecentEntriesTool(userId: string) {
         .describe("Filter by transaction type"),
     }),
     execute: async (input) => {
-      const client = createClient();
-      await client.connect();
-
       try {
-        let result;
-        if (input.accion) {
-          result = await client.sql`
-            SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2
-            FROM finance_entries
-            WHERE user_id = ${userId} AND accion = ${input.accion}
-            ORDER BY fecha DESC
-            LIMIT ${input.limit}
-          `;
-        } else {
-          result = await client.sql`
-            SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2
-            FROM finance_entries
-            WHERE user_id = ${userId}
-            ORDER BY fecha DESC
-            LIMIT ${input.limit}
-          `;
-        }
+        return await withDbClient(async (client) => {
+          let result;
+          if (input.accion) {
+            result = await client.sql`
+              SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2
+              FROM finance_entries
+              WHERE user_id = ${userId} AND accion = ${input.accion}
+              ORDER BY fecha DESC
+              LIMIT ${input.limit}
+            `;
+          } else {
+            result = await client.sql`
+              SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2
+              FROM finance_entries
+              WHERE user_id = ${userId}
+              ORDER BY fecha DESC
+              LIMIT ${input.limit}
+            `;
+          }
 
-        return {
-          entries: result.rows,
-          count: result.rows.length,
-        };
+          return {
+            entries: result.rows,
+            count: result.rows.length,
+          };
+        });
       } catch (error) {
-        console.error("AI tool getRecentEntries error:", error);
+        console.error("AI tool getRecentEntries error:", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userId,
+          limit: input.limit,
+          accion: input.accion,
+          timestamp: new Date().toISOString(),
+        });
         return { entries: [] as Record<string, unknown>[], count: 0, error: "Error al consultar entradas." };
-      } finally {
-        await client.end();
       }
     },
   });
@@ -149,37 +190,44 @@ export function getSpendingByCategoryTool(userId: string) {
         .describe("End date in ISO 8601 format (e.g., 2026-03-21)"),
     }),
     execute: async (input) => {
-      const client = createClient();
-      await client.connect();
-
       try {
-        const result = await client.sql`
-          SELECT tipo, SUM(cantidad) as total, COUNT(*) as count
-          FROM finance_entries
-          WHERE user_id = ${userId}
-            AND accion = 'Gasto'
-            AND fecha >= ${input.from}::timestamptz
-            AND fecha <= ${input.to}::timestamptz
-          GROUP BY tipo
-          ORDER BY total DESC
-        `;
+        // Validate date formats
+        validateIsoDate(input.from, "from");
+        validateIsoDate(input.to, "to");
+        
+        return await withDbClient(async (client) => {
+          const result = await client.sql`
+            SELECT tipo, SUM(cantidad) as total, COUNT(*) as count
+            FROM finance_entries
+            WHERE user_id = ${userId}
+              AND accion = 'Gasto'
+              AND fecha >= ${input.from}::timestamptz
+              AND fecha <= ${input.to}::timestamptz
+            GROUP BY tipo
+            ORDER BY total DESC
+          `;
 
-        return {
-          categories: result.rows,
-          totalSpending: result.rows.reduce(
-            (sum, row) => sum + Number(row.total),
-            0
-          ),
-        };
+          return {
+            categories: result.rows,
+            totalSpending: result.rows.reduce(
+              (sum, row) => sum + Number(row.total),
+              0
+            ),
+          };
+        });
       } catch (error) {
-        console.error("AI tool getSpendingByCategory error:", error);
+        console.error("AI tool getSpendingByCategory error:", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userId,
+          from: input.from,
+          to: input.to,
+          timestamp: new Date().toISOString(),
+        });
         return {
           categories: [] as Record<string, unknown>[],
           totalSpending: 0,
-          error: "Error al consultar gastos por categor\u00EDa.",
+          error: "Error al consultar gastos por categoría.",
         };
-      } finally {
-        await client.end();
       }
     },
   });
@@ -201,40 +249,49 @@ export function getTotalByPeriodTool(userId: string) {
         .describe("End date in ISO 8601 format (e.g., 2026-03-21)"),
     }),
     execute: async (input) => {
-      const client = createClient();
-      await client.connect();
-
       try {
-        const result = await client.sql`
-          SELECT accion, SUM(cantidad) as total, COUNT(*) as count
-          FROM finance_entries
-          WHERE user_id = ${userId}
-            AND fecha >= ${input.from}::timestamptz
-            AND fecha <= ${input.to}::timestamptz
-          GROUP BY accion
-        `;
+        // Validate date formats
+        validateIsoDate(input.from, "from");
+        validateIsoDate(input.to, "to");
+        
+        return await withDbClient(async (client) => {
+          const result = await client.sql`
+            SELECT accion, SUM(cantidad) as total, COUNT(*) as count
+            FROM finance_entries
+            WHERE user_id = ${userId}
+              AND fecha >= ${input.from}::timestamptz
+              AND fecha <= ${input.to}::timestamptz
+            GROUP BY accion
+          `;
 
-        const totals: Record<string, { total: number; count: number }> = {};
-        for (const row of result.rows) {
-          totals[row.accion] = {
-            total: Number(row.total),
-            count: Number(row.count),
+          const totals: Record<string, { total: number; count: number }> = {};
+          for (const row of result.rows) {
+            totals[row.accion] = {
+              total: Number(row.total),
+              count: Number(row.count),
+            };
+          }
+
+          const income = totals["Ingreso"]?.total ?? 0;
+          const expense = totals["Gasto"]?.total ?? 0;
+          const investment = totals["Inversión"]?.total ?? 0;
+
+          return {
+            income,
+            expense,
+            investment,
+            netBalance: income - expense - investment,
+            details: totals,
           };
-        }
-
-        const income = totals["Ingreso"]?.total ?? 0;
-        const expense = totals["Gasto"]?.total ?? 0;
-        const investment = totals["Inversi\u00F3n"]?.total ?? 0;
-
-        return {
-          income,
-          expense,
-          investment,
-          netBalance: income - expense - investment,
-          details: totals,
-        };
+        });
       } catch (error) {
-        console.error("AI tool getTotalByPeriod error:", error);
+        console.error("AI tool getTotalByPeriod error:", {
+          error: error instanceof Error ? error.message : "Unknown error",
+          userId,
+          from: input.from,
+          to: input.to,
+          timestamp: new Date().toISOString(),
+        });
         return {
           income: 0,
           expense: 0,
@@ -242,8 +299,6 @@ export function getTotalByPeriodTool(userId: string) {
           netBalance: 0,
           error: "Error al calcular totales.",
         };
-      } finally {
-        await client.end();
       }
     },
   });
