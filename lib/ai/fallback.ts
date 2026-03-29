@@ -185,14 +185,15 @@ export function createModel(
 }
 
 // Race multiple free providers and return first success
+// Returns both the result and token usage for accurate cost tracking
 export async function raceFreeProviders<T>(
-  operation: (model: LanguageModel, config: typeof FREE_MODELS[number]) => Promise<T>,
+  operation: (model: LanguageModel, config: typeof FREE_MODELS[number]) => Promise<{ result: T; usage?: { inputTokens?: number; outputTokens?: number } }>,
   options: {
     timeoutMs?: number;
     endpoint?: string;
   } = {}
 ): Promise<
-  | { success: true; result: T; provider: string; model: string; costUsd: number }
+  | { success: true; result: T; provider: string; model: string; costUsd: number; inputTokens: number; outputTokens: number }
   | { success: false; error: string; attempts: string[] }
 > {
   const availableModels = getAvailableFreeModels();
@@ -200,7 +201,7 @@ export async function raceFreeProviders<T>(
   if (availableModels.length === 0) {
     return {
       success: false,
-      error: "No free providers configured. Please set GROQ_API_KEY, OPENROUTER_API_KEY, or OPENCODE_API_KEY.",
+      error: "No hay proveedores gratuitos configurados. Configure GROQ_API_KEY, OPENROUTER_API_KEY u OPENCODE_API_KEY.",
       attempts: [],
     };
   }
@@ -215,40 +216,44 @@ export async function raceFreeProviders<T>(
       const model = createModel(config.provider, config.modelId);
       
       if (!model) {
-        attempts.push(`${config.name}: Provider not initialized`);
+        attempts.push(`${config.name}: Proveedor no inicializado`);
         return null;
       }
       
       // Create timeout promise
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
-          reject(new Error(`Timeout after ${config.timeoutMs}ms`));
+          reject(new Error(`Tiempo de espera agotado después de ${config.timeoutMs}ms`));
         }, config.timeoutMs);
       });
       
       // Race between operation and timeout
-      const result = await Promise.race([
+      const { result, usage } = await Promise.race([
         operation(model, config),
         timeoutPromise,
       ]);
       
       const duration = Date.now() - startTime;
+      const inputTokens = usage?.inputTokens ?? 0;
+      const outputTokens = usage?.outputTokens ?? 0;
       
-      console.log(`[AI Provider] Success: ${config.name} in ${duration}ms`);
+      console.log(`[AI Provider] Éxito: ${config.name} en ${duration}ms (${inputTokens} in, ${outputTokens} out)`);
       
-      // Track cost (free models = $0)
-      trackCost(config.provider, config.modelId, 0, 0, options.endpoint || "unknown");
+      // Track cost (free models = $0, but still track for analytics)
+      trackCost(config.provider, config.modelId, inputTokens, outputTokens, options.endpoint || "unknown");
       
       return {
         result,
         provider: config.provider,
         model: config.modelId,
         costUsd: 0,
+        inputTokens,
+        outputTokens,
       };
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      const errorMsg = error instanceof Error ? error.message : "Error desconocido";
       attempts.push(`${config.name}: ${errorMsg}`);
-      console.warn(`[AI Provider] Failed: ${config.name} - ${errorMsg}`);
+      console.warn(`[AI Provider] Falló: ${config.name} - ${errorMsg}`);
       return null;
     }
   });
@@ -266,31 +271,34 @@ export async function raceFreeProviders<T>(
       provider: success.provider,
       model: success.model,
       costUsd: success.costUsd,
+      inputTokens: success.inputTokens,
+      outputTokens: success.outputTokens,
     };
   }
   
   // All free providers failed
   return {
     success: false,
-    error: "All free providers failed",
+    error: "Todos los proveedores gratuitos fallaron",
     attempts,
   };
 }
 
 // Execute paid fallback with cost tracking
+// Returns both the result and actual cost based on token usage
 export async function executePaidFallback<T>(
-  operation: (model: LanguageModel) => Promise<{ result: T; inputTokens?: number; outputTokens?: number }>,
+  operation: (model: LanguageModel) => Promise<{ result: T; usage?: { inputTokens?: number; outputTokens?: number } }>,
   options: {
     endpoint?: string;
   } = {}
 ): Promise<
-  | { success: true; result: T; costUsd: number }
+  | { success: true; result: T; costUsd: number; inputTokens: number; outputTokens: number }
   | { success: false; error: string }
 > {
   if (!isPaidFallbackAvailable()) {
     return {
       success: false,
-      error: "Paid fallback (Kimi K2.5) not available. Please set OPENCODE_API_KEY.",
+      error: "El respaldo pago (Kimi K2.5) no está disponible. Configure OPENCODE_API_KEY.",
     };
   }
   
@@ -300,32 +308,38 @@ export async function executePaidFallback<T>(
     if (!model) {
       return {
         success: false,
-        error: "Failed to initialize paid model",
+        error: "Error al inicializar el modelo de pago",
       };
     }
     
     const startTime = Date.now();
-    const { result, inputTokens = 1000, outputTokens = 500 } = await operation(model);
+    const { result, usage } = await operation(model);
     const duration = Date.now() - startTime;
+    
+    // Get actual token counts from usage or fallback to estimates
+    const inputTokens = usage?.inputTokens ?? 1000;
+    const outputTokens = usage?.outputTokens ?? 500;
     
     // Calculate and track cost
     const costUsd = calculateCost(PAID_FALLBACK.provider, PAID_FALLBACK.modelId, inputTokens, outputTokens);
     trackCost(PAID_FALLBACK.provider, PAID_FALLBACK.modelId, inputTokens, outputTokens, options.endpoint || "unknown");
     
-    console.log(`[AI Provider] Paid fallback used: ${PAID_FALLBACK.name} in ${duration}ms, cost: $${costUsd.toFixed(6)}`);
+    console.log(`[AI Provider] Respaldo pago usado: ${PAID_FALLBACK.name} en ${duration}ms, costo: $${costUsd.toFixed(6)} (${inputTokens} in, ${outputTokens} out)`);
     
     return {
       success: true,
       result,
       costUsd,
+      inputTokens,
+      outputTokens,
     };
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : "Unknown error";
-    console.error(`[AI Provider] Paid fallback failed: ${errorMsg}`);
+    const errorMsg = error instanceof Error ? error.message : "Error desconocido";
+    console.error(`[AI Provider] Respaldo pago falló: ${errorMsg}`);
     
     return {
       success: false,
-      error: `Paid fallback failed: ${errorMsg}`,
+      error: `Respaldo pago falló: ${errorMsg}`,
     };
   }
 }

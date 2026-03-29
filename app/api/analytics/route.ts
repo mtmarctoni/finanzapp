@@ -4,6 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
+interface TemporalRow {
+  period: Date;
+  action: string;
+  total: number;
+  count: number;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
@@ -97,13 +104,13 @@ export async function GET(request: NextRequest) {
 
       if (typeof minAmount === "number" && !Number.isNaN(minAmount)) {
         whereClauses.push(`cantidad >= $${paramIndex}`);
-        queryParams.push(minAmount);
+        queryParams.push(String(minAmount));
         paramIndex++;
       }
 
       if (typeof maxAmount === "number" && !Number.isNaN(maxAmount)) {
         whereClauses.push(`cantidad <= $${paramIndex}`);
-        queryParams.push(maxAmount);
+        queryParams.push(String(maxAmount));
         paramIndex++;
       }
 
@@ -178,7 +185,7 @@ export async function GET(request: NextRequest) {
       if (useActivePeriods) {
         // count distinct periods present in temporalData
         const periodSet = new Set<string>();
-        for (const row of temporalData.rows as any[]) {
+          for (const row of temporalData.rows as unknown as TemporalRow[]) {
           // Normalize to ISO date string (YYYY-MM-01 for month, YYYY-01-01 for year)
           const dt = new Date(row.period);
           const iso =
@@ -207,7 +214,7 @@ export async function GET(request: NextRequest) {
         } else {
           // If bounds are missing, fall back to active periods
           const periodSet = new Set<string>();
-          for (const row of temporalData.rows as any[]) {
+        for (const row of temporalData.rows as unknown as TemporalRow[]) {
             const dt = new Date(row.period);
             const iso =
               truncUnit === "year"
@@ -224,7 +231,7 @@ export async function GET(request: NextRequest) {
 
       // Build netTemporal from temporalData rows
       const netByPeriod = new Map<string, number>();
-      for (const row of temporalData.rows as any[]) {
+      for (const row of temporalData.rows as unknown as TemporalRow[]) {
         const key = new Date(row.period).toISOString();
         const amt = Number(row.total || 0);
         const act: string = row.action;

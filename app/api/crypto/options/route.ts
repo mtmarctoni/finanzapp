@@ -49,7 +49,7 @@ const TRANSACTION_TYPES = [
   { value: "genesis", label: "Génesis (Origen)" },
 ];
 
-export async function GET(request: NextRequest) {
+export async function GET(_: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {

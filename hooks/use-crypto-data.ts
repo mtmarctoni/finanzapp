@@ -81,18 +81,7 @@ export function useCryptoData(
     } finally {
       setIsLoading(false);
     }
-  }, [
-    filterOptions.search,
-    filterOptions.transactionType,
-    filterOptions.cryptoSymbol,
-    filterOptions.wallet,
-    filterOptions.from,
-    filterOptions.to,
-    filterOptions.page,
-    filterOptions.itemsPerPage,
-    filterOptions.sortBy,
-    filterOptions.sortOrder,
-  ]);
+  }, [filterOptions]);
 
   // Fetch holdings
   const fetchHoldings = useCallback(async () => {

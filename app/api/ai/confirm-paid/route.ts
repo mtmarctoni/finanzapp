@@ -3,34 +3,75 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 // Store user confirmations (in-memory, per-session)
-// In production, you might want to use Redis or a database
+// In production, use Redis or a database for serverless environments
 interface Confirmation {
   userId: string;
   timestamp: Date;
   confirmed: boolean;
   expiresAt: Date;
+  // Track access time for LRU eviction
+  lastAccessedAt: Date;
 }
 
 const confirmations = new Map<string, Confirmation>();
 
-// Confirmation expires after 10 minutes
-const CONFIRMATION_TTL_MS = 10 * 60 * 1000;
+// Configuration
+const CONFIRMATION_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_STORE_SIZE = 1000; // Maximum number of entries before LRU eviction
+const CLEANUP_INTERVAL_MS = 60 * 1000; // Clean up every minute
 
-// Clean up expired confirmations periodically
-setInterval(() => {
+/**
+ * Evict oldest entries using LRU strategy when store exceeds max size
+ */
+function evictOldestIfNeeded(): void {
+  if (confirmations.size < MAX_STORE_SIZE) {
+    return;
+  }
+  
+  // Find and remove the least recently used entry
+  let oldestKey: string | null = null;
+  let oldestTime = Date.now();
+  
+  for (const [key, value] of confirmations.entries()) {
+    if (value.lastAccessedAt.getTime() < oldestTime) {
+      oldestTime = value.lastAccessedAt.getTime();
+      oldestKey = key;
+    }
+  }
+  
+  if (oldestKey) {
+    confirmations.delete(oldestKey);
+    console.log(`[Confirmation Store] LRU eviction: removed ${oldestKey}, size: ${confirmations.size}`);
+  }
+}
+
+/**
+ * Clean up expired confirmations
+ */
+function cleanupExpired(): void {
   const now = new Date();
+  let cleaned = 0;
+  
   for (const [key, value] of confirmations.entries()) {
     if (value.expiresAt < now) {
       confirmations.delete(key);
+      cleaned++;
     }
   }
-}, 60 * 1000); // Clean up every minute
+  
+  if (cleaned > 0) {
+    console.log(`[Confirmation Store] Cleaned up ${cleaned} expired entries, size: ${confirmations.size}`);
+  }
+}
 
-export async function GET(request: NextRequest) {
+// Clean up expired confirmations periodically
+setInterval(cleanupExpired, CLEANUP_INTERVAL_MS);
+
+export async function GET(_: NextRequest) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
   
   const userId = session.user.id;
@@ -39,7 +80,7 @@ export async function GET(request: NextRequest) {
   if (!confirmation) {
     return NextResponse.json({
       confirmed: false,
-      message: "No active confirmation found",
+      message: "No hay confirmación activa",
     });
   }
   
@@ -47,9 +88,12 @@ export async function GET(request: NextRequest) {
     confirmations.delete(userId);
     return NextResponse.json({
       confirmed: false,
-      message: "Confirmation expired",
+      message: "La confirmación ha expirado",
     });
   }
+  
+  // Update last accessed time for LRU tracking
+  confirmation.lastAccessedAt = new Date();
   
   return NextResponse.json({
     confirmed: confirmation.confirmed,
@@ -62,7 +106,7 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
   
   try {
@@ -71,7 +115,7 @@ export async function POST(request: NextRequest) {
     
     if (typeof confirmed !== "boolean") {
       return NextResponse.json(
-        { error: "Missing or invalid 'confirmed' field" },
+        { error: "Falta el campo 'confirmed' o es inválido" },
         { status: 400 }
       );
     }
@@ -79,11 +123,15 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const now = new Date();
     
+    // Evict oldest entries if we're at capacity
+    evictOldestIfNeeded();
+    
     confirmations.set(userId, {
       userId,
       timestamp: now,
       confirmed,
       expiresAt: new Date(now.getTime() + CONFIRMATION_TTL_MS),
+      lastAccessedAt: now,
     });
     
     if (confirmed) {
@@ -96,14 +144,14 @@ export async function POST(request: NextRequest) {
       success: true,
       confirmed,
       message: confirmed
-        ? "You have confirmed paid model usage for this session"
-        : "You have declined paid model usage",
+        ? "Has confirmado el uso del modelo de pago para esta sesión"
+        : "Has rechazado el uso del modelo de pago",
       expiresAt: new Date(now.getTime() + CONFIRMATION_TTL_MS).toISOString(),
     });
   } catch (error) {
     console.error("[Confirmation API Error]", error);
     return NextResponse.json(
-      { error: "Failed to process confirmation" },
+      { error: "Error al procesar la confirmación" },
       { status: 500 }
     );
   }
@@ -121,6 +169,9 @@ export function hasUserConfirmedPaidFallback(userId: string): boolean {
     confirmations.delete(userId);
     return false;
   }
+  
+  // Update last accessed time for LRU tracking
+  confirmation.lastAccessedAt = new Date();
   
   return confirmation.confirmed;
 }

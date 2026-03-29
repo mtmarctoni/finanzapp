@@ -38,6 +38,7 @@ export function checkRateLimit(
   config: RateLimitConfig = { maxRequests: DEFAULT_MAX_REQUESTS, windowMs: DEFAULT_WINDOW_MS }
 ): RateLimitResult {
   const now = Date.now();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const windowStart = now - config.windowMs;
   
   // Clean up old entries periodically (simple cleanup strategy)

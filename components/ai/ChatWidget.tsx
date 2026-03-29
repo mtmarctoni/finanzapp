@@ -24,7 +24,6 @@ export function ChatWidget() {
     null
   );
   const [paidSessionActive, setPaidSessionActive] = useState(false);
-  const [lastRequestCost, setLastRequestCost] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -89,19 +88,26 @@ export function ChatWidget() {
   // Handle errors - check if it's a fallback error
   useEffect(() => {
     if (error) {
-      // Try to parse the error message as JSON
+      // Try to parse the error message as JSON safely
       try {
-        const errorData = JSON.parse(error.message);
-        if (errorData.requiresConfirmation) {
-          setFallbackError({
-            requiresConfirmation: true,
-            fallbackModel: errorData.fallbackModel,
-            estimatedCost: errorData.estimatedCost,
-            freeProviderErrors: errorData.freeProviderErrors || [],
-          });
+        // Check if error message looks like JSON before parsing
+        if (error.message && (error.message.trim().startsWith('{') || error.message.trim().startsWith('['))) {
+          const errorData = JSON.parse(error.message);
+          // Validate that it has the expected fallback error structure
+          if (errorData && typeof errorData === 'object' && errorData.requiresConfirmation === true) {
+            // Use microtask to avoid setting state synchronously in effect
+            queueMicrotask(() => {
+              setFallbackError({
+                requiresConfirmation: true,
+                fallbackModel: errorData.fallbackModel || "Kimi K2.5",
+                estimatedCost: errorData.estimatedCost || "$0.001 - $0.005",
+                freeProviderErrors: Array.isArray(errorData.freeProviderErrors) ? errorData.freeProviderErrors : [],
+              });
+            });
+          }
         }
       } catch {
-        // Not a JSON error or not a fallback error
+        // Not a JSON error or not a valid fallback error - ignore
         console.log("Regular error:", error.message);
       }
     }
@@ -111,7 +117,6 @@ export function ChatWidget() {
   const handleSendMessage = useCallback(
     async (text: string) => {
       setPendingMessage(text);
-      setLastRequestCost(0);
 
       try {
         await sendMessage({ text });
@@ -175,7 +180,6 @@ export function ChatWidget() {
   const handleClearChat = () => {
     setMessages([]);
     setPaidSessionActive(false);
-    setLastRequestCost(0);
   };
 
   return (

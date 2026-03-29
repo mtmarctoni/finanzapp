@@ -74,32 +74,36 @@ export async function POST(request: NextRequest) {
   
   const userId = session.user.id;
   
-  // Rate limiting check
-  const rateLimitResult = checkRateLimit(`parse:${userId}`, RATE_LIMIT_CONFIG);
-  if (!rateLimitResult.allowed) {
-    console.warn(`[Rate Limit] User ${userId} exceeded parse rate limit`, {
-      requestId,
-      retryAfter: rateLimitResult.retryAfter,
-    });
-    return NextResponse.json(
-      { 
-        error: "Rate limit exceeded",
-        message: `Too many requests. Please try again in ${rateLimitResult.retryAfter} seconds.`,
+    // Rate limiting check
+    const rateLimitResult = checkRateLimit(`parse:${userId}`, RATE_LIMIT_CONFIG);
+    if (!rateLimitResult.allowed) {
+      console.warn(`[Rate Limit] User ${userId} exceeded parse rate limit`, {
+        requestId,
         retryAfter: rateLimitResult.retryAfter,
-      },
-      { 
-        status: 429,
-        headers: getRateLimitHeaders(rateLimitResult),
-      }
-    );
-  }
+      });
+      return NextResponse.json(
+        { 
+          error: "Límite de solicitudes excedido",
+          message: `Demasiadas solicitudes. Inténtalo de nuevo en ${rateLimitResult.retryAfter} segundos.`,
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { 
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
   
   try {
     const body = await request.json();
-    const { text, confirmPaidFallback } = body as { 
+    const { text } = body as { 
       text: string;
-      confirmPaidFallback?: boolean;
     };
+    
+    // Check both header and body for paid fallback confirmation
+    const confirmPaidFallbackHeader = request.headers.get("X-Confirm-Paid");
+    const confirmPaidFallbackBody = body.confirmPaidFallback;
+    const confirmPaidFallback = confirmPaidFallbackHeader === "true" || confirmPaidFallbackBody === true;
     
     if (!text || typeof text !== "string") {
       return NextResponse.json(
@@ -130,10 +134,14 @@ export async function POST(request: NextRequest) {
         });
         
         return {
-          entry: result.object,
-              // Note: Token usage tracking would need to be extracted from response
-              inputTokens: 1000,
-              outputTokens: 500,
+          result: {
+            entry: result.object,
+          },
+          // Map AI SDK usage format to our format
+          usage: {
+            inputTokens: result.usage?.inputTokens ?? 0,
+            outputTokens: result.usage?.outputTokens ?? 0,
+          },
         };
       },
       { endpoint: "/api/ai/parse-entry" }
@@ -166,11 +174,11 @@ export async function POST(request: NextRequest) {
       if (!userConfirmed && !confirmPaidFallback) {
         return NextResponse.json(
           {
-            error: "All free AI providers are currently unavailable",
-            message: "We can use Kimi K2.5 (paid) as a fallback. This will cost approximately $0.001-0.005 per request.",
+            error: "Todos los proveedores de IA gratuitos están actualmente no disponibles",
+            message: "Podemos usar Kimi K2.5 (de pago) como respaldo. Esto costará aproximadamente $0.001-0.005 por solicitud.",
             requiresConfirmation: true,
             fallbackModel: PAID_FALLBACK.name,
-            estimatedCost: "$0.001 - $0.005 per request",
+            estimatedCost: "$0.001 - $0.005 por solicitud",
             freeProviderErrors: freeResult.attempts,
           },
           { 
@@ -196,9 +204,11 @@ export async function POST(request: NextRequest) {
               result: {
                 entry: result.object,
               },
-              // Estimate tokens for cost tracking
-              inputTokens: 1000,
-              outputTokens: 500,
+              // Map AI SDK usage format to our format
+              usage: {
+                inputTokens: result.usage?.inputTokens ?? 0,
+                outputTokens: result.usage?.outputTokens ?? 0,
+              },
             };
           },
           { endpoint: "/api/ai/parse-entry" }
@@ -215,8 +225,8 @@ export async function POST(request: NextRequest) {
           // Paid fallback also failed
           return NextResponse.json(
             {
-              error: "AI service temporarily unavailable",
-              message: "Both free and paid providers are currently unavailable. Please try again later.",
+              error: "Servicio de IA temporalmente no disponible",
+              message: "Tanto los proveedores gratuitos como los de pago están actualmente no disponibles. Por favor, inténtalo de nuevo más tarde.",
               freeProviderErrors: freeResult.attempts,
               paidProviderError: paidResult.error,
             },
@@ -230,8 +240,8 @@ export async function POST(request: NextRequest) {
         // Should not reach here
         return NextResponse.json(
           {
-            error: "Unexpected error",
-            message: "An unexpected error occurred while processing your request.",
+            error: "Error inesperado",
+            message: "Ocurrió un error inesperado al procesar tu solicitud.",
           },
           { 
             status: 500,

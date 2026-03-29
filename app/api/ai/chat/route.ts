@@ -46,10 +46,14 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { messages, confirmPaidFallback } = body as { 
+    const { messages } = body as { 
       messages: UIMessage[];
-      confirmPaidFallback?: boolean;
     };
+    
+    // Check both header and body for paid fallback confirmation
+    const confirmPaidFallbackHeader = request.headers.get("X-Confirm-Paid");
+    const confirmPaidFallbackBody = body.confirmPaidFallback;
+    const confirmPaidFallback = confirmPaidFallbackHeader === "true" || confirmPaidFallbackBody === true;
     
     if (!messages || !Array.isArray(messages)) {
       return new Response("Se requiere un array de 'messages'.", {
@@ -78,7 +82,12 @@ export async function POST(request: NextRequest) {
           maxRetries: 1,
         });
         
-        return result;
+        // For streaming, we can't easily get token counts
+        // The fallback function will use estimates
+        return {
+          result,
+          usage: undefined,
+        };
       },
       { endpoint: "/api/ai/chat" }
     );
@@ -123,11 +132,11 @@ export async function POST(request: NextRequest) {
     if (!userConfirmed && !confirmPaidFallback) {
       return new Response(
         JSON.stringify({
-          error: "All free AI providers are currently unavailable",
-          message: "We can use Kimi K2.5 (paid) as a fallback. This will cost approximately $0.001-0.005 per request.",
+          error: "Todos los proveedores de IA gratuitos están actualmente no disponibles",
+          message: "Podemos usar Kimi K2.5 (de pago) como respaldo. Esto costará aproximadamente $0.001-0.005 por solicitud.",
           requiresConfirmation: true,
           fallbackModel: PAID_FALLBACK.name,
-          estimatedCost: "$0.001 - $0.005 per request",
+          estimatedCost: "$0.001 - $0.005 por solicitud",
           freeProviderErrors: freeResult.attempts,
         }),
         {
@@ -153,12 +162,11 @@ export async function POST(request: NextRequest) {
             maxRetries: 2,
           });
           
-          // Note: We can't easily get token counts from streaming responses
-          // In production, you'd parse the stream or use a callback
+          // For streaming, we can't easily get token counts
+          // The fallback function will use estimates
           return {
             result,
-            inputTokens: 2000, // Estimate
-            outputTokens: 1000, // Estimate
+            usage: undefined,
           };
         },
         { endpoint: "/api/ai/chat" }
@@ -195,8 +203,8 @@ export async function POST(request: NextRequest) {
       // Paid fallback also failed
       return new Response(
         JSON.stringify({
-          error: "AI service temporarily unavailable",
-          message: "Both free and paid providers are currently unavailable. Please try again later.",
+          error: "Servicio de IA temporalmente no disponible",
+          message: "Tanto los proveedores gratuitos como los de pago están actualmente no disponibles. Por favor, inténtalo de nuevo más tarde.",
           freeProviderErrors: freeResult.attempts,
           paidProviderError: paidResult.error,
         }),
@@ -213,8 +221,8 @@ export async function POST(request: NextRequest) {
     // Should not reach here
     return new Response(
       JSON.stringify({
-        error: "Unexpected error",
-        message: "An unexpected error occurred while processing your request.",
+        error: "Error inesperado",
+        message: "Ocurrió un error inesperado al procesar tu solicitud.",
       }),
       {
         status: 500,

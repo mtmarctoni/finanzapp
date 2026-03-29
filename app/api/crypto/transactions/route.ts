@@ -1,8 +1,6 @@
 import {
   getCryptoTransactions,
   createCryptoTransaction,
-  getCryptoSymbols,
-  getUsedWallets,
 } from "@/lib/cryptoActions";
 import { ITEMS_PER_PAGE } from "@/config";
 import { NextRequest, NextResponse } from "next/server";
