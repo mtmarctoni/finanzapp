@@ -7,7 +7,6 @@ import {
   type UIMessage,
   convertToModelMessages,
 } from "ai";
-import { aiModel, getModel, AI_PROVIDER } from "@/lib/ai/config";
 import { CHAT_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import {
   createFinanceEntryTool,
@@ -15,7 +14,9 @@ import {
   getSpendingByCategoryTool,
   getTotalByPeriodTool,
 } from "@/lib/ai/tools";
+import { raceFreeProviders, executePaidFallback, PAID_FALLBACK } from "@/lib/ai/fallback";
 import { checkRateLimit, createRateLimitResponse, getRateLimitHeaders } from "@/lib/ai/rate-limit";
+import { hasUserConfirmedPaidFallback } from "@/app/api/ai/confirm-paid/route";
 
 // Rate limit config: 5 chat requests per minute per user
 const RATE_LIMIT_CONFIG = { maxRequests: 5, windowMs: 60 * 1000 };
@@ -45,7 +46,10 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { messages } = body as { messages: UIMessage[] };
+    const { messages, confirmPaidFallback } = body as { 
+      messages: UIMessage[];
+      confirmPaidFallback?: boolean;
+    };
     
     if (!messages || !Array.isArray(messages)) {
       return new Response("Se requiere un array de 'messages'.", {
@@ -62,45 +66,164 @@ export async function POST(request: NextRequest) {
     
     const modelMessages = await convertToModelMessages(messages, { tools });
     
-    // Use provider-specific model selection with fallback
-    const model = aiModel;
+    // Try free providers first (race them)
+    const freeResult = await raceFreeProviders(
+      async (model) => {
+        const result = streamText({
+          model,
+          system: CHAT_SYSTEM_PROMPT,
+          messages: modelMessages,
+          tools,
+          stopWhen: stepCountIs(3),
+          maxRetries: 1,
+        });
+        
+        return result;
+      },
+      { endpoint: "/api/ai/chat" }
+    );
     
-    const result = streamText({
-      model,
-      system: CHAT_SYSTEM_PROMPT,
-      messages: modelMessages,
-      tools,
-      stopWhen: stepCountIs(3),
-      maxRetries: 2, // Add retry logic for transient failures
-      onError: (error) => {
-        console.error(`[Chat Stream Error] Request ${requestId}:`, {
-          error: error instanceof Error ? error.message : "Unknown error",
+    if (freeResult.success) {
+      // Free provider succeeded
+      const response = freeResult.result.toUIMessageStreamResponse();
+      
+      // Add rate limit headers
+      const headers = getRateLimitHeaders(rateLimitResult);
+      Object.entries(headers).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      
+      // Add provider info header
+      response.headers.set("X-Provider-Used", freeResult.provider);
+      response.headers.set("X-Model-Used", freeResult.model);
+      response.headers.set("X-Cost-USD", "0.00");
+      
+      const duration = Date.now() - startTime;
+      console.log(`[Chat Success] Request ${requestId} completed with free provider`, {
+        userId,
+        provider: freeResult.provider,
+        model: freeResult.model,
+        durationMs: duration,
+        timestamp: new Date().toISOString(),
+      });
+      
+      return response;
+    }
+    
+    // All free providers failed
+    console.warn(`[Chat] All free providers failed for user ${userId}`, {
+      requestId,
+      attempts: freeResult.attempts,
+    });
+    
+    // Check if user has already confirmed paid fallback
+    const userConfirmed = hasUserConfirmedPaidFallback(userId);
+    
+    // If user hasn't confirmed and isn't confirming now, ask for confirmation
+    if (!userConfirmed && !confirmPaidFallback) {
+      return new Response(
+        JSON.stringify({
+          error: "All free AI providers are currently unavailable",
+          message: "We can use Kimi K2.5 (paid) as a fallback. This will cost approximately $0.001-0.005 per request.",
+          requiresConfirmation: true,
+          fallbackModel: PAID_FALLBACK.name,
+          estimatedCost: "$0.001 - $0.005 per request",
+          freeProviderErrors: freeResult.attempts,
+        }),
+        {
+          status: 503, // Service Unavailable
+          headers: {
+            "Content-Type": "application/json",
+            ...getRateLimitHeaders(rateLimitResult),
+          },
+        }
+      );
+    }
+    
+    // User confirmed, use paid fallback
+    if (confirmPaidFallback || userConfirmed) {
+      const paidResult = await executePaidFallback(
+        async (model) => {
+          const result = streamText({
+            model,
+            system: CHAT_SYSTEM_PROMPT,
+            messages: modelMessages,
+            tools,
+            stopWhen: stepCountIs(3),
+            maxRetries: 2,
+          });
+          
+          // Note: We can't easily get token counts from streaming responses
+          // In production, you'd parse the stream or use a callback
+          return {
+            result,
+            inputTokens: 2000, // Estimate
+            outputTokens: 1000, // Estimate
+          };
+        },
+        { endpoint: "/api/ai/chat" }
+      );
+      
+      if (paidResult.success) {
+        const response = paidResult.result.toUIMessageStreamResponse();
+        
+        // Add rate limit headers
+        const headers = getRateLimitHeaders(rateLimitResult);
+        Object.entries(headers).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        
+        // Add provider and cost info
+        response.headers.set("X-Provider-Used", PAID_FALLBACK.provider);
+        response.headers.set("X-Model-Used", PAID_FALLBACK.modelId);
+        response.headers.set("X-Cost-USD", paidResult.costUsd.toFixed(6));
+        response.headers.set("X-Paid-Fallback", "true");
+        
+        const duration = Date.now() - startTime;
+        console.log(`[Chat Success] Request ${requestId} completed with paid fallback`, {
           userId,
-          provider: AI_PROVIDER,
+          provider: PAID_FALLBACK.provider,
+          model: PAID_FALLBACK.modelId,
+          costUsd: paidResult.costUsd,
+          durationMs: duration,
           timestamp: new Date().toISOString(),
         });
-      },
-    });
+        
+        return response;
+      }
+      
+      // Paid fallback also failed
+      return new Response(
+        JSON.stringify({
+          error: "AI service temporarily unavailable",
+          message: "Both free and paid providers are currently unavailable. Please try again later.",
+          freeProviderErrors: freeResult.attempts,
+          paidProviderError: paidResult.error,
+        }),
+        {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            ...getRateLimitHeaders(rateLimitResult),
+          },
+        }
+      );
+    }
     
-    const response = result.toUIMessageStreamResponse();
-    
-    // Add rate limit headers
-    const headers = getRateLimitHeaders(rateLimitResult);
-    Object.entries(headers).forEach(([key, value]) => {
-      response.headers.set(key, value);
-    });
-    
-    // Log successful request
-    const duration = Date.now() - startTime;
-    console.log(`[Chat Success] Request ${requestId} completed`, {
-      userId,
-      provider: AI_PROVIDER,
-      messageCount: messages.length,
-      durationMs: duration,
-      timestamp: new Date().toISOString(),
-    });
-    
-    return response;
+    // Should not reach here
+    return new Response(
+      JSON.stringify({
+        error: "Unexpected error",
+        message: "An unexpected error occurred while processing your request.",
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...getRateLimitHeaders(rateLimitResult),
+        },
+      }
+    );
     
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -108,7 +231,6 @@ export async function POST(request: NextRequest) {
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       userId,
-      provider: AI_PROVIDER,
       durationMs: duration,
       timestamp: new Date().toISOString(),
     });

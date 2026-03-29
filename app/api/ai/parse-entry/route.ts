@@ -3,11 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { aiModel, AI_PROVIDER } from "@/lib/ai/config";
 import { PARSE_ENTRY_SYSTEM_PROMPT } from "@/lib/ai/prompts";
 import { createClient } from "@vercel/postgres";
 import { v4 as uuidv4 } from "uuid";
 import { checkRateLimit, getRateLimitHeaders } from "@/lib/ai/rate-limit";
+import { raceFreeProviders, executePaidFallback, PAID_FALLBACK } from "@/lib/ai/fallback";
+import { hasUserConfirmedPaidFallback } from "@/app/api/ai/confirm-paid/route";
 
 const parsedEntrySchema = z.object({
   fecha: z.string().describe("Transaction date in ISO 8601 format"),
@@ -95,7 +96,10 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { text } = body;
+    const { text, confirmPaidFallback } = body as { 
+      text: string;
+      confirmPaidFallback?: boolean;
+    };
     
     if (!text || typeof text !== "string") {
       return NextResponse.json(
@@ -110,20 +114,132 @@ export async function POST(request: NextRequest) {
     // Log AI request start
     console.log(`[Parse Entry Start] Request ${requestId}`, {
       userId,
-      provider: AI_PROVIDER,
       textLength: text.length,
       timestamp: new Date().toISOString(),
     });
     
-    const result = await generateObject({
-      model: aiModel,
-      schema: parsedEntrySchema,
-      system: PARSE_ENTRY_SYSTEM_PROMPT,
-      prompt: text,
-      maxRetries: 2, // Add retry logic for transient failures
-    });
+    // Try free providers first (race them)
+    const freeResult = await raceFreeProviders(
+      async (model) => {
+        const result = await generateObject({
+          model,
+          schema: parsedEntrySchema,
+          system: PARSE_ENTRY_SYSTEM_PROMPT,
+          prompt: text,
+          maxRetries: 1,
+        });
+        
+        return {
+          entry: result.object,
+              // Note: Token usage tracking would need to be extracted from response
+              inputTokens: 1000,
+              outputTokens: 500,
+        };
+      },
+      { endpoint: "/api/ai/parse-entry" }
+    );
     
-    const entry = result.object;
+    let entry: z.infer<typeof parsedEntrySchema>;
+    let costUsd = 0;
+    let providerUsed = "";
+    let modelUsed = "";
+    
+    if (freeResult.success) {
+      // Free provider succeeded
+      entry = freeResult.result.entry;
+      costUsd = 0;
+      providerUsed = freeResult.provider;
+      modelUsed = freeResult.model;
+      
+      console.log(`[Parse Entry] Free provider succeeded: ${providerUsed}/${modelUsed}`);
+    } else {
+      // All free providers failed
+      console.warn(`[Parse Entry] All free providers failed for user ${userId}`, {
+        requestId,
+        attempts: freeResult.attempts,
+      });
+      
+      // Check if user has already confirmed paid fallback
+      const userConfirmed = hasUserConfirmedPaidFallback(userId);
+      
+      // If user hasn't confirmed and isn't confirming now, ask for confirmation
+      if (!userConfirmed && !confirmPaidFallback) {
+        return NextResponse.json(
+          {
+            error: "All free AI providers are currently unavailable",
+            message: "We can use Kimi K2.5 (paid) as a fallback. This will cost approximately $0.001-0.005 per request.",
+            requiresConfirmation: true,
+            fallbackModel: PAID_FALLBACK.name,
+            estimatedCost: "$0.001 - $0.005 per request",
+            freeProviderErrors: freeResult.attempts,
+          },
+          { 
+            status: 503,
+            headers: getRateLimitHeaders(rateLimitResult),
+          }
+        );
+      }
+      
+      // User confirmed, use paid fallback
+      if (confirmPaidFallback || userConfirmed) {
+        const paidResult = await executePaidFallback(
+          async (model) => {
+            const result = await generateObject({
+              model,
+              schema: parsedEntrySchema,
+              system: PARSE_ENTRY_SYSTEM_PROMPT,
+              prompt: text,
+              maxRetries: 2,
+            });
+            
+            return {
+              result: {
+                entry: result.object,
+              },
+              // Estimate tokens for cost tracking
+              inputTokens: 1000,
+              outputTokens: 500,
+            };
+          },
+          { endpoint: "/api/ai/parse-entry" }
+        );
+        
+        if (paidResult.success) {
+          entry = paidResult.result.entry;
+          costUsd = paidResult.costUsd;
+          providerUsed = PAID_FALLBACK.provider;
+          modelUsed = PAID_FALLBACK.modelId;
+          
+          console.log(`[Parse Entry] Paid fallback succeeded: ${providerUsed}/${modelUsed}, cost: $${costUsd.toFixed(6)}`);
+        } else {
+          // Paid fallback also failed
+          return NextResponse.json(
+            {
+              error: "AI service temporarily unavailable",
+              message: "Both free and paid providers are currently unavailable. Please try again later.",
+              freeProviderErrors: freeResult.attempts,
+              paidProviderError: paidResult.error,
+            },
+            { 
+              status: 503,
+              headers: getRateLimitHeaders(rateLimitResult),
+            }
+          );
+        }
+      } else {
+        // Should not reach here
+        return NextResponse.json(
+          {
+            error: "Unexpected error",
+            message: "An unexpected error occurred while processing your request.",
+          },
+          { 
+            status: 500,
+            headers: getRateLimitHeaders(rateLimitResult),
+          }
+        );
+      }
+    }
     
     // Validate date format before database operation
     validateIsoDate(entry.fecha, "fecha");
@@ -153,8 +269,10 @@ export async function POST(request: NextRequest) {
     const duration = Date.now() - startTime;
     console.log(`[Parse Entry Success] Request ${requestId} completed`, {
       userId,
-      provider: AI_PROVIDER,
+      provider: providerUsed,
+      model: modelUsed,
       entryId,
+      costUsd,
       durationMs: duration,
       timestamp: new Date().toISOString(),
     });
@@ -164,9 +282,18 @@ export async function POST(request: NextRequest) {
         success: true,
         entry,
         entryId,
+        providerUsed,
+        modelUsed,
+        costUsd: costUsd > 0 ? costUsd : undefined,
+        isPaidFallback: costUsd > 0,
       },
       {
-        headers: getRateLimitHeaders(rateLimitResult),
+        headers: {
+          ...getRateLimitHeaders(rateLimitResult),
+          "X-Provider-Used": providerUsed,
+          "X-Model-Used": modelUsed,
+          "X-Cost-USD": costUsd.toFixed(6),
+        },
       }
     );
     
@@ -176,7 +303,6 @@ export async function POST(request: NextRequest) {
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       userId,
-      provider: AI_PROVIDER,
       durationMs: duration,
       timestamp: new Date().toISOString(),
     });
