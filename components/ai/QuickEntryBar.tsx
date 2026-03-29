@@ -5,8 +5,9 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Loader2, AlertCircle, DollarSign, Wand2 } from "lucide-react";
+import { Sparkles, Loader2, AlertCircle, Wand2, Lightbulb } from "lucide-react";
 import { PaidFallbackDialog } from "./PaidFallbackDialog";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 type QuickEntryStatus = "idle" | "loading" | "needs-confirmation" | "error";
 
@@ -149,7 +150,7 @@ export function QuickEntryBar() {
   };
 
   return (
-    <div className="w-full">
+    <>
       {/* Paid Fallback Dialog */}
       <PaidFallbackDialog
         isOpen={!!fallbackError}
@@ -160,40 +161,68 @@ export function QuickEntryBar() {
         modelName={fallbackError?.fallbackModel || "Kimi K2.5"}
       />
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <div className="relative flex-1">
-          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder='Ej: "1000€ iPhone ayer con tarjeta"'
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={status === "loading"}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" disabled={status === "loading" || !text.trim()}>
-          {status === "loading" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <Wand2 className="h-4 w-4 mr-1" />
-              IA
-            </>
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Wand2 className="h-5 w-5 text-primary" />
+            Crear entrada con IA
+          </CardTitle>
+          <CardDescription className="flex items-start gap-2">
+            <Lightbulb className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>
+              Describe tu gasto o ingreso en lenguaje natural. Ejemplos:{' '}
+              <span className="font-medium text-primary">
+                &ldquo;50€ cena ayer&rdquo;
+              </span>,{' '}
+              <span className="font-medium text-primary">
+                &ldquo;1000€ iPhone con tarjeta&rdquo;
+              </span>,{' '}
+              <span className="font-medium text-primary">
+                &ldquo;Sueldo 2500€ el 1 de marzo&rdquo;
+              </span>
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <div className="relative flex-1">
+              <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+              <Input
+                type="text"
+                placeholder="Describe tu entrada en lenguaje natural..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                disabled={status === "loading"}
+                className="pl-10 bg-background"
+              />
+            </div>
+            <Button 
+              type="submit" 
+              disabled={status === "loading" || !text.trim()}
+              className="gap-2"
+            >
+              {status === "loading" ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" />
+                  Usar IA
+                </>
+              )}
+            </Button>
+          </form>
+
+          {status === "error" && message && (
+            <div className="mt-3 text-sm flex items-center gap-1.5 text-destructive">
+              <AlertCircle className="h-4 w-4" />
+              {message}
+            </div>
           )}
-        </Button>
-      </form>
-
-      {status === "error" && message && (
-        <div className="mt-2 text-sm flex items-center gap-1.5 text-red-700 dark:text-red-400">
-          <AlertCircle className="h-3.5 w-3.5" />
-          {message}
-        </div>
-      )}
-
-      <p className="mt-2 text-xs text-muted-foreground">
-        Escribe una descripción natural y te llevaremos al formulario con los datos pre-rellenos
-      </p>
-    </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
