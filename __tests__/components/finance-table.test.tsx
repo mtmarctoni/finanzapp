@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import FinanceTable from '@/components/finance-table';
 import { getFinanceEntries } from '@/lib/data';
 import { deleteEntry } from '@/lib/actions';
+import { SessionProvider } from 'next-auth/react';
 
 // Mock the modules
 jest.mock('@/lib/data', () => ({
@@ -20,6 +21,23 @@ jest.mock('react', () => {
     useTransition: () => [false, jest.fn((callback) => callback())],
   };
 });
+
+// Mock Next.js App Router
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    refresh: jest.fn(),
+  })),
+  useSearchParams: jest.fn(() => new URLSearchParams()),
+  usePathname: jest.fn(() => '/records'),
+}));
+
+// Mock next-auth
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({ data: { user: { id: 'test-user' } }, status: 'authenticated' })),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 describe('FinanceTable', () => {
   const mockEntries = {
@@ -73,12 +91,12 @@ describe('FinanceTable', () => {
     // Check that the table headers are rendered
     expect(screen.getByText('Fecha')).toBeInTheDocument();
     expect(screen.getByText('Tipo')).toBeInTheDocument();
-    expect(screen.getByText('Acción')).toBeInTheDocument();
+    expect(screen.getByText('Accion')).toBeInTheDocument();
     expect(screen.getByText('Qué')).toBeInTheDocument();
     expect(screen.getByText('Plataforma pago')).toBeInTheDocument();
     expect(screen.getByText('Cantidad')).toBeInTheDocument();
-    expect(screen.getByText('Detalle1')).toBeInTheDocument();
-    expect(screen.getByText('Detalle2')).toBeInTheDocument();
+    expect(screen.getByText('Detalle 1')).toBeInTheDocument();
+    expect(screen.getByText('Detalle 2')).toBeInTheDocument();
     expect(screen.getByText('Acciones')).toBeInTheDocument();
 
     // Check that the entries are rendered
@@ -111,7 +129,7 @@ describe('FinanceTable', () => {
   it('applies search params when provided', async () => {
     const searchParams = {
       search: 'test',
-      tipo: 'Ingreso',
+      accion: 'Ingreso',
       from: '2023-01-01',
       to: '2023-01-31',
       page: '2',
@@ -127,10 +145,13 @@ describe('FinanceTable', () => {
     // Check that getFinanceEntries was called with the correct params
     expect(getFinanceEntries).toHaveBeenCalledWith({
       search: 'test',
-      tipo: 'Ingreso',
+      accion: 'Ingreso',
       from: '2023-01-01',
       to: '2023-01-31',
       page: 2,
+      itemsPerPage: 100,
+      sortBy: 'fecha',
+      sortOrder: 'desc',
     });
   });
 
@@ -145,11 +166,8 @@ describe('FinanceTable', () => {
       expect(getFinanceEntries).toHaveBeenCalled();
     });
 
-    // Find all delete buttons
-    const deleteButtons = await screen.findAllByRole('button', { name: '' }); // Trash icon buttons don't have text
-    
-    // Get the delete button for the first entry (this is a simplification, in a real test you'd need to be more specific)
-    const deleteButton = deleteButtons[1]; // Second button should be the delete button for the first entry
+    // Find the delete button by aria-label for the first entry
+    const deleteButton = screen.getByLabelText('Eliminar entrada 1');
     
     // Click the delete button
     fireEvent.click(deleteButton);
