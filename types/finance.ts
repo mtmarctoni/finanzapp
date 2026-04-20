@@ -11,6 +11,7 @@ export type Entry = {
   cantidad: number;
   detalle1: string | null;
   detalle2: string | null;
+  quien: string;
   created_at: string;
   updated_at: string;
 };
@@ -72,6 +73,10 @@ export type RecurringRecord = {
    * Second detail of the recurring record
    */
   detalle2: string;
+  /**
+   * Who paid (payer) - defaults to "Yo" (Me)
+   */
+  quien: string;
   /**
    * Amount of the recurring record
    */
