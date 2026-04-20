@@ -46,6 +46,9 @@ function RecordPreview({ record }: { record: RecurringRecord }) {
             <span className="font-medium">Detalle 2:</span> {record.detalle2}
           </p>
         ) : null}
+        <p>
+          <span className="font-medium">Quién:</span> {record.quien || 'Yo'}
+        </p>
       </div>
     </div>
   )
@@ -91,7 +94,7 @@ function RecordItem({
                 <Badge variant="outline">{frequencyLabel[record.frequency]}</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1 truncate">
-                {record.accion} · {record.tipo} · Día {record.dia} · {record.plataforma_pago}
+                {record.accion} · {record.tipo} · Día {record.dia} · {record.plataforma_pago} · {record.quien || 'Yo'}
               </p>
             </div>
 

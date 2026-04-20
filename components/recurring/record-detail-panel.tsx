@@ -50,6 +50,10 @@ export function RecordDetailPanel({ record, loading, onEdit, onDelete }: RecordD
               <span className="text-muted-foreground">Plataforma</span>
               <span className="font-medium">{record.plataforma_pago}</span>
             </div>
+            <div className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+              <span className="text-muted-foreground">Quién</span>
+              <span className="font-medium">{record.quien || 'Yo'}</span>
+            </div>
           </div>
 
           {(record.detalle1 || record.detalle2) && (

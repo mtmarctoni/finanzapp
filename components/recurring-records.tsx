@@ -76,6 +76,7 @@ export default function RecurringRecords() {
       tipo: record.tipo || '',
       detalle1: record.detalle1 || '',
       detalle2: record.detalle2 || '',
+      quien: record.quien || 'Yo',
       amount: record.amount.toString(),
       frequency: record.frequency,
       active: record.active,
@@ -125,6 +126,7 @@ export default function RecurringRecords() {
         record.plataforma_pago,
         record.detalle1,
         record.detalle2,
+        record.quien,
       ]
         .join(' ')
         .toLowerCase()
