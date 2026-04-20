@@ -14,6 +14,7 @@ export type RecurringFormData = {
   tipo: string;
   detalle1: string;
   detalle2: string;
+  quien: string;
   amount: string;
   frequency: RecurringRecord["frequency"];
   active: boolean;
@@ -27,6 +28,7 @@ export const INITIAL_RECURRING_FORM: RecurringFormData = {
   tipo: "",
   detalle1: "",
   detalle2: "",
+  quien: "Yo",
   amount: "0",
   frequency: "monthly",
   active: true,

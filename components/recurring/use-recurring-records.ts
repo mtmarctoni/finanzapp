@@ -21,6 +21,7 @@ const buildPayload = (record: RecurringFormData) => ({
   tipo: record.tipo,
   detalle1: record.detalle1,
   detalle2: record.detalle2,
+  quien: record.quien,
   amount: parseFloat(record.amount),
   frequency: record.frequency,
   active: record.active,

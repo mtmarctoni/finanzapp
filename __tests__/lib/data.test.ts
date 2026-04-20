@@ -6,15 +6,17 @@ const baseURL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 // Mock fetch globally
 global.fetch = jest.fn();
 
-// Mock window.location.origin
-Object.defineProperty(window, 'location', {
-  value: {
-    origin: baseURL
-  },
-  writable: true
-});
-
 describe('Data fetching functions', () => {
+  beforeAll(() => {
+    // Mock window.location.origin after jsdom is initialized
+    Object.defineProperty(window, 'location', {
+      value: {
+        origin: baseURL
+      },
+      writable: true
+    });
+  });
+
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
@@ -34,6 +36,7 @@ describe('Data fetching functions', () => {
           cantidad: 1000,
           detalle1: null,
           detalle2: null,
+          quien: 'Yo',
           created_at: '2023-01-01T00:00:00.000Z',
           updated_at: '2023-01-01T00:00:00.000Z'
         }],
@@ -97,6 +100,7 @@ describe('Data fetching functions', () => {
         cantidad: 1000,
         detalle1: null,
         detalle2: null,
+        quien: 'Yo',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z'
       };
@@ -196,6 +200,7 @@ describe('Data fetching functions', () => {
         cantidad: 1000,
         detalle1: null,
         detalle2: null,
+        quien: 'Yo',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z'
       };

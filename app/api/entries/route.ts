@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     // console.log('result', result)
     return NextResponse.json({
       data: result.entries,
-      total: result.total,
+      totalItems: result.total,
       totalPages: result.totalPages,
       currentPage: page,
     });

@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
           LOWER(que) LIKE $${paramIndex} OR 
           LOWER(plataforma_pago) LIKE $${paramIndex} OR
           LOWER(COALESCE(detalle1, '')) LIKE $${paramIndex} OR
-          LOWER(COALESCE(detalle2, '')) LIKE $${paramIndex}
+          LOWER(COALESCE(detalle2, '')) LIKE $${paramIndex} OR
+          LOWER(quien) LIKE $${paramIndex}
         )`);
         queryParams.push(searchTerm);
         paramIndex++;

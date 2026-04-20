@@ -120,6 +120,15 @@ export function RecordForm({
           />
         </div>
 
+        <div className="space-y-2 md:col-span-2">
+          <label className="block text-sm font-medium">Quién</label>
+          <Input
+            value={formData.quien}
+            onChange={(e) => onChange({ ...formData, quien: e.target.value })}
+            placeholder="Ej: Yo, María, Juan"
+          />
+        </div>
+
         <div className="space-y-2">
           <label className="block text-sm font-medium">Frecuencia</label>
           <Select

@@ -33,6 +33,7 @@ export async function GET(request: Request) {
       Cantidad: entry.cantidad,
       Detalle1: entry.detalle1 || "",
       Detalle2: entry.detalle2 || "",
+      "Quién": entry.quien || "Yo",
     }));
 
     // Create workbook and worksheet

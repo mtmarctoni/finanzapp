@@ -50,6 +50,7 @@ export async function POST(
           cantidad, 
           detalle1, 
           detalle2, 
+          quien,
           user_id,
           created_at,
           updated_at
@@ -64,6 +65,7 @@ export async function POST(
           ${entry.cantidad},
           ${entry.detalle1 || null},
           ${entry.detalle2 || null},
+          ${entry.quien || 'Yo'},
           ${userId},
           NOW(),
           NOW()

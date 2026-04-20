@@ -52,6 +52,7 @@ describe('FinanceTable', () => {
         cantidad: 1000,
         detalle1: 'Detalle 1',
         detalle2: 'Detalle 2',
+        quien: 'Yo',
         createdAt: '2023-01-01',
         updatedAt: '2023-01-01',
       },
@@ -65,6 +66,7 @@ describe('FinanceTable', () => {
         cantidad: 50,
         detalle1: null,
         detalle2: null,
+        quien: 'Yo',
         createdAt: '2023-01-02',
         updatedAt: '2023-01-02',
       },
@@ -97,6 +99,7 @@ describe('FinanceTable', () => {
     expect(screen.getByText('Cantidad')).toBeInTheDocument();
     expect(screen.getByText('Detalle 1')).toBeInTheDocument();
     expect(screen.getByText('Detalle 2')).toBeInTheDocument();
+    expect(screen.getByText('Quién')).toBeInTheDocument();
     expect(screen.getByText('Acciones')).toBeInTheDocument();
 
     // Check that the entries are rendered
@@ -168,8 +171,6 @@ describe('FinanceTable', () => {
 
     // Find the delete button by aria-label for the first entry
     const deleteButton = screen.getByLabelText('Eliminar entrada 1');
-    
-    // Click the delete button
     fireEvent.click(deleteButton);
 
     // Check that deleteEntry was called
