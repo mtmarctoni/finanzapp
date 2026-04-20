@@ -12,7 +12,7 @@ export async function GET(
 
     try {
       const query = `
-        SELECT * FROM finance_entries 
+        SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, quien, created_at, updated_at, user_id FROM finance_entries 
         WHERE id = '${id}'
       `;
 
