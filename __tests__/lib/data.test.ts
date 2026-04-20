@@ -34,6 +34,7 @@ describe('Data fetching functions', () => {
           cantidad: 1000,
           detalle1: null,
           detalle2: null,
+          quien: 'Yo',
           created_at: '2023-01-01T00:00:00.000Z',
           updated_at: '2023-01-01T00:00:00.000Z'
         }],
@@ -97,6 +98,7 @@ describe('Data fetching functions', () => {
         cantidad: 1000,
         detalle1: null,
         detalle2: null,
+        quien: 'Yo',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z'
       };
@@ -196,6 +198,7 @@ describe('Data fetching functions', () => {
         cantidad: 1000,
         detalle1: null,
         detalle2: null,
+        quien: 'Yo',
         created_at: '2023-01-01T00:00:00.000Z',
         updated_at: '2023-01-01T00:00:00.000Z'
       };

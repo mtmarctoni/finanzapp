@@ -42,6 +42,7 @@ test.describe("Create and Edit Finance Entries", () => {
     await page.getByLabel("Cantidad").fill("1500");
     await page.getByLabel("Detalle 1").fill("Test detalle 1");
     await page.getByLabel("Detalle 2").fill("Test detalle 2");
+    await page.getByLabel("Quién").fill("Yo");
 
     await page.getByRole("button", { name: "Guardar" }).click();
 
