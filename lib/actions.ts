@@ -26,6 +26,7 @@ interface Entry {
   cantidad: number;
   detalle1?: string;
   detalle2?: string;
+  quien?: string;
 }
 
 interface PaginatedEntries {
@@ -87,6 +88,7 @@ export async function createEntry(
     cantidad: number;
     detalle1?: string;
     detalle2?: string;
+    quien?: string;
   },
   session: { user: { id: string } }
 ) {
@@ -100,6 +102,7 @@ export async function createEntry(
     cantidad,
     detalle1,
     detalle2,
+    quien,
   } = formData;
 
   try {
@@ -108,10 +111,10 @@ export async function createEntry(
 
     try {
       await client.sql`
-        INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id)
+        INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, quien, user_id)
         VALUES (${entryId}, ${fecha}::timestamptz, ${tipo}, ${accion}, ${que}, ${plataforma_pago}, ${cantidad}, ${
         detalle1 || null
-      }, ${detalle2 || null}, ${session.user.id})
+      }, ${detalle2 || null}, ${quien || 'Yo'}, ${session.user.id})
       `;
     } finally {
       await client.end();
@@ -135,6 +138,7 @@ export async function updateEntry(
     cantidad: number;
     detalle1?: string;
     detalle2?: string;
+    quien?: string;
   },
   session: { user: { id: string } }
 ) {
@@ -147,6 +151,7 @@ export async function updateEntry(
     cantidad,
     detalle1,
     detalle2,
+    quien,
   } = formData;
 
   try {
@@ -164,6 +169,7 @@ export async function updateEntry(
             cantidad = ${cantidad},
             detalle1 = ${detalle1 || null},
             detalle2 = ${detalle2 || null},
+            quien = ${quien || 'Yo'},
             updated_at = NOW()
         WHERE id = ${entryId}
           AND user_id = ${session.user.id}
@@ -233,7 +239,8 @@ export async function getEntries(
           tipo ILIKE $${paramIndex} OR
           plataforma_pago ILIKE $${paramIndex} OR
           detalle1 ILIKE $${paramIndex} OR
-          detalle2 ILIKE $${paramIndex}
+          detalle2 ILIKE $${paramIndex} OR
+          quien ILIKE $${paramIndex}
         )`
       );
       params.push(`%${search}%`);
@@ -292,6 +299,7 @@ export async function getEntries(
       "tipo",
       "plataforma_pago",
       "cantidad",
+      "quien",
     ]);
     const sortField =
       sortBy && allowedSortFields.has(String(sortBy))
@@ -300,7 +308,7 @@ export async function getEntries(
     const sortDirection =
       String(sortOrder)?.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const entriesQuery = `SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id
+    const entriesQuery = `SELECT id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, quien, user_id
       FROM finance_entries
       ${whereStatment}
       ORDER BY ${sortField} ${sortDirection}
@@ -358,7 +366,8 @@ export async function getExportEntries(
       que ILIKE $${paramIndex} OR 
       plataforma_pago ILIKE $${paramIndex} OR
       detalle1 ILIKE $${paramIndex} OR
-      detalle2 ILIKE $${paramIndex}
+      detalle2 ILIKE $${paramIndex} OR
+      quien ILIKE $${paramIndex}
     )`);
     params.push(`%${search}%`);
     paramIndex++;

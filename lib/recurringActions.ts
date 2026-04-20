@@ -10,6 +10,7 @@ export interface RecurringRecord {
     tipo: string
     detalle1: string
     detalle2: string
+    quien: string
     amount: number
     frequency: string
     active: boolean
@@ -41,9 +42,9 @@ export async function createRecurringRecord(data: Omit<RecurringRecord, "id">): 
     try {
         await client.sql`
       INSERT INTO recurring_records (
-        id, name, accion, tipo, detalle1, detalle2, amount, frequency, active, dia, plataforma_pago, user_id
+        id, name, accion, tipo, detalle1, detalle2, quien, amount, frequency, active, dia, plataforma_pago, user_id
       ) VALUES (
-        ${id}, ${data.name}, ${data.accion}, ${data.tipo}, ${data.detalle1}, ${data.detalle2},
+        ${id}, ${data.name}, ${data.accion}, ${data.tipo}, ${data.detalle1}, ${data.detalle2}, ${data.quien},
         ${data.amount}, ${data.frequency}, ${data.active}, ${data.dia}, ${data.plataforma_pago}, ${data.user_id}
       )
     `
@@ -126,7 +127,7 @@ export async function generateFinanceEntries(user_id: string, date: string, year
             const validEntryDateStr = validEntryDate.toISOString().split('T')[0]
             await client.sql`
                 INSERT INTO finance_entries (
-                    id, fecha, tipo, accion, que, cantidad, plataforma_pago, detalle1, detalle2, created_at, updated_at, user_id
+                    id, fecha, tipo, accion, que, cantidad, plataforma_pago, detalle1, detalle2, quien, created_at, updated_at, user_id
                 ) VALUES (
                     gen_random_uuid(),
                     ${validEntryDateStr},
@@ -137,6 +138,7 @@ export async function generateFinanceEntries(user_id: string, date: string, year
                     ${record.plataforma_pago},
                     ${record.detalle1},
                     ${record.detalle2},
+                    ${record.quien || 'Yo'},
                     CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP,
                     ${user_id}

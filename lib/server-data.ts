@@ -219,7 +219,8 @@ export async function getEntryById(
           plataforma_pago,
           cantidad,
           detalle1,
-          detalle2
+          detalle2,
+          quien
         FROM finance_entries
         WHERE id = $1
         ${session?.user?.id ? " AND user_id = '" + session.user.id + "'" : ""}
@@ -255,7 +256,7 @@ export async function getFormOptions(session: Session | null = null) {
 
     try {
       // Get distinct values for each field, ordered by frequency of use
-      const [tipoResult, queResult, plataformaResult] = await Promise.all([
+      const [tipoResult, queResult, plataformaResult, quienResult] = await Promise.all([
         pool.query(
           `
           SELECT tipo as value, COUNT(*) as count
@@ -286,17 +287,29 @@ export async function getFormOptions(session: Session | null = null) {
         `,
           [session.user.id]
         ),
+        pool.query(
+          `
+          SELECT quien as value, COUNT(*) as count
+          FROM finance_entries
+          WHERE user_id = $1 AND quien IS NOT NULL AND quien != ''
+          GROUP BY quien
+          ORDER BY count DESC, quien ASC
+        `,
+          [session.user.id]
+        ),
       ]);
 
       // Extract just the values, ordered by frequency
       const tipo = tipoResult.rows.map((row) => row.value);
       const que = queResult.rows.map((row) => row.value);
       const plataforma_pago = plataformaResult.rows.map((row) => row.value);
+      const quien = quienResult.rows.map((row) => row.value);
 
       return {
         tipo,
         que,
         plataforma_pago,
+        quien,
       };
     } finally {
       await pool.end();
