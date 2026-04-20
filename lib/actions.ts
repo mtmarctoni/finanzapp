@@ -259,10 +259,6 @@ export async function getEntries(
       paramIndex++;
     }
 
-    if (tipo && tipo !== "todos") {
-      whereClauses.push(`tipo = '${tipo}'`);
-    }
-
     if (from) {
       whereClauses.push(
         `fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`
