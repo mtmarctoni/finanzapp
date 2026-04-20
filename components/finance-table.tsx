@@ -38,7 +38,7 @@ export default function FinanceTable({
   const router = useRouter()
   const [entries, setEntries] = useState<PaginatedEntriesResponse>({ data: [], totalItems: 0, totalPages: 0, currentPage: 1 })
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  
+
   const search = searchParams?.search || ""
   const accion = searchParams?.accion || DEFAULT_ACCION_FILTER
   const from = searchParams?.from || ""
@@ -46,9 +46,8 @@ export default function FinanceTable({
   const { data: session } = useSession() || ""
   const currentPage = Number(searchParams?.page) || 1
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE
-  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad">((searchParams?.sortBy as "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad") || DEFAULT_SORT_BY)
+  const [sortBy, setSortBy] = useState<"fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad" | "quien">((searchParams?.sortBy as "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad" | "quien") || DEFAULT_SORT_BY)
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">((searchParams?.sortOrder as "asc" | "desc") || DEFAULT_SORT_ORDER)
-  
   console.log('FinanceTable received params:', { search, accion, from, to, currentPage, itemsPerPage })
 
   useEffect(() => {
@@ -82,7 +81,7 @@ export default function FinanceTable({
     )
   }
 
-  const handleSort = (field: "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad") => {
+  const handleSort = (field: "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad" | "quien") => {
     const nextOrder = sortBy === field && sortOrder === "desc" ? "asc" : "desc"
     setSortBy(field)
     setSortOrder(nextOrder)
@@ -91,7 +90,7 @@ export default function FinanceTable({
     params.set("sortOrder", nextOrder)
     router.push(`/records?${params.toString()}`)
   }
-  
+
   return (
     <div className="rounded-md border w-full overflow-x-auto">
       {selectedIds.length > 0 && (
@@ -274,13 +273,35 @@ export default function FinanceTable({
             </TableHead>
             <TableHead>Detalle 1</TableHead>
             <TableHead>Detalle 2</TableHead>
+            <TableHead
+              className="group cursor-pointer select-none"
+              onClick={() => handleSort("quien")}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleSort("quien")}
+              role="columnheader"
+              tabIndex={0}
+              aria-label="Ordenar por quién pagó"
+              aria-sort={sortBy === "quien" ? (sortOrder === "asc" ? "ascending" : "descending") : "none"}
+            >
+              <span className="inline-flex items-center gap-1">
+                Quién
+                {sortBy === "quien" ? (
+                  sortOrder === "asc" ? (
+                    <ArrowUp className="h-4 w-4 text-primary transition-transform duration-200 group-hover:-translate-y-0.5" />
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-primary transition-transform duration-200 group-hover:translate-y-0.5" />
+                  )
+                ) : (
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70 transition-all duration-200 group-hover:text-foreground" />
+                )}
+              </span>
+            </TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {entries.data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
+              <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
                 No hay entradas. Añade una nueva entrada para comenzar.
               </TableCell>
             </TableRow>
@@ -296,14 +317,13 @@ export default function FinanceTable({
                 </TableCell>
                 <TableCell className="font-medium">{formatDate(entry.fecha)}</TableCell>
                 <TableCell>
-                  <span 
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      entry.accion === "Ingreso" 
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${entry.accion === "Ingreso"
                         ? "bg-green-100 text-green-800"
-                        : entry.accion === "Gasto" 
+                        : entry.accion === "Gasto"
                           ? "bg-red-100 text-red-800"
                           : "bg-blue-100 text-blue-800"
-                    }`}
+                      }`}
                   >
                     {entry.accion}
                   </span>
@@ -323,6 +343,7 @@ export default function FinanceTable({
                 </TableCell>
                 <TableCell>{entry.detalle1}</TableCell>
                 <TableCell>{entry.detalle2}</TableCell>
+                <TableCell>{entry.quien || "Yo"}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Link href={`/edit/${entry.id}`}>
@@ -345,17 +366,17 @@ export default function FinanceTable({
                           alert('Debes iniciar sesión para duplicar entradas');
                           return;
                         }
-                        
+
                         try {
                           startTransition(async () => {
                             await duplicateEntry(entry.id);
                             // Refresh the entries after successful duplication
-                            const result = await getFinanceEntries({ 
-                              search, 
-                              accion, 
-                              from, 
-                              to, 
-                              page: currentPage, 
+                            const result = await getFinanceEntries({
+                              search,
+                              accion,
+                              from,
+                              to,
+                              page: currentPage,
                               itemsPerPage,
                               sortBy,
                               sortOrder
@@ -380,7 +401,7 @@ export default function FinanceTable({
                       // Optimistic UI update - remove the entry from the local state immediately
                       startTransition(async () => {
                         // Get the current entries
-                        const currentEntries = {...entries};
+                        const currentEntries = { ...entries };
                         // Filter out the deleted entry
                         const updatedData = currentEntries.data.filter(item => item.id !== entry.id);
                         // Update the state with the filtered entries
@@ -389,7 +410,7 @@ export default function FinanceTable({
                           data: updatedData,
                           totalItems: currentEntries.totalItems - 1
                         });
-                        
+
                         // Then perform the actual deletion
                         if (!session?.user?.id) {
                           throw new Error('User session not available');
@@ -428,10 +449,10 @@ export default function FinanceTable({
               params.set('itemsPerPage', String(itemsPerPage))
               router.push(`/records?${params.toString()}`)
             }}
-            >
+          >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -463,7 +484,7 @@ export default function FinanceTable({
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"

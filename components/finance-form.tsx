@@ -29,6 +29,7 @@ const formSchema = z.object({
   cantidad: z.coerce.number().min(0.01, { message: "La cantidad debe ser mayor a 0" }),
   detalle1: z.string().optional(),
   detalle2: z.string().optional(),
+  quien: z.string().min(1, { message: "El pagador es requerido" }),
 })
 
 type FinanceFormValues = z.infer<typeof formSchema>
@@ -63,6 +64,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
   const [tipoOptions, setTipoOptions] = useState<string[]>([])
   const [queOptions, setQueOptions] = useState<string[]>([])
   const [plataformaOptions, setPlataformaOptions] = useState<string[]>([])
+  const [quienOptions, setQuienOptions] = useState<string[]>([])
   const [optionsLoading, setOptionsLoading] = useState(true)
 
   // Fetch dynamic options on mount
@@ -75,6 +77,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
           setTipoOptions(data.tipo)
           setQueOptions(data.que)
           setPlataformaOptions(data.plataforma_pago)
+          setQuienOptions(data.quien || ["Yo"])
         }
       } catch (error) {
         console.error('Failed to fetch options:', error)
@@ -169,7 +172,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
     // Combine date and time into a single ISO string
     const dateWithTime = new Date(values.fecha);
     dateWithTime.setHours(values.hora, values.minuto);
-    
+
     // Create a new object without hora and minuto properties
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { hora, minuto, ...otherValues } = values;
@@ -182,9 +185,9 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
     if (shouldSplitTransaction(formattedValues.plataforma_pago, formattedValues.detalle1, formattedValues.accion)) {
       formattedValues.cantidad /= 2;
     }
-    
+
     console.log('FECHA:', formattedValues.fecha)
-    
+
     if (!session?.user?.id) {
       throw new Error("User not authenticated")
     }
@@ -246,7 +249,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                   </FormItem>
                 )}
               />
-              
+
               <div className="flex space-x-2">
                 <FormField
                   control={form.control}
@@ -261,7 +264,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="minuto"
@@ -396,6 +399,26 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                     <FormLabel>Detalle 2</FormLabel>
                     <FormControl>
                       <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="quien"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quién</FormLabel>
+                    <FormControl>
+                      <Combobox
+                        options={quienOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar quién pagó..."
+                        loading={optionsLoading}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
