@@ -46,6 +46,7 @@ interface ParsedData {
   cantidad?: number
   detalle1?: string
   detalle2?: string
+  quien?: string
   ai_text?: string
   ai_provider?: string
   ai_model?: string
@@ -107,6 +108,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
         cantidad: shouldSplitTransaction(entry.plataforma_pago, entry.detalle1, entry.accion) ? entry.cantidad * 2 : entry.cantidad,
         detalle1: entry.detalle1 || "",
         detalle2: entry.detalle2 || "",
+        quien: entry.quien || "Yo",
       }
     }
     
@@ -123,6 +125,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
         cantidad: parsedData.cantidad || 0,
         detalle1: parsedData.detalle1 || "",
         detalle2: parsedData.detalle2 || "",
+        quien: parsedData.quien || "Yo",
       }
     }
     
@@ -138,6 +141,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
       cantidad: 0,
       detalle1: "",
       detalle2: "",
+      quien: "Yo",
     }
   }
 
@@ -161,6 +165,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
         cantidad: parsedData.cantidad || 0,
         detalle1: parsedData.detalle1 || "",
         detalle2: parsedData.detalle2 || "",
+        quien: parsedData.quien || "Yo",
       })
     }
   }, [parsedData, entry, form])
