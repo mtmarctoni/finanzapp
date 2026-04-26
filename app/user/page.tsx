@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ApiKeyManager } from "@/components/api-key-manager"
+import { ExternalLink } from "lucide-react"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { useState } from "react"
 
@@ -59,8 +61,8 @@ export default function UserPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="w-full max-w-2xl mx-auto">
+    <div className="container mx-auto max-w-4xl space-y-6 py-8">
+      <Card>
         <CardHeader>
           <CardTitle>Mi Perfil</CardTitle>
         </CardHeader>
@@ -80,14 +82,14 @@ export default function UserPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <h3 className="font-medium">ID de Usuario</h3>
-              <p className="text-muted-foreground">{session.user?.id}</p>
+              <p className="break-all text-muted-foreground">{session.user?.id}</p>
             </div>
             <div>
               <h3 className="font-medium">Estado</h3>
-              <p className="text-green-500 font-medium">Conectado</p>
+              <p className="font-medium text-green-500">Conectado</p>
             </div>
           </div>
 
@@ -104,6 +106,21 @@ export default function UserPage() {
               )}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+<ApiKeyManager />
+
+      <Card>
+        <CardContent className="pt-6">
+          <a
+            href="/docs/public-entry-api"
+            target="_blank"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Ver documentación de la API
+          </a>
         </CardContent>
       </Card>
     </div>
