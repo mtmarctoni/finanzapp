@@ -187,6 +187,79 @@ The application uses the following main tables:
 - `plataforma_pago` - Payment platform
 - `detalle1`, `detalle2` - Additional details
 
+### `api_keys`
+
+- `id` - Unique identifier (UUID)
+- `user_id` - Owner of the API key
+- `key_hash` - SHA-256 hash of the secret key
+- `name` - Human-friendly name for the integration
+- `is_active` - Whether the key can still be used
+- `last_used_at` - Last successful authenticated request timestamp
+
+---
+
+## Public API
+
+The app now includes a public endpoint for creating normal finance entries from third-party tools.
+
+### Create and manage API keys
+
+- `GET /api/api-keys` lists the signed-in user's keys
+- `POST /api/api-keys` creates a new key and returns the plaintext value once
+- `GET /api/api-keys/:id` fetches metadata for a specific key
+- `DELETE /api/api-keys/:id` revokes a key
+
+### Create entries from external apps
+
+- Endpoint: `POST /api/v1/entries`
+- Auth: `X-API-Key: <key>` or `Authorization: Bearer <key>`
+- Rate limit: 60 requests/minute per key
+
+Single entry example:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/entries \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: fa_your_generated_key" \
+  -d '{
+    "fecha": "2026-04-26T10:30:00.000Z",
+    "tipo": "Salario",
+    "accion": "Ingreso",
+    "que": "Trabajo",
+    "plataforma_pago": "Transferencia",
+    "cantidad": 2500,
+    "quien": "Yo"
+  }'
+```
+
+Batch example:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/entries \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer fa_your_generated_key" \
+  -d '{
+    "entries": [
+      {
+        "fecha": "2026-04-26T10:30:00.000Z",
+        "tipo": "Salario",
+        "accion": "Ingreso",
+        "que": "Trabajo",
+        "plataforma_pago": "Transferencia",
+        "cantidad": 2500
+      },
+      {
+        "fecha": "2026-04-26T18:00:00.000Z",
+        "tipo": "Comida",
+        "accion": "Gasto",
+        "que": "Cena",
+        "plataforma_pago": "Tarjeta",
+        "cantidad": 35
+      }
+    ]
+  }'
+```
+
 ---
 
 ## 🧪 Testing

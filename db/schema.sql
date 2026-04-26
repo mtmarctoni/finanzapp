@@ -44,3 +44,17 @@ CREATE TABLE IF NOT EXISTS recurring_records (
   user_id VARCHAR(255)
 );
 
+-- Table: api_keys
+CREATE TABLE IF NOT EXISTS api_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  key_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  last_used_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
