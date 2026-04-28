@@ -44,8 +44,34 @@ function jsonWithHeaders(body: unknown, init: ResponseInit = {}) {
  *   }
  */
 export async function POST(request: NextRequest) {
+  const requestId = Math.random().toString(36).substring(7);
+  const timestamp = new Date().toISOString();
+
+  // Log incoming request details
+  console.log(`\n[${timestamp}] 🔵 API Request #${requestId}`);
+  console.log(`  Method: ${request.method}`);
+  console.log(`  URL: ${request.url}`);
+  console.log(`  Headers:`);
+  request.headers.forEach((value, key) => {
+    // Mask API key for security
+    if (key.toLowerCase().includes('authorization') || key.toLowerCase().includes('x-api-key')) {
+      const masked = value.length > 10
+        ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
+        : '***';
+      console.log(`    ${key}: ${masked}`);
+    } else {
+      console.log(`    ${key}: ${value}`);
+    }
+  });
+
   const { auth, rateLimitHeaders, rateLimitResponse } =
     await authenticateAndRateLimitApiRequest(request);
+
+  console.log(`[${timestamp}] 🔑 Auth Result #${requestId}:`, {
+    authenticated: !!auth,
+    userId: auth?.userId || 'none',
+    rateLimitHeaders: rateLimitHeaders ? rateLimitHeaders : {}
+  });
 
   if (!auth) {
     return NextResponse.json(
@@ -65,6 +91,7 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
+    console.log(`[${timestamp}] 📦 Body #${requestId}:`, JSON.stringify(body, null, 2));
   } catch {
     return jsonWithHeaders(
       { error: "Bad Request", message: "Invalid JSON body." },
@@ -79,15 +106,36 @@ export async function POST(request: NextRequest) {
     "entries" in body &&
     Array.isArray((body as Record<string, unknown>).entries);
 
+  console.log(`[${timestamp}] 📋 Validation #${requestId}:`, {
+    isBatch,
+    bodyType: typeof body,
+    keys: typeof body === 'object' && body !== null ? Object.keys(body as object) : []
+  });
+
   let entriesToCreate: CreateEntryInput[];
 
   try {
     if (isBatch) {
       const parsed = BatchCreateEntrySchema.parse(body);
       entriesToCreate = parsed.entries;
+      console.log(`[${timestamp}] ✅ Batch validated #${requestId}:`, {
+        count: entriesToCreate.length,
+        entries: entriesToCreate.map(e => ({
+          tipo: e.tipo,
+          accion: e.accion,
+          que: e.que,
+          cantidad: e.cantidad
+        }))
+      });
     } else {
       const parsed = CreateEntrySchema.parse(body);
       entriesToCreate = [parsed];
+      console.log(`[${timestamp}] ✅ Single validated #${requestId}:`, {
+        tipo: parsed.tipo,
+        accion: parsed.accion,
+        que: parsed.que,
+        cantidad: parsed.cantidad
+      });
     }
   } catch (err) {
     if (err instanceof ZodError) {
@@ -110,8 +158,11 @@ export async function POST(request: NextRequest) {
   const client = createClient();
   await client.connect();
 
+  console.log(`[${timestamp}] 💾 DB Connection #${requestId}: connected`);
+
   try {
     await client.query("BEGIN");
+    console.log(`[${timestamp}] 🔃 Transaction #${requestId}: BEGIN`);
 
     const createdEntries: Array<{
       id: string;
@@ -126,8 +177,17 @@ export async function POST(request: NextRequest) {
       quien: string;
     }> = [];
 
-    for (const entry of entriesToCreate) {
+    for (const [index, entry] of entriesToCreate.entries()) {
       const id = uuidv4();
+      console.log(`[${timestamp}] 📝 Insert #${requestId} [${index}]:`, {
+        id,
+        tipo: entry.tipo,
+        accion: entry.accion,
+        que: entry.que,
+        cantidad: entry.cantidad,
+        user_id: auth!.userId
+      });
+
       const result = await client.sql`
         INSERT INTO finance_entries (
           id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, quien, user_id
@@ -142,7 +202,7 @@ export async function POST(request: NextRequest) {
           ${entry.detalle1 ?? null},
           ${entry.detalle2 ?? null},
           ${entry.quien},
-          ${auth.userId}
+          ${auth!.userId}
         )
         RETURNING id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, quien
       `;
@@ -150,6 +210,12 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query("COMMIT");
+    console.log(`[${timestamp}] ✅ Transaction #${requestId}: COMMIT - ${createdEntries.length} entries created`);
+
+    console.log(`[${timestamp}] 🎉 Response #${requestId}: 201 Created`, {
+      success: true,
+      count: createdEntries.length
+    });
 
     return jsonWithHeaders(
       {
@@ -160,6 +226,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined);
+    console.error(`[${timestamp}] ❌ Error #${requestId}:`, {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     console.error("Public API create entry error:", error);
     return jsonWithHeaders(
       { error: "Internal Server Error", message: "Failed to create entry." },
@@ -167,5 +237,6 @@ export async function POST(request: NextRequest) {
     );
   } finally {
     await client.end();
+    console.log(`[${timestamp}] 🔚 Request #${requestId}: completed\n`);
   }
 }
