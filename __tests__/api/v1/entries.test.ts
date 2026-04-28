@@ -404,6 +404,45 @@ describe("POST /api/v1/entries", () => {
       expect(mockSql.mock.calls[0]).toContain("Yo");
     });
 
+    it("normalizes AI category aliases to standard categories", async () => {
+      mockSql.mockResolvedValue({
+        rows: [
+          {
+            id: "generated-uuid-123",
+            fecha: "2024-01-15T10:30:00Z",
+            tipo: "Restaurantes",
+            accion: "Gasto",
+            que: "Cena",
+            plataforma_pago: "Tarjeta",
+            cantidad: 45,
+            detalle1: null,
+            detalle2: null,
+            quien: "Yo",
+          },
+        ],
+      });
+
+      // AI sends "food" instead of "Restaurantes"
+      const request = mockRequest({
+        fecha: "2024-01-15T10:30:00Z",
+        tipo: "food",
+        accion: "Gasto",
+        que: "Cena",
+        plataforma_pago: "Tarjeta",
+        cantidad: 45,
+      });
+
+      const response = await POST(request as unknown as import("next/server").NextRequest);
+      const json = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(json.success).toBe(true);
+      // Verify the SQL was called with normalized category
+      const sqlCall = mockSql.mock.calls[0];
+      const sqlString = JSON.stringify(sqlCall);
+      expect(sqlString).toContain("Restaurantes");
+    });
+
     it("associates entry with authenticated user", async () => {
       mockSql.mockResolvedValue({ rows: [{ id: "generated-uuid-123" }] });
 

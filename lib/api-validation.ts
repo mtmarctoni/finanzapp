@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeCategory } from "./categories";
 
 /**
  * Valid values for accion field
@@ -24,7 +25,7 @@ function autoCorrectFecha(dateString: string): string {
     // Date is stale: replace year with current year
     const corrected = new Date(inputDate);
     corrected.setFullYear(now.getFullYear());
-    console.log(`[API Validation] Auto-corrected year: ${dateString} → ${corrected.toISOString()}`);
+    console.log(`[API Validation] Auto-corrected year: ${dateString} -> ${corrected.toISOString()}`);
     return corrected.toISOString();
   }
 
@@ -39,7 +40,17 @@ export const CreateEntrySchema = z.object({
     .string()
     .datetime({ message: "fecha must be a valid ISO 8601 datetime string" })
     .transform((val) => autoCorrectFecha(val)),
-  tipo: z.string().min(1).max(255),
+  tipo: z
+    .string()
+    .min(1)
+    .max(255)
+    .transform((val) => {
+      const normalized = normalizeCategory(val);
+      if (normalized !== val) {
+        console.log(`[API Validation] Normalized category: "${val}" -> "${normalized}"`);
+      }
+      return normalized;
+    }),
   accion: AccionEnum,
   que: z.string().min(1).max(255),
   plataforma_pago: z.string().min(1).max(255),
