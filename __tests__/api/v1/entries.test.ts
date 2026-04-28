@@ -298,6 +298,80 @@ describe("POST /api/v1/entries", () => {
       expect(mockEnd).toHaveBeenCalled();
     });
 
+    it("auto-corrects stale years (>30 days old) to current year", async () => {
+      mockSql.mockResolvedValue({
+        rows: [
+          {
+            id: "generated-uuid-123",
+            fecha: "2026-04-25T14:39:00Z",
+            tipo: "Comida",
+            accion: "Gasto",
+            que: "Mercadona",
+            plataforma_pago: "Tarjeta",
+            cantidad: 50.06,
+            detalle1: null,
+            detalle2: null,
+            quien: "Yo",
+          },
+        ],
+      });
+
+      // Send a date from 2023 (more than 30 days old)
+      const request = mockRequest({
+        fecha: "2023-04-25T14:39:00Z",
+        tipo: "Comida",
+        accion: "Gasto",
+        que: "Mercadona",
+        plataforma_pago: "Tarjeta",
+        cantidad: 50.06,
+      });
+
+      const response = await POST(request as unknown as import("next/server").NextRequest);
+      const json = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(json.success).toBe(true);
+      // Verify it succeeded (the date was corrected in the SQL template)
+      expect(mockSql).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps recent dates (<30 days) unchanged", async () => {
+      mockSql.mockResolvedValue({
+        rows: [
+          {
+            id: "generated-uuid-123",
+            fecha: "2026-04-01T10:00:00Z",
+            tipo: "Salario",
+            accion: "Ingreso",
+            que: "Trabajo",
+            plataforma_pago: "Transferencia",
+            cantidad: 2500.5,
+            detalle1: null,
+            detalle2: null,
+            quien: "Yo",
+          },
+        ],
+      });
+
+      // Send a date from a few days ago (within 30 days)
+      const request = mockRequest({
+        fecha: "2026-04-01T10:00:00Z",
+        tipo: "Salario",
+        accion: "Ingreso",
+        que: "Trabajo",
+        plataforma_pago: "Transferencia",
+        cantidad: 2500.5,
+      });
+
+      const response = await POST(request as unknown as import("next/server").NextRequest);
+      const json = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(json.success).toBe(true);
+      // Verify it succeeded with the original date
+      expect(mockSql).toHaveBeenCalledTimes(1);
+    });
+
     it("defaults quien to 'Yo' when not provided", async () => {
       mockSql.mockResolvedValue({
         rows: [

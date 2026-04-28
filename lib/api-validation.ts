@@ -6,10 +6,39 @@ import { z } from "zod";
 export const AccionEnum = z.enum(["Ingreso", "Gasto", "Inversión"]);
 
 /**
+ * Auto-correct stale years in dates.
+ * If the date is more than 30 days in the past, assume the year is wrong
+ * and replace it with the current year. This handles OCR/AI errors where
+ * old years (e.g. 2023) are extracted from screenshots.
+ */
+function autoCorrectFecha(dateString: string): string {
+  const inputDate = new Date(dateString);
+  if (Number.isNaN(inputDate.getTime())) {
+    return dateString; // Let Zod catch invalid dates
+  }
+
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  if (inputDate < thirtyDaysAgo) {
+    // Date is stale: replace year with current year
+    const corrected = new Date(inputDate);
+    corrected.setFullYear(now.getFullYear());
+    console.log(`[API Validation] Auto-corrected year: ${dateString} → ${corrected.toISOString()}`);
+    return corrected.toISOString();
+  }
+
+  return dateString;
+}
+
+/**
  * Schema for creating a finance entry via the public API.
  */
 export const CreateEntrySchema = z.object({
-  fecha: z.string().datetime({ message: "fecha must be a valid ISO 8601 datetime string" }),
+  fecha: z
+    .string()
+    .datetime({ message: "fecha must be a valid ISO 8601 datetime string" })
+    .transform((val) => autoCorrectFecha(val)),
   tipo: z.string().min(1).max(255),
   accion: AccionEnum,
   que: z.string().min(1).max(255),
