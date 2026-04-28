@@ -36,38 +36,46 @@ function autoCorrectFecha(dateString: string): string {
  * Convert an AI-extracted datetime to local-time-based UTC storage.
  *
  * The finance form builds the datetime from local date + local hour/minute,
- * then calls toISOString() which shifts to UTC. We must do the same here:
- * parse the date/time components, treat them as LOCAL time, then convert.
+ * then calls toISOString() which shifts to UTC. We must do the same here.
+ *
+ * Problem: the AI may send "2026-04-26T16:47:00.000Z" or "2026-04-26T16:47:00".
+ * We can't use Date.getUTCHours() because it behaves differently with/without Z.
+ *
+ * Fix: extract raw numeric components from the string with regex, then rebuild
+ * as a LOCAL time Date. Same as finance form: new Date("YYYY-MM-DDTHH:mm:00").
  *
  * Example: AI sends "2026-04-26T16:47:00.000Z" meaning 16:47 local Spain time.
- * We rebuild as local Date("2026-04-26T16:47:00") then toISOString()
- * gives "2026-04-26T14:47:00.000Z" (UTC+2), so it displays as 16:47 locally.
+ * Extract 2026, 04, 26, 16, 47. Rebuild local Date("2026-04-26T16:47:00").
+ * toISOString() -> "2026-04-26T14:47:00.000Z" (UTC+2). Displays as 16:47 locally.
  */
 function applyTimezoneShift(dateString: string): string {
-  const parsed = new Date(dateString);
-  if (Number.isNaN(parsed.getTime())) {
+  // Extract YYYY-MM-DDTHH:mm directly from the string, ignore any Z or ms
+  const match = dateString.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/
+  );
+
+  if (!match) {
+    console.warn(`[API Validation] Could not parse datetime components from: ${dateString}`);
     return dateString;
   }
 
-  // Extract components from the parsed date (which parsed as UTC if it had a Z)
-  // We want to treat these components as LOCAL time, same as the finance form
-  const year = parsed.getUTCFullYear();
-  const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(parsed.getUTCDate()).padStart(2, "0");
-  const hours = String(parsed.getUTCHours()).padStart(2, "0");
-  const minutes = String(parsed.getUTCMinutes()).padStart(2, "0");
+  const [, year, month, day, hours, minutes] = match;
 
-  // Rebuild as local time (no Z suffix = local timezone)
+  // Rebuild as LOCAL time (no Z suffix = interpreted in local timezone)
+  // This matches exactly what the finance form does
   const localDate = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00`);
 
   if (Number.isNaN(localDate.getTime())) {
+    console.warn(`[API Validation] Invalid local date rebuilt from: ${dateString}`);
     return dateString;
   }
 
   const shifted = localDate.toISOString();
 
   if (shifted !== dateString) {
-    console.log(`[API Validation] Timezone shift: ${dateString} -> ${shifted} (treated as local time)`);
+    console.log(
+      `[API Validation] Timezone shift: ${dateString} -> ${shifted} (treated as local time)`
+    );
   }
 
   return shifted;
