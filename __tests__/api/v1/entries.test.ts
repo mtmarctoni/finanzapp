@@ -443,6 +443,81 @@ describe("POST /api/v1/entries", () => {
       expect(sqlString).toContain("Restaurantes");
     });
 
+    it("halves cantidad for Joyntlanda expenses (50/50 split)", async () => {
+      mockSql.mockResolvedValue({
+        rows: [
+          {
+            id: "generated-uuid-123",
+            fecha: "2024-01-15T10:30:00Z",
+            tipo: "Restaurantes",
+            accion: "Gasto",
+            que: "Cena",
+            plataforma_pago: "Joyntlanda",
+            cantidad: 22.5,
+            detalle1: null,
+            detalle2: null,
+            quien: "Yo",
+          },
+        ],
+      });
+
+      // AI sends full amount but Joyntlanda means split
+      const request = mockRequest({
+        fecha: "2024-01-15T10:30:00Z",
+        tipo: "Restaurantes",
+        accion: "Gasto",
+        que: "Cena",
+        plataforma_pago: "Joyntlanda",
+        cantidad: 45,
+      });
+
+      const response = await POST(request as unknown as import("next/server").NextRequest);
+      const json = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(json.success).toBe(true);
+      // Verify SQL was called with halved amount
+      const sqlCall = JSON.stringify(mockSql.mock.calls[0]);
+      expect(sqlCall).toContain("22.5");
+    });
+
+    it("keeps full cantidad for non-Joyntlanda payments", async () => {
+      mockSql.mockResolvedValue({
+        rows: [
+          {
+            id: "generated-uuid-123",
+            fecha: "2024-01-15T10:30:00Z",
+            tipo: "Restaurantes",
+            accion: "Gasto",
+            que: "Cena",
+            plataforma_pago: "Tarjeta",
+            cantidad: 45,
+            detalle1: null,
+            detalle2: null,
+            quien: "Yo",
+          },
+        ],
+      });
+
+      const request = mockRequest({
+        fecha: "2024-01-15T10:30:00Z",
+        tipo: "Restaurantes",
+        accion: "Gasto",
+        que: "Cena",
+        plataforma_pago: "Tarjeta",
+        cantidad: 45,
+      });
+
+      const response = await POST(request as unknown as import("next/server").NextRequest);
+      const json = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(json.success).toBe(true);
+      // Verify SQL keeps full amount
+      const sqlCall = JSON.stringify(mockSql.mock.calls[0]);
+      expect(sqlCall).toContain("45");
+    });
+
     it("associates entry with authenticated user", async () => {
       mockSql.mockResolvedValue({ rows: [{ id: "generated-uuid-123" }] });
 

@@ -33,32 +33,56 @@ function autoCorrectFecha(dateString: string): string {
 }
 
 /**
+ * Business rule: Joyntlanda expenses are split 50/50.
+ * When plataforma_pago matches "joyntlanda" (case-insensitive),
+ * store only the user's half.
+ */
+function applyJoyntlandaSplit(data: {
+  plataforma_pago: string;
+  cantidad: number;
+}): number {
+  if (data.plataforma_pago.trim().toLowerCase() === "joyntlanda") {
+    const halved = Number((data.cantidad / 2).toFixed(2));
+    console.log(
+      `[API Validation] Joyntlanda split: ${data.cantidad} -> ${halved} (50%)`
+    );
+    return halved;
+  }
+  return data.cantidad;
+}
+
+/**
  * Schema for creating a finance entry via the public API.
  */
-export const CreateEntrySchema = z.object({
-  fecha: z
-    .string()
-    .datetime({ message: "fecha must be a valid ISO 8601 datetime string" })
-    .transform((val) => autoCorrectFecha(val)),
-  tipo: z
-    .string()
-    .min(1)
-    .max(255)
-    .transform((val) => {
-      const normalized = normalizeCategory(val);
-      if (normalized !== val) {
-        console.log(`[API Validation] Normalized category: "${val}" -> "${normalized}"`);
-      }
-      return normalized;
-    }),
-  accion: AccionEnum,
-  que: z.string().min(1).max(255),
-  plataforma_pago: z.string().min(1).max(255),
-  cantidad: z.number().positive("cantidad must be a positive number"),
-  detalle1: z.string().max(255).optional().nullable(),
-  detalle2: z.string().max(255).optional().nullable(),
-  quien: z.string().min(1).max(255).optional().default("Yo"),
-});
+export const CreateEntrySchema = z
+  .object({
+    fecha: z
+      .string()
+      .datetime({ message: "fecha must be a valid ISO 8601 datetime string" })
+      .transform((val) => autoCorrectFecha(val)),
+    tipo: z
+      .string()
+      .min(1)
+      .max(255)
+      .transform((val) => {
+        const normalized = normalizeCategory(val);
+        if (normalized !== val) {
+          console.log(`[API Validation] Normalized category: "${val}" -> "${normalized}"`);
+        }
+        return normalized;
+      }),
+    accion: AccionEnum,
+    que: z.string().min(1).max(255),
+    plataforma_pago: z.string().min(1).max(255),
+    cantidad: z.number().positive("cantidad must be a positive number"),
+    detalle1: z.string().max(255).optional().nullable(),
+    detalle2: z.string().max(255).optional().nullable(),
+    quien: z.string().min(1).max(255).optional().default("Yo"),
+  })
+  .transform((data) => ({
+    ...data,
+    cantidad: applyJoyntlandaSplit(data),
+  }));
 
 export type CreateEntryInput = z.infer<typeof CreateEntrySchema>;
 
