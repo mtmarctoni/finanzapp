@@ -99,24 +99,47 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 3. Detect batch vs single
+  // 3. Detect batch vs single and handle malformed input
   const isBatch =
     typeof body === "object" &&
     body !== null &&
-    "entries" in body &&
-    Array.isArray((body as Record<string, unknown>).entries);
-
-  console.log(`[${timestamp}] 📋 Validation #${requestId}:`, {
-    isBatch,
-    bodyType: typeof body,
-    keys: typeof body === 'object' && body !== null ? Object.keys(body as object) : []
-  });
+    "entries" in body;
 
   let entriesToCreate: CreateEntryInput[];
 
   try {
     if (isBatch) {
-      const parsed = BatchCreateEntrySchema.parse(body);
+      // Handle case where entries might be a string (e.g., from iPhone shortcuts with markdown)
+      const rawEntries = (body as Record<string, unknown>).entries;
+      let entriesData: unknown = rawEntries;
+
+      if (typeof rawEntries === 'string') {
+        console.log(`[${timestamp}] 🔧 Detected string entries, attempting to parse #${requestId}`);
+        // Try to extract JSON from markdown code blocks
+        const markdownMatch = rawEntries.match(/```(?:json)?\s*\n?([\s\S]*?)```$/);
+        if (markdownMatch) {
+          entriesData = markdownMatch[1].trim();
+          console.log(`[${timestamp}] 📝 Extracted from markdown #${requestId}:`, (entriesData as string).substring(0, 100));
+        }
+        try {
+          entriesData = JSON.parse(entriesData as string);
+        } catch (parseError) {
+          console.error(`[${timestamp}] ❌ Failed to parse entries string #${requestId}:`, parseError);
+          return jsonWithHeaders(
+            { error: "Bad Request", message: "entries field contains invalid JSON string. Send proper JSON array." },
+            { status: 400, headers: rateLimitHeaders }
+          );
+        }
+      }
+
+      if (!Array.isArray(entriesData)) {
+        return jsonWithHeaders(
+          { error: "Validation Error", message: "entries must be an array of entry objects." },
+          { status: 422, headers: rateLimitHeaders }
+        );
+      }
+
+      const parsed = BatchCreateEntrySchema.parse({ entries: entriesData });
       entriesToCreate = parsed.entries;
       console.log(`[${timestamp}] ✅ Batch validated #${requestId}:`, {
         count: entriesToCreate.length,
