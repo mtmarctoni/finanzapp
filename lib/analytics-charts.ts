@@ -17,11 +17,50 @@ export interface CategoryDatum {
   count?: number;
   platform?: string | null;
   type?: string | null;
+  action?: string | null;
+}
+
+export interface PlatformDatum {
+  platform: string;
+  action: string;
+  total: number;
+  count?: number;
+}
+
+export interface TypeDatum {
+  type: string;
+  action: string;
+  total: number;
+  count?: number;
+}
+
+export interface TopTransactionDatum {
+  id: string;
+  fecha: string;
+  tipo: string;
+  action: string;
+  category: string;
+  platform: string;
+  amount: number;
+  detalle1: string | null;
+  detalle2: string | null;
+  quien: string;
+}
+
+export interface CategoryPlatformDatum {
+  category: string;
+  platform: string;
+  total: number;
+  count?: number;
 }
 
 export interface AnalyticsDataset {
   temporalData: TemporalDatum[];
   categoryData: CategoryDatum[];
+  platformData: PlatformDatum[];
+  typeData: TypeDatum[];
+  topTransactions: TopTransactionDatum[];
+  categoryPlatformData: CategoryPlatformDatum[];
 }
 
 const actionColorMap: Record<string, { background: string; border: string }> = {
@@ -249,6 +288,192 @@ export function getDoughnutChartOptions(
             const count = countsByCategory[label] || 0;
             return `${label}: ${formatEuro(value)} (${percentage}%) • ${count} mov.`;
           },
+        },
+      },
+    },
+  };
+}
+
+export function getPlatformChartData(platformData: PlatformDatum[]) {
+  // Aggregate by platform across all actions (show absolute spending)
+  const platformTotals = platformData.reduce<Record<string, { total: number; count: number }>>(
+    (acc, item) => {
+      if (!acc[item.platform]) acc[item.platform] = { total: 0, count: 0 };
+      acc[item.platform].total += Math.abs(Number(item.total));
+      acc[item.platform].count += Number(item.count || 0);
+      return acc;
+    },
+    {},
+  );
+
+  const sorted = Object.entries(platformTotals)
+    .map(([platform, { total, count }]) => ({ platform, total, count }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10); // Top 10 platforms
+
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC24A", "#FF5252", "#607D8B", "#9C27B0",
+  ];
+
+  return {
+    labels: sorted.map((item) => item.platform),
+    datasets: [
+      {
+        label: "Total",
+        data: sorted.map((item) => item.total),
+        backgroundColor: sorted.map((_, index) => colors[index % colors.length]),
+        borderWidth: 1,
+      },
+    ],
+    details: sorted,
+  };
+}
+
+export function getPlatformChartOptions(): ChartOptions<"bar"> {
+  return {
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const value = Number(context.raw || 0);
+            return `${context.dataset.label}: ${formatEuro(value)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: {
+          callback: (value) => formatEuro(Number(value)),
+        },
+      },
+    },
+  };
+}
+
+export function getTypeChartData(typeData: TypeDatum[]) {
+  // Aggregate by type across all actions
+  const typeTotals = typeData.reduce<Record<string, { total: number; count: number }>>(
+    (acc, item) => {
+      if (!acc[item.type]) acc[item.type] = { total: 0, count: 0 };
+      acc[item.type].total += Math.abs(Number(item.total));
+      acc[item.type].count += Number(item.count || 0);
+      return acc;
+    },
+    {},
+  );
+
+  const sorted = Object.entries(typeTotals)
+    .map(([type, { total, count }]) => ({ type, total, count }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 12);
+
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC24A", "#FF5252", "#607D8B", "#9C27B0",
+    "#3F51B5", "#E91E63",
+  ];
+
+  return {
+    labels: sorted.map((item) => item.type),
+    datasets: [
+      {
+        label: "Total",
+        data: sorted.map((item) => item.total),
+        backgroundColor: sorted.map((_, index) => colors[index % colors.length]),
+        borderWidth: 1,
+      },
+    ],
+    details: sorted,
+  };
+}
+
+export function getTypeChartOptions(): ChartOptions<"bar"> {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const value = Number(context.raw || 0);
+            return `${context.dataset.label}: ${formatEuro(value)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => formatEuro(Number(value)),
+        },
+      },
+    },
+  };
+}
+
+export function getCategoryPlatformBreakdown(
+  categoryPlatformData: CategoryPlatformDatum[],
+  selectedCategory: string,
+) {
+  const filtered = categoryPlatformData.filter(
+    (item) => item.category === selectedCategory,
+  );
+
+  const sorted = filtered
+    .map((item) => ({
+      platform: item.platform,
+      total: Math.abs(Number(item.total)),
+      count: Number(item.count || 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC24A", "#FF5252", "#607D8B", "#9C27B0",
+  ];
+
+  return {
+    labels: sorted.map((item) => item.platform),
+    datasets: [
+      {
+        label: "Gasto",
+        data: sorted.map((item) => item.total),
+        backgroundColor: sorted.map((_, index) => colors[index % colors.length]),
+        borderWidth: 1,
+      },
+    ],
+    details: sorted,
+  };
+}
+
+export function getCategoryPlatformChartOptions(): ChartOptions<"bar"> {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const value = Number(context.raw || 0);
+            return `${context.dataset.label}: ${formatEuro(value)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => formatEuro(Number(value)),
         },
       },
     },

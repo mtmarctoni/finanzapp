@@ -248,9 +248,78 @@ export async function GET(request: NextRequest) {
         .map(([periodIso, net]) => ({ period: periodIso, net }))
         .sort((a, b) => (a.period < b.period ? -1 : 1));
 
+      // Get platform breakdown
+      const platformData = await pool.query(
+        `SELECT
+          plataforma_pago as platform,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY plataforma_pago, accion
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get type/subcategory breakdown
+      const typeData = await pool.query(
+        `SELECT
+          tipo as type,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY tipo, accion
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get top transactions (largest absolute amounts)
+      const topTransactions = await pool.query(
+        `SELECT
+          id,
+          fecha,
+          tipo,
+          accion as action,
+          que as category,
+          plataforma_pago as platform,
+          cantidad as amount,
+          detalle1,
+          detalle2,
+          quien
+        FROM finance_entries
+        ${whereClause}
+        ORDER BY ABS(cantidad) DESC
+        LIMIT 10`,
+        queryParams
+      );
+
+      // Get category × platform cross-tab for expense deep-dive
+      const categoryPlatformData = await pool.query(
+        `SELECT
+          que as category,
+          plataforma_pago as platform,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY que, plataforma_pago
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
       return NextResponse.json({
         temporalData: temporalData.rows,
         categoryData: categoryData.rows,
+        platformData: platformData.rows,
+        typeData: typeData.rows,
+        topTransactions: topTransactions.rows,
+        categoryPlatformData: categoryPlatformData.rows,
         sums: {
           gastos: Math.abs(sums["Gasto"] || 0),
           ingresos: Math.abs(sums["Ingreso"] || 0),
