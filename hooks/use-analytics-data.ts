@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { CategoryDatum, TemporalDatum } from "@/lib/analytics-charts";
+import {
+  CategoryDatum,
+  TemporalDatum,
+  PlatformDatum,
+  TypeDatum,
+  TopTransactionDatum,
+  CategoryPlatformDatum,
+} from "@/lib/analytics-charts";
 
 interface AnalyticsMetrics {
   groupBy?: "month" | "year";
@@ -10,6 +17,10 @@ interface AnalyticsMetrics {
 export interface AnalyticsData {
   temporalData: TemporalDatum[];
   categoryData: CategoryDatum[];
+  platformData: PlatformDatum[];
+  typeData: TypeDatum[];
+  topTransactions: TopTransactionDatum[];
+  categoryPlatformData: CategoryPlatformDatum[];
   sums: {
     gastos: number;
     ingresos: number;
@@ -39,6 +50,10 @@ export function useAnalyticsData() {
   const [data, setData] = useState<AnalyticsData>({
     temporalData: [],
     categoryData: [],
+    platformData: [],
+    typeData: [],
+    topTransactions: [],
+    categoryPlatformData: [],
     sums: { gastos: 0, ingresos: 0, inversion: 0 },
     metrics: undefined,
     netTemporal: [],

@@ -1,7 +1,6 @@
 // app/analytics/page.tsx
 'use client';
 
-
 import { AnalyticsFilter } from "@/components/analytics-filter";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import {
@@ -10,18 +9,30 @@ import {
   getTemporalChartOptions,
   getLineChartOptions,
   getDoughnutChartOptions,
+  getPlatformChartData,
+  getPlatformChartOptions,
+  getTypeChartData,
+  getTypeChartOptions,
+  getCategoryPlatformBreakdown,
+  getCategoryPlatformChartOptions,
 } from "@/lib/analytics-charts";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { PerActionCards } from "@/components/analytics/PerActionCards";
 import { TemporalChart } from "@/components/analytics/TemporalChart";
 import { NetTrendChart } from "@/components/analytics/NetTrendChart";
 import { CategoryChart } from "@/components/analytics/CategoryChart";
-
+import { PlatformChart } from "@/components/analytics/PlatformChart";
+import { TypeChart } from "@/components/analytics/TypeChart";
+import { CategoryDeepDive } from "@/components/analytics/CategoryDeepDive";
+import { TopTransactionsTable } from "@/components/analytics/TopTransactionsTable";
+import { SavingsRateCard } from "@/components/analytics/SavingsRateCard";
 
 export default function AnalyticsPage() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
   const temporalChartData = getTemporalChartData(data, data.metrics?.groupBy || 'month');
   const categoryChartData = getCategoryChartData(data);
+  const platformChartData = getPlatformChartData(data.platformData);
+  const typeChartData = getTypeChartData(data.typeData);
 
   // Compute income - expenses (excluding investments) per period ("balance")
   const netIncomeExpenseLabels = Array.from(new Set(data.temporalData.map(item => item.period))).sort();
@@ -71,15 +82,18 @@ export default function AnalyticsPage() {
           categories={[...new Set(data.categoryData.map(d => d.category))]}
           platforms={[...new Set([
             ...data.temporalData.map(d => d.platform).filter(Boolean),
-            ...data.categoryData.map(d => d.platform).filter(Boolean)
+            ...data.categoryData.map(d => d.platform).filter(Boolean),
+            ...data.platformData.map(d => d.platform).filter(Boolean),
           ])]}
           types={[...new Set([
             ...data.temporalData.map(d => d.type).filter(Boolean),
-            ...data.categoryData.map(d => d.type).filter(Boolean)
+            ...data.categoryData.map(d => d.type).filter(Boolean),
+            ...data.typeData.map(d => d.type).filter(Boolean),
           ])]}
           years={[2025, 2024, 2023]}
         />
       </div>
+
       <SummaryCards
         sums={data.sums}
         metrics={data.metrics as Parameters<typeof SummaryCards>[0]['metrics']}
@@ -87,7 +101,14 @@ export default function AnalyticsPage() {
         yearsInRange={yearsInRange}
       />
       <PerActionCards metrics={data.metrics as Parameters<typeof PerActionCards>[0]['metrics']} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="mb-6 max-w-sm">
+        <SavingsRateCard
+          income={data.sums.ingresos}
+          expenses={data.sums.gastos}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <TemporalChart data={temporalChartData} options={getTemporalChartOptions(data.temporalData)} loading={loading} />
         <NetTrendChart
           data={{
@@ -126,6 +147,33 @@ export default function AnalyticsPage() {
         <CategoryChart
           data={categoryChartData}
           options={getDoughnutChartOptions(categoryChartData.total, data.categoryData)}
+          loading={loading}
+        />
+        <PlatformChart
+          data={platformChartData}
+          options={getPlatformChartOptions()}
+          loading={loading}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <TypeChart
+          data={typeChartData}
+          options={getTypeChartOptions()}
+          loading={loading}
+        />
+        <CategoryDeepDive
+          categoryData={data.categoryData}
+          categoryPlatformData={data.categoryPlatformData}
+          getChartData={getCategoryPlatformBreakdown}
+          getChartOptions={getCategoryPlatformChartOptions}
+          loading={loading}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <TopTransactionsTable
+          transactions={data.topTransactions}
           loading={loading}
         />
       </div>
