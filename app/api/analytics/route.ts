@@ -248,9 +248,127 @@ export async function GET(request: NextRequest) {
         .map(([periodIso, net]) => ({ period: periodIso, net }))
         .sort((a, b) => (a.period < b.period ? -1 : 1));
 
+      // Get platform breakdown
+      const platformData = await pool.query(
+        `SELECT
+          plataforma_pago as platform,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY plataforma_pago, accion
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get type/subcategory breakdown
+      const typeData = await pool.query(
+        `SELECT
+          tipo as type,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY tipo, accion
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get top transactions (largest absolute amounts)
+      const topTransactions = await pool.query(
+        `SELECT
+          id,
+          fecha,
+          tipo,
+          accion as action,
+          que as category,
+          plataforma_pago as platform,
+          cantidad as amount,
+          detalle1,
+          detalle2,
+          quien
+        FROM finance_entries
+        ${whereClause}
+        ORDER BY ABS(cantidad) DESC
+        LIMIT 10`,
+        queryParams
+      );
+
+      // Get category × platform cross-tab for expense deep-dive
+      const categoryPlatformData = await pool.query(
+        `SELECT
+          que as category,
+          plataforma_pago as platform,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY que, plataforma_pago
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get tipo × que breakdown (type explorer)
+      const tipoQueData = await pool.query(
+        `SELECT
+          tipo as type,
+          que as category,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY tipo, que, accion
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get temporal data per category (for trend tracking)
+      const categoryTemporalData = await pool.query(
+        `SELECT
+          date_trunc('${truncUnit}', fecha) as period,
+          que as category,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY date_trunc('${truncUnit}', fecha), que, accion
+        ORDER BY period, que, accion`,
+        queryParams
+      );
+
+      // Get per-category statistics (avg, min, max, count)
+      const categoryStats = await pool.query(
+        `SELECT
+          que as category,
+          accion as action,
+          AVG(ABS(cantidad)) as avg,
+          MIN(ABS(cantidad)) as min,
+          MAX(ABS(cantidad)) as max,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY que, accion`,
+        queryParams
+      );
+
       return NextResponse.json({
         temporalData: temporalData.rows,
         categoryData: categoryData.rows,
+        platformData: platformData.rows,
+        typeData: typeData.rows,
+        topTransactions: topTransactions.rows,
+        categoryPlatformData: categoryPlatformData.rows,
+        tipoQueData: tipoQueData.rows,
+        categoryTemporalData: categoryTemporalData.rows,
+        categoryStats: categoryStats.rows,
         sums: {
           gastos: Math.abs(sums["Gasto"] || 0),
           ingresos: Math.abs(sums["Ingreso"] || 0),
