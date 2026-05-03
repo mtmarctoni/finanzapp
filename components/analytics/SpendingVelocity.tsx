@@ -5,9 +5,10 @@ import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight }
 interface SpendingVelocityProps {
   velocities: VelocityItem[];
   loading: boolean;
+  title?: string;
 }
 
-export function SpendingVelocity({ velocities, loading }: SpendingVelocityProps) {
+export function SpendingVelocity({ velocities, loading, title = "Velocidad de Gasto" }: SpendingVelocityProps) {
   const growing = velocities.filter((v) => v.direction === "up").slice(0, 3);
   const shrinking = velocities.filter((v) => v.direction === "down").slice(0, 3);
 
@@ -16,7 +17,7 @@ export function SpendingVelocity({ velocities, loading }: SpendingVelocityProps)
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-500" />
-          Velocidad de Gasto
+          {title}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Categorías que más han cambiado respecto al periodo anterior

@@ -28,9 +28,10 @@ export interface AnalyticsFilterProps {
   platforms: (string | null | undefined)[];
   types: (string | null | undefined)[];
   years: number[];
+  tipoToQueMap?: Map<string, Set<string>>;
 }
 
-export function AnalyticsFilter({ value, onChange, actions, categories, platforms, types, years }: AnalyticsFilterProps) {
+export function AnalyticsFilter({ value, onChange, actions, categories, platforms, types, years, tipoToQueMap }: AnalyticsFilterProps) {
   const [open, setOpen] = useState(false);
   const now = new Date();
 
@@ -47,6 +48,21 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
     onChange({ ...value, from: startOfYear(new Date(year, 0, 1)), to: endOfYear(new Date(year, 0, 1)) });
   };
 
+  // Determine available que options based on selected tipo
+  const selectedTipo = Array.isArray(value.types) ? value.types[0] : value.types;
+  const availableQue = selectedTipo && tipoToQueMap?.has(selectedTipo)
+    ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+    : categories;
+
+  const handleTipoChange = (tipo: string) => {
+    // Reset que when tipo changes
+    onChange({ ...value, types: tipo, categories: undefined });
+  };
+
+  const handleQueChange = (que: string) => {
+    onChange({ ...value, categories: que });
+  };
+
   return (
     <div className="flex flex-wrap gap-2 items-end mb-4">
       <Input
@@ -60,7 +76,7 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
         onValueChange={action => onChange({ ...value, actions: action })}
       >
         <SelectTrigger className="w-36">
-          <SelectValue placeholder="Acciones" />
+          <SelectValue placeholder="Acción" />
         </SelectTrigger>
         <SelectContent>
           {actions.map(a => (
@@ -68,15 +84,30 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
           ))}
         </SelectContent>
       </Select>
+      {/* Tipo (general) comes first */}
       <Select
-        value={Array.isArray(value.categories) ? value.categories[0] || "" : value.categories || ""}
-        onValueChange={category => onChange({ ...value, categories: category })}
+        value={selectedTipo || ""}
+        onValueChange={handleTipoChange}
       >
-        <SelectTrigger className="w-36">
-          <SelectValue placeholder="Categorías" />
+        <SelectTrigger className="w-40">
+          <SelectValue placeholder="Tipo (general)" />
         </SelectTrigger>
         <SelectContent>
-          {categories.map(c => (
+          {types.filter((t): t is string => t !== null && t !== undefined).map(t => (
+            <SelectItem key={t} value={t}>{t}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* Que (specific) cascades from tipo */}
+      <Select
+        value={Array.isArray(value.categories) ? value.categories[0] || "" : value.categories || ""}
+        onValueChange={handleQueChange}
+      >
+        <SelectTrigger className="w-40">
+          <SelectValue placeholder={selectedTipo ? "Categoría (específica)" : "Selecciona tipo primero"} />
+        </SelectTrigger>
+        <SelectContent>
+          {availableQue.map(c => (
             <SelectItem key={c} value={c}>{c}</SelectItem>
           ))}
         </SelectContent>
@@ -86,24 +117,11 @@ export function AnalyticsFilter({ value, onChange, actions, categories, platform
         onValueChange={platform => onChange({ ...value, platforms: platform })}
       >
         <SelectTrigger className="w-36">
-          <SelectValue placeholder="Plataformas" />
+          <SelectValue placeholder="Plataforma" />
         </SelectTrigger>
         <SelectContent>
           {platforms.filter((p): p is string => p !== null && p !== undefined).map(p => (
             <SelectItem key={p} value={p}>{p}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={Array.isArray(value.types) ? value.types[0] || "" : value.types || ""}
-        onValueChange={type => onChange({ ...value, types: type })}
-      >
-        <SelectTrigger className="w-36">
-          <SelectValue placeholder="Tipos" />
-        </SelectTrigger>
-        <SelectContent>
-          {types.filter((t): t is string => t !== null && t !== undefined).map(t => (
-            <SelectItem key={t} value={t}>{t}</SelectItem>
           ))}
         </SelectContent>
       </Select>

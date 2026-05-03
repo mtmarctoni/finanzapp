@@ -1,6 +1,7 @@
 // app/analytics/page.tsx
 'use client';
 
+import { useMemo } from "react";
 import { AnalyticsFilter } from "@/components/analytics-filter";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import {
@@ -15,14 +16,14 @@ import {
   getTypeChartOptions,
   getCategoryPlatformBreakdown,
   getCategoryPlatformChartOptions,
-  getTipoQueBreakdown,
-  getTipoQueChartOptions,
   getCategoryTrendData,
-  getCategoryTrendChartOptions,
   computeSpendingVelocity,
-  getSeasonalPatterns,
+  computeTipoSpendingVelocity,
   getSeasonalChartData,
   getSeasonalChartOptions,
+  getTipoExplorerData,
+  getTipoExplorerChartOptions,
+  getTipoTrendData,
 } from "@/lib/analytics-charts";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { PerActionCards } from "@/components/analytics/PerActionCards";
@@ -34,11 +35,11 @@ import { TypeChart } from "@/components/analytics/TypeChart";
 import { CategoryDeepDive } from "@/components/analytics/CategoryDeepDive";
 import { TopTransactionsTable } from "@/components/analytics/TopTransactionsTable";
 import { SavingsRateCard } from "@/components/analytics/SavingsRateCard";
-import { TipoDeepDive } from "@/components/analytics/TipoDeepDive";
-import { CategoryTrendTracker } from "@/components/analytics/CategoryTrendTracker";
+import { TipoExplorer } from "@/components/analytics/TipoExplorer";
+import { TrendExplorer } from "@/components/analytics/TrendExplorer";
 import { SpendingVelocity } from "@/components/analytics/SpendingVelocity";
-import { CategoryIntelligence } from "@/components/analytics/CategoryIntelligence";
-import { SeasonalPatterns } from "@/components/analytics/SeasonalPatterns";
+import { IntelligenceExplorer } from "@/components/analytics/IntelligenceExplorer";
+import { SeasonalExplorer } from "@/components/analytics/SeasonalExplorer";
 
 export default function AnalyticsPage() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
@@ -46,6 +47,16 @@ export default function AnalyticsPage() {
   const categoryChartData = getCategoryChartData(data);
   const platformChartData = getPlatformChartData(data.platformData);
   const typeChartData = getTypeChartData(data.typeData);
+
+  // Build tipo → que mapping for cascading filters
+  const tipoToQueMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const item of data.tipoQueData) {
+      if (!map.has(item.type)) map.set(item.type, new Set());
+      map.get(item.type)!.add(item.category);
+    }
+    return map;
+  }, [data.tipoQueData]);
 
   // Compute income - expenses (excluding investments) per period ("balance")
   const netIncomeExpenseLabels = Array.from(new Set(data.temporalData.map(item => item.period))).sort();
@@ -84,12 +95,13 @@ export default function AnalyticsPage() {
   })();
   const yearsInRange = monthsInRange / 12;
 
-  // Compute velocity from temporal category data
-  const velocities = computeSpendingVelocity(data.categoryTemporalData, "Gasto");
+  // Compute velocities
+  const queVelocities = computeSpendingVelocity(data.categoryTemporalData, "Gasto");
+  const tipoVelocities = computeTipoSpendingVelocity(data.typeTemporalData, "Gasto");
 
-  // Categories with temporal data for trend tracker and seasonal
-  const categoriesWithTemporal = Array.from(
-    new Set(data.categoryTemporalData.map((d) => d.category)),
+  // Types with temporal data
+  const typesWithTemporal = Array.from(
+    new Set(data.typeTemporalData.map((d) => d.type)),
   ).sort();
 
   return (
@@ -111,8 +123,10 @@ export default function AnalyticsPage() {
             ...data.categoryData.map(d => d.type).filter(Boolean),
             ...data.typeData.map(d => d.type).filter(Boolean),
             ...data.tipoQueData.map(d => d.type).filter(Boolean),
+            ...data.typeTemporalData.map(d => d.type).filter(Boolean),
           ])]}
           years={[2025, 2024, 2023]}
+          tipoToQueMap={tipoToQueMap}
         />
       </div>
 
@@ -195,35 +209,51 @@ export default function AnalyticsPage() {
         />
       </div>
 
+      {/* ─── TIPO EXPLORER ─── */}
+      <div className="mb-6">
+        <TipoExplorer
+          tipoQueData={data.tipoQueData}
+          types={typesWithTemporal}
+          getChartData={getTipoExplorerData}
+          getChartOptions={getTipoExplorerChartOptions}
+          loading={loading}
+        />
+      </div>
+
       {/* ─── DEEP INSIGHTS ─── */}
       <div className="grid grid-cols-1 gap-6 mb-6">
-        <TipoDeepDive
-          tipoQueData={data.tipoQueData}
-          getChartData={getTipoQueBreakdown}
-          getChartOptions={getTipoQueChartOptions}
-          loading={loading}
-        />
-        <CategoryTrendTracker
+        <TrendExplorer
           categoryTemporalData={data.categoryTemporalData}
-          getChartData={getCategoryTrendData}
-          getChartOptions={getCategoryTrendChartOptions}
+          typeTemporalData={data.typeTemporalData}
+          tipoQueData={data.tipoQueData}
+          types={typesWithTemporal}
           groupBy={data.metrics?.groupBy || 'month'}
           loading={loading}
+          getCategoryTrendData={getCategoryTrendData}
+          getTipoTrendData={getTipoTrendData}
+          getLineChartOptions={getLineChartOptions}
         />
         <SpendingVelocity
-          velocities={velocities}
+          velocities={queVelocities}
           loading={loading}
+          title="Velocidad por Categoría"
         />
-        <CategoryIntelligence
+        <SpendingVelocity
+          velocities={tipoVelocities}
+          loading={loading}
+          title="Velocidad por Tipo"
+        />
+        <IntelligenceExplorer
           categoryStats={data.categoryStats}
           categoryPlatformData={data.categoryPlatformData}
           categoryData={data.categoryData}
           temporalData={data.temporalData}
+          types={typesWithTemporal}
           loading={loading}
         />
-        <SeasonalPatterns
-          categories={categoriesWithTemporal}
-          getSeasonalData={(cat) => getSeasonalPatterns(data.categoryTemporalData, cat, "Gasto")}
+        <SeasonalExplorer
+          categoryTemporalData={data.categoryTemporalData}
+          types={typesWithTemporal}
           getChartData={getSeasonalChartData}
           getChartOptions={getSeasonalChartOptions}
           loading={loading}
