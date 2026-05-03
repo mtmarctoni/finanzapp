@@ -7,6 +7,9 @@ import {
   TypeDatum,
   TopTransactionDatum,
   CategoryPlatformDatum,
+  TipoQueDatum,
+  CategoryTemporalDatum,
+  CategoryStatDatum,
 } from "@/lib/analytics-charts";
 
 interface AnalyticsMetrics {
@@ -21,6 +24,9 @@ export interface AnalyticsData {
   typeData: TypeDatum[];
   topTransactions: TopTransactionDatum[];
   categoryPlatformData: CategoryPlatformDatum[];
+  tipoQueData: TipoQueDatum[];
+  categoryTemporalData: CategoryTemporalDatum[];
+  categoryStats: CategoryStatDatum[];
   sums: {
     gastos: number;
     ingresos: number;
@@ -54,6 +60,9 @@ export function useAnalyticsData() {
     typeData: [],
     topTransactions: [],
     categoryPlatformData: [],
+    tipoQueData: [],
+    categoryTemporalData: [],
+    categoryStats: [],
     sums: { gastos: 0, ingresos: 0, inversion: 0 },
     metrics: undefined,
     netTemporal: [],
