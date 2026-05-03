@@ -40,7 +40,7 @@ export function SeasonalExplorer({
   loading,
 }: SeasonalExplorerProps) {
   const [selectedTipo, setSelectedTipo] = useState<string>("");
-  const [selectedQue, setSelectedQue] = useState<string>("");
+  const [selectedQue, setSelectedQue] = useState<string>("__all__");
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -58,7 +58,7 @@ export function SeasonalExplorer({
 
   const handleTipoChange = (tipo: string) => {
     setSelectedTipo(tipo);
-    setSelectedQue("");
+    setSelectedQue("__all__");
   };
 
   // Compute seasonal data
@@ -144,7 +144,7 @@ export function SeasonalExplorer({
               <SelectValue placeholder={selectedTipo ? "Categoría (específica)" : "Selecciona tipo primero"} />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
-              <SelectItem value="">Todas (ver tipo agregado)</SelectItem>
+              <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
               {availableQue.map((q) => (
                 <SelectItem key={q} value={q}>
                   {q}
