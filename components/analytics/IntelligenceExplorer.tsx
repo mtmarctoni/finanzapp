@@ -22,7 +22,7 @@ export function IntelligenceExplorer({
   loading,
 }: IntelligenceExplorerProps) {
   const [selectedTipo, setSelectedTipo] = useState<string>("");
-  const [selectedQue, setSelectedQue] = useState<string>("");
+  const [selectedQue, setSelectedQue] = useState<string>("__all__");
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -40,12 +40,12 @@ export function IntelligenceExplorer({
 
   const handleTipoChange = (tipo: string) => {
     setSelectedTipo(tipo);
-    setSelectedQue("");
+    setSelectedQue("__all__");
   };
 
   // Determine what stats to show
-  const isTipoOnly = selectedTipo && !selectedQue;
-  const isQue = !!selectedQue;
+  const isTipoOnly = selectedTipo && selectedQue === "__all__";
+  const isQue = selectedTipo && selectedQue !== "__all__";
 
   // Stats computation
   let stats: CategoryStatDatum[] = [];
@@ -184,7 +184,7 @@ export function IntelligenceExplorer({
               <SelectValue placeholder={selectedTipo ? "Categoría (específica)" : "Selecciona tipo primero"} />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
-              <SelectItem value="">Todas (ver tipo agregado)</SelectItem>
+              <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
               {availableQue.map((q) => (
                 <SelectItem key={q} value={q}>
                   {q}
