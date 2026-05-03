@@ -65,6 +65,15 @@ export interface TipoQueDatum {
 export interface CategoryTemporalDatum {
   period: string;
   category: string;
+  type: string;
+  action: string;
+  total: number;
+  count?: number;
+}
+
+export interface TypeTemporalDatum {
+  period: string;
+  type: string;
   action: string;
   total: number;
   count?: number;
@@ -72,6 +81,7 @@ export interface CategoryTemporalDatum {
 
 export interface CategoryStatDatum {
   category: string;
+  type: string;
   action: string;
   avg: number;
   min: number;
@@ -88,6 +98,7 @@ export interface AnalyticsDataset {
   categoryPlatformData: CategoryPlatformDatum[];
   tipoQueData: TipoQueDatum[];
   categoryTemporalData: CategoryTemporalDatum[];
+  typeTemporalData: TypeTemporalDatum[];
   categoryStats: CategoryStatDatum[];
 }
 
@@ -831,4 +842,237 @@ export function getSeasonalChartOptions(): ChartOptions<"bar"> {
       },
     },
   };
+}
+
+
+// ─── TIPO EXPLORER ───
+
+export function getTipoExplorerData(tipoQueData: TipoQueDatum[], selectedTipo: string) {
+  const filtered = tipoQueData.filter((item) => item.type === selectedTipo);
+
+  const sorted = filtered
+    .map((item) => ({
+      category: item.category,
+      total: Math.abs(Number(item.total)),
+      count: Number(item.count || 0),
+      action: item.action,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const total = sorted.reduce((sum, item) => sum + item.total, 0);
+
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#8AC24A", "#FF5252", "#607D8B", "#9C27B0",
+    "#3F51B5", "#E91E63",
+  ];
+
+  return {
+    labels: sorted.map((item) => item.category),
+    datasets: [
+      {
+        label: "Total",
+        data: sorted.map((item) => item.total),
+        backgroundColor: sorted.map((_, index) => colors[index % colors.length]),
+        borderWidth: 1,
+      },
+    ],
+    details: sorted,
+    total,
+  };
+}
+
+export function getTipoExplorerChartOptions(): ChartOptions<"bar"> {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const value = Number(context.raw || 0);
+            return `${context.dataset.label}: ${formatEuro(value)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => formatEuro(Number(value)),
+        },
+      },
+    },
+  };
+}
+
+// ─── TIPO TREND DATA ───
+
+export function getTipoTrendData(
+  typeTemporalData: TypeTemporalDatum[],
+  selectedTipo: string,
+  groupBy: "month" | "year",
+) {
+  const filtered = typeTemporalData.filter(
+    (item) => item.type === selectedTipo,
+  );
+
+  const periods = Array.from(
+    new Set(filtered.map((item) => item.period)),
+  ).sort();
+
+  const gastos = periods.map((period) => {
+    const item = filtered.find(
+      (d) => d.period === period && d.action === "Gasto",
+    );
+    return item ? Math.abs(Number(item.total)) : 0;
+  });
+
+  const ingresos = periods.map((period) => {
+    const item = filtered.find(
+      (d) => d.period === period && d.action === "Ingreso",
+    );
+    return item ? Math.abs(Number(item.total)) : 0;
+  });
+
+  const counts = periods.map((period) => {
+    return filtered
+      .filter((d) => d.period === period)
+      .reduce((sum, d) => sum + (d.count || 0), 0);
+  });
+
+  const n = gastos.length;
+  let trendSlope = 0;
+  if (n > 1) {
+    const sumX = gastos.reduce((sum, _, i) => sum + i, 0);
+    const sumY = gastos.reduce((sum, v) => sum + v, 0);
+    const sumXY = gastos.reduce((sum, v, i) => sum + i * v, 0);
+    const sumXX = gastos.reduce((sum, _, i) => sum + i * i, 0);
+    trendSlope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  }
+
+  const trendLine = gastos.map((_, i) => {
+    const sumY = gastos.reduce((sum, v) => sum + v, 0);
+    const avgY = sumY / n;
+    return avgY + trendSlope * (i - (n - 1) / 2);
+  });
+
+  return {
+    labels: periods.map((p) => {
+      const d = new Date(p as string);
+      return groupBy === "year"
+        ? format(d, "yyyy", { locale: es })
+        : format(d, "MMM yyyy", { locale: es });
+    }),
+    datasets: [
+      {
+        label: "Gasto",
+        data: gastos,
+        borderColor: "rgba(239, 68, 68, 1)",
+        backgroundColor: "rgba(239, 68, 68, 0.1)",
+        fill: true,
+        tension: 0.3,
+      },
+      {
+        label: "Ingreso",
+        data: ingresos,
+        borderColor: "rgba(34, 197, 94, 1)",
+        backgroundColor: "rgba(34, 197, 94, 0.1)",
+        fill: true,
+        tension: 0.3,
+      },
+      {
+        label: "Tendencia",
+        data: trendLine,
+        borderColor: "rgba(168, 85, 247, 1)",
+        backgroundColor: "rgba(168, 85, 247, 0)",
+        borderDash: [6, 3],
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+      },
+    ],
+    counts,
+    trendSlope,
+  };
+}
+
+// ─── TIPO-LEVEL SPENDING VELOCITY ───
+
+export function computeTipoSpendingVelocity(
+  typeTemporalData: TypeTemporalDatum[],
+  action: string = "Gasto",
+): VelocityItem[] {
+  const filtered = typeTemporalData.filter((item) => item.action === action);
+
+  const byType = new Map<string, Map<string, number>>();
+  for (const item of filtered) {
+    if (!byType.has(item.type)) {
+      byType.set(item.type, new Map());
+    }
+    byType.get(item.type)!.set(item.period, Math.abs(Number(item.total)));
+  }
+
+  const velocities: VelocityItem[] = [];
+  for (const [category, periodMap] of byType) {
+    const periods = Array.from(periodMap.keys()).sort();
+    if (periods.length < 2) continue;
+
+    const current = periodMap.get(periods[periods.length - 1]) || 0;
+    const previous = periodMap.get(periods[periods.length - 2]) || 0;
+
+    const change = current - previous;
+    const changePercent = previous > 0 ? (change / previous) * 100 : 0;
+
+    velocities.push({
+      category,
+      current,
+      previous,
+      change,
+      changePercent,
+      direction: change > 0.01 ? "up" : change < -0.01 ? "down" : "flat",
+    });
+  }
+
+  return velocities.sort((a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent));
+}
+
+// ─── TIPO-LEVEL SEASONAL PATTERNS ───
+
+export function getTipoSeasonalPatterns(
+  typeTemporalData: TypeTemporalDatum[],
+  selectedTipo: string,
+  action: string = "Gasto",
+): SeasonalItem[] {
+  const filtered = typeTemporalData.filter(
+    (item) => item.type === selectedTipo && item.action === action,
+  );
+
+  const monthNames = [
+    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+  ];
+
+  const byMonth = new Map<number, { total: number; count: number; yearCount: number }>();
+  for (let i = 0; i < 12; i++) {
+    byMonth.set(i, { total: 0, count: 0, yearCount: 0 });
+  }
+
+  for (const item of filtered) {
+    const d = new Date(item.period);
+    const month = d.getUTCMonth();
+    const existing = byMonth.get(month)!;
+    existing.total += Math.abs(Number(item.total));
+    existing.count += item.count || 0;
+    existing.yearCount += 1;
+  }
+
+  return Array.from(byMonth.entries()).map(([month, data]) => ({
+    month,
+    monthName: monthNames[month],
+    total: data.yearCount > 0 ? data.total / data.yearCount : 0,
+    count: data.yearCount > 0 ? Math.round(data.count / data.yearCount) : 0,
+  }));
 }

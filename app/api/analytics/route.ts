@@ -329,18 +329,34 @@ export async function GET(request: NextRequest) {
         queryParams
       );
 
-      // Get temporal data per category (for trend tracking)
+      // Get temporal data per category (for trend tracking) — includes tipo
       const categoryTemporalData = await pool.query(
         `SELECT
           date_trunc('${truncUnit}', fecha) as period,
           que as category,
+          tipo as type,
           accion as action,
           SUM(cantidad) as total,
           COUNT(*) as count
         FROM finance_entries
         ${whereClause}
-        GROUP BY date_trunc('${truncUnit}', fecha), que, accion
+        GROUP BY date_trunc('${truncUnit}', fecha), que, tipo, accion
         ORDER BY period, que, accion`,
+        queryParams
+      );
+
+      // Get temporal data per tipo (for tipo-level trends)
+      const typeTemporalData = await pool.query(
+        `SELECT
+          date_trunc('${truncUnit}', fecha) as period,
+          tipo as type,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY date_trunc('${truncUnit}', fecha), tipo, accion
+        ORDER BY period, tipo, accion`,
         queryParams
       );
 
@@ -348,6 +364,7 @@ export async function GET(request: NextRequest) {
       const categoryStats = await pool.query(
         `SELECT
           que as category,
+          tipo as type,
           accion as action,
           AVG(ABS(cantidad)) as avg,
           MIN(ABS(cantidad)) as min,
@@ -355,7 +372,7 @@ export async function GET(request: NextRequest) {
           COUNT(*) as count
         FROM finance_entries
         ${whereClause}
-        GROUP BY que, accion`,
+        GROUP BY que, tipo, accion`,
         queryParams
       );
 
@@ -368,6 +385,7 @@ export async function GET(request: NextRequest) {
         categoryPlatformData: categoryPlatformData.rows,
         tipoQueData: tipoQueData.rows,
         categoryTemporalData: categoryTemporalData.rows,
+        typeTemporalData: typeTemporalData.rows,
         categoryStats: categoryStats.rows,
         sums: {
           gastos: Math.abs(sums["Gasto"] || 0),
