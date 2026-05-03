@@ -15,6 +15,14 @@ import {
   getTypeChartOptions,
   getCategoryPlatformBreakdown,
   getCategoryPlatformChartOptions,
+  getTipoQueBreakdown,
+  getTipoQueChartOptions,
+  getCategoryTrendData,
+  getCategoryTrendChartOptions,
+  computeSpendingVelocity,
+  getSeasonalPatterns,
+  getSeasonalChartData,
+  getSeasonalChartOptions,
 } from "@/lib/analytics-charts";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { PerActionCards } from "@/components/analytics/PerActionCards";
@@ -26,6 +34,11 @@ import { TypeChart } from "@/components/analytics/TypeChart";
 import { CategoryDeepDive } from "@/components/analytics/CategoryDeepDive";
 import { TopTransactionsTable } from "@/components/analytics/TopTransactionsTable";
 import { SavingsRateCard } from "@/components/analytics/SavingsRateCard";
+import { TipoDeepDive } from "@/components/analytics/TipoDeepDive";
+import { CategoryTrendTracker } from "@/components/analytics/CategoryTrendTracker";
+import { SpendingVelocity } from "@/components/analytics/SpendingVelocity";
+import { CategoryIntelligence } from "@/components/analytics/CategoryIntelligence";
+import { SeasonalPatterns } from "@/components/analytics/SeasonalPatterns";
 
 export default function AnalyticsPage() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
@@ -71,6 +84,14 @@ export default function AnalyticsPage() {
   })();
   const yearsInRange = monthsInRange / 12;
 
+  // Compute velocity from temporal category data
+  const velocities = computeSpendingVelocity(data.categoryTemporalData, "Gasto");
+
+  // Categories with temporal data for trend tracker and seasonal
+  const categoriesWithTemporal = Array.from(
+    new Set(data.categoryTemporalData.map((d) => d.category)),
+  ).sort();
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Analíticas Financieras</h1>
@@ -89,6 +110,7 @@ export default function AnalyticsPage() {
             ...data.temporalData.map(d => d.type).filter(Boolean),
             ...data.categoryData.map(d => d.type).filter(Boolean),
             ...data.typeData.map(d => d.type).filter(Boolean),
+            ...data.tipoQueData.map(d => d.type).filter(Boolean),
           ])]}
           years={[2025, 2024, 2023]}
         />
@@ -108,6 +130,7 @@ export default function AnalyticsPage() {
         />
       </div>
 
+      {/* ─── OVERVIEW CHARTS ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <TemporalChart data={temporalChartData} options={getTemporalChartOptions(data.temporalData)} loading={loading} />
         <NetTrendChart
@@ -156,6 +179,7 @@ export default function AnalyticsPage() {
         />
       </div>
 
+      {/* ─── BREAKDOWN CHARTS ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <TypeChart
           data={typeChartData}
@@ -171,6 +195,42 @@ export default function AnalyticsPage() {
         />
       </div>
 
+      {/* ─── DEEP INSIGHTS ─── */}
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        <TipoDeepDive
+          tipoQueData={data.tipoQueData}
+          getChartData={getTipoQueBreakdown}
+          getChartOptions={getTipoQueChartOptions}
+          loading={loading}
+        />
+        <CategoryTrendTracker
+          categoryTemporalData={data.categoryTemporalData}
+          getChartData={getCategoryTrendData}
+          getChartOptions={getCategoryTrendChartOptions}
+          groupBy={data.metrics?.groupBy || 'month'}
+          loading={loading}
+        />
+        <SpendingVelocity
+          velocities={velocities}
+          loading={loading}
+        />
+        <CategoryIntelligence
+          categoryStats={data.categoryStats}
+          categoryPlatformData={data.categoryPlatformData}
+          categoryData={data.categoryData}
+          temporalData={data.temporalData}
+          loading={loading}
+        />
+        <SeasonalPatterns
+          categories={categoriesWithTemporal}
+          getSeasonalData={(cat) => getSeasonalPatterns(data.categoryTemporalData, cat, "Gasto")}
+          getChartData={getSeasonalChartData}
+          getChartOptions={getSeasonalChartOptions}
+          loading={loading}
+        />
+      </div>
+
+      {/* ─── TOP TRANSACTIONS ─── */}
       <div className="grid grid-cols-1 gap-6">
         <TopTransactionsTable
           transactions={data.topTransactions}

@@ -313,6 +313,52 @@ export async function GET(request: NextRequest) {
         queryParams
       );
 
+      // Get tipo × que breakdown (type explorer)
+      const tipoQueData = await pool.query(
+        `SELECT
+          tipo as type,
+          que as category,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY tipo, que, accion
+        HAVING SUM(cantidad) != 0
+        ORDER BY total DESC`,
+        queryParams
+      );
+
+      // Get temporal data per category (for trend tracking)
+      const categoryTemporalData = await pool.query(
+        `SELECT
+          date_trunc('${truncUnit}', fecha) as period,
+          que as category,
+          accion as action,
+          SUM(cantidad) as total,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY date_trunc('${truncUnit}', fecha), que, accion
+        ORDER BY period, que, accion`,
+        queryParams
+      );
+
+      // Get per-category statistics (avg, min, max, count)
+      const categoryStats = await pool.query(
+        `SELECT
+          que as category,
+          accion as action,
+          AVG(ABS(cantidad)) as avg,
+          MIN(ABS(cantidad)) as min,
+          MAX(ABS(cantidad)) as max,
+          COUNT(*) as count
+        FROM finance_entries
+        ${whereClause}
+        GROUP BY que, accion`,
+        queryParams
+      );
+
       return NextResponse.json({
         temporalData: temporalData.rows,
         categoryData: categoryData.rows,
@@ -320,6 +366,9 @@ export async function GET(request: NextRequest) {
         typeData: typeData.rows,
         topTransactions: topTransactions.rows,
         categoryPlatformData: categoryPlatformData.rows,
+        tipoQueData: tipoQueData.rows,
+        categoryTemporalData: categoryTemporalData.rows,
+        categoryStats: categoryStats.rows,
         sums: {
           gastos: Math.abs(sums["Gasto"] || 0),
           ingresos: Math.abs(sums["Ingreso"] || 0),
