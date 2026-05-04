@@ -37,6 +37,19 @@ export function formatCurrency(amount: number) {
 }
 
 /**
+ * Escape `%`, `_` and `\` so a user-supplied string can be safely embedded
+ * in a SQL LIKE / ILIKE pattern. Without escaping, end users (or the
+ * public API) can inject wildcards that force expensive scans or bypass
+ * obvious matching semantics.
+ *
+ * Use together with the standard `ILIKE $1` parameterized binding, e.g.
+ *   `params.push("%" + escapeLikePattern(search) + "%")`.
+ */
+export function escapeLikePattern(input: string): string {
+  return input.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+/**
  * Checks if a transaction should be split (joyntlanda logic)
  * Returns true if the transaction is a 'Gasto' and either:
  * - plataforma_pago equals 'joyntlanda' (case-insensitive)

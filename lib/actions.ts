@@ -3,6 +3,7 @@
 import { createClient, createPool } from "@vercel/postgres";
 import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
+import { escapeLikePattern } from "./utils";
 
 interface EntryFilter {
   search?: string;
@@ -243,7 +244,7 @@ export async function getEntries(
           quien ILIKE $${paramIndex}
         )`
       );
-      params.push(`%${search}%`);
+      params.push(`%${escapeLikePattern(search)}%`);
       paramIndex++;
     }
 

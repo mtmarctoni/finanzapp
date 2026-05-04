@@ -46,13 +46,20 @@ export async function GET(request: NextRequest) {
     const pool = createPool();
 
     try {
-      // Build WHERE clause
-      const whereClauses: string[] = [`user_id = '${session.user.id}'`];
-      const queryParams: string[] = [];
-      let paramIndex = 1;
+      // Build WHERE clause. The user_id predicate is bound as a parameter
+      // ($1) instead of being interpolated — interpolating session values
+      // here was a SQL-injection risk if the id were ever attacker-controlled.
+      const queryParams: string[] = [session.user.id];
+      const whereClauses: string[] = [`user_id = $1`];
+      let paramIndex = 2;
 
       if (search) {
-        const searchTerm = `%${search.toLowerCase()}%`;
+        // Escape SQL LIKE wildcards in the user input so `%` and `_`
+        // can't be used to widen the match or force expensive scans.
+        const escaped = search
+          .toLowerCase()
+          .replace(/[\\%_]/g, (ch) => `\\${ch}`);
+        const searchTerm = `%${escaped}%`;
         whereClauses.push(`(
           LOWER(tipo) LIKE $${paramIndex} OR 
           LOWER(que) LIKE $${paramIndex} OR 
