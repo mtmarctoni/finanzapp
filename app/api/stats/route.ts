@@ -1,55 +1,67 @@
-import { createPool } from '@vercel/postgres';
-import { NextResponse } from 'next/server';
+import { createPool } from "@vercel/postgres";
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
+/**
+ * GET /api/stats
+ *
+ * SECURITY: This route previously required no authentication and ran
+ * un-scoped aggregations across the entire `finance_entries` table —
+ * effectively leaking every user's totals to anyone who could reach the
+ * endpoint. It also filtered on `tipo` instead of `accion`, which never
+ * matched the schema. The route now requires a session and is scoped to
+ * the authenticated user's rows via parameterized queries.
+ */
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
+  const pool = createPool();
   try {
-    const pool = createPool();
+    const [incomeResult, expenseResult, investmentResult] = await Promise.all([
+      pool.query(
+        `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+           FROM finance_entries
+          WHERE accion = 'Ingreso' AND user_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+           FROM finance_entries
+          WHERE accion = 'Gasto' AND user_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+           FROM finance_entries
+          WHERE accion = 'Inversión' AND user_id = $1`,
+        [userId]
+      ),
+    ]);
 
-    try {
-      // Get income stats
-      const incomeResult = await pool.query(`
-        SELECT 
-          COALESCE(SUM(cantidad), 0) as total,
-          COUNT(*) as count
-        FROM finance_entries 
-        WHERE tipo = 'Ingreso'
-      `);
+    const totalIncome = Number(incomeResult.rows[0].total) || 0;
+    const totalExpense = Number(expenseResult.rows[0].total) || 0;
 
-      // Get expense stats
-      const expenseResult = await pool.query(`
-        SELECT 
-          COALESCE(SUM(cantidad), 0) as total,
-          COUNT(*) as count
-        FROM finance_entries 
-        WHERE tipo = 'Gasto'
-      `);
-
-      // Get investment stats
-      const investmentResult = await pool.query(`
-        SELECT 
-          COALESCE(SUM(cantidad), 0) as total,
-          COUNT(*) as count
-        FROM finance_entries 
-        WHERE tipo = 'Inversión'
-      `);
-
-      return NextResponse.json({
-        totalIncome: Number(incomeResult.rows[0].total) || 0,
-        incomeCount: Number(incomeResult.rows[0].count) || 0,
-        totalExpense: Number(expenseResult.rows[0].total) || 0,
-        expenseCount: Number(expenseResult.rows[0].count) || 0,
-        totalInvestment: Number(investmentResult.rows[0].total) || 0,
-        investmentCount: Number(investmentResult.rows[0].count) || 0,
-        balance: Number(incomeResult.rows[0].total) - Number(expenseResult.rows[0].total) || 0,
-      });
-    } finally {
-      await pool.end();
-    }
+    return NextResponse.json({
+      totalIncome,
+      incomeCount: Number(incomeResult.rows[0].count) || 0,
+      totalExpense,
+      expenseCount: Number(expenseResult.rows[0].count) || 0,
+      totalInvestment: Number(investmentResult.rows[0].total) || 0,
+      investmentCount: Number(investmentResult.rows[0].count) || 0,
+      balance: totalIncome - totalExpense,
+    });
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(
       { error: "Failed to fetch statistics" },
       { status: 500 }
     );
+  } finally {
+    await pool.end();
   }
 }
