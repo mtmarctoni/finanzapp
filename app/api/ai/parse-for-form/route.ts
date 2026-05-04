@@ -74,13 +74,29 @@ export async function POST(request: NextRequest) {
     if (!text || typeof text !== "string") {
       return NextResponse.json(
         { error: "Se requiere un campo 'text' con el mensaje." },
-        { 
+        {
           status: 400,
           headers: getRateLimitHeaders(rateLimitResult),
         }
       );
     }
-    
+
+    // Hard cap on user-supplied prompt size — see parse-entry route for
+    // rationale (DoS / token-cost prevention).
+    const MAX_TEXT_LENGTH = 4_000;
+    if (text.length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: "El texto es demasiado largo.",
+          message: `Máximo ${MAX_TEXT_LENGTH} caracteres.`,
+        },
+        {
+          status: 413,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
     // Log AI request start
     console.log(`[Parse Form Start] Request ${requestId}`, {
       userId,
