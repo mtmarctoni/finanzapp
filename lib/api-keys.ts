@@ -1,8 +1,9 @@
 import { createClient } from "@vercel/postgres";
-import { randomBytes, createHash } from "crypto";
+import { randomBytes, createHash, createHmac, timingSafeEqual } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 
 const PREFIX = "fa_";
+const KEY_RANDOM_BYTES = 32; // 256 bits of entropy
 
 export interface ApiKey {
   id: string;
@@ -21,27 +22,69 @@ export interface ApiKeyWithPlaintext extends ApiKey {
 
 export type SafeApiKey = Omit<ApiKey, "key_hash">;
 
+let pepperWarningEmitted = false;
+
+/**
+ * Compute the storage hash for an API key.
+ *
+ * SECURITY: API keys used to be stored as plain SHA-256 digests with no
+ * salt or pepper. SHA-256 is fast and unsalted hashes can be brute-forced
+ * if the database is ever leaked. We now hash with HMAC-SHA-256 keyed by
+ * a server-side pepper (`API_KEY_PEPPER`). An attacker who dumps the
+ * database alone cannot mount an offline attack — they also need the
+ * application secret. Legacy plain-SHA-256 hashes are still accepted at
+ * verification time so existing keys keep working through the rollout.
+ */
+export function hashApiKey(key: string): string {
+  const pepper = process.env.API_KEY_PEPPER;
+  if (pepper && pepper.length > 0) {
+    return createHmac("sha256", pepper).update(key).digest("hex");
+  }
+  if (!pepperWarningEmitted) {
+    console.warn(
+      "[api-keys] API_KEY_PEPPER is not set; falling back to plain SHA-256. " +
+        "Set API_KEY_PEPPER to a high-entropy random string to enable HMAC hashing."
+    );
+    pepperWarningEmitted = true;
+  }
+  return createHash("sha256").update(key).digest("hex");
+}
+
+/**
+ * Compute the legacy (plain SHA-256) hash. Used as a fallback so keys
+ * minted before the pepper rollout still verify.
+ */
+function legacyHashApiKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+/**
+ * Hex-string equality in constant time. Prevents trivial timing leaks
+ * even though our verification uses an indexed DB lookup.
+ */
+function safeHexEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  try {
+    return timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Generate a cryptographically secure API key.
- * Format: fa_<32 random hex chars>
- * Returns the plaintext key (shown once to user) and its hash.
+ * Format: fa_<64 random hex chars>
+ * Returns the plaintext key (shown once) and its hash.
  */
 export function generateApiKey(): { plaintext: string; hash: string } {
-  const plaintext = `${PREFIX}${randomBytes(24).toString("hex")}`;
+  const plaintext = `${PREFIX}${randomBytes(KEY_RANDOM_BYTES).toString("hex")}`;
   const hash = hashApiKey(plaintext);
   return { plaintext, hash };
 }
 
-/**
- * Hash an API key using SHA-256.
- */
-export function hashApiKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex");
-}
-
 function stripKeyHash(key: ApiKey): SafeApiKey {
   const safeKey = { ...key };
-  delete safeKey.key_hash;
+  delete (safeKey as Partial<ApiKey>).key_hash;
   return safeKey;
 }
 
@@ -82,30 +125,46 @@ export async function createApiKey(
 export async function verifyApiKey(
   plaintextKey: string
 ): Promise<{ userId: string; keyId: string } | null> {
-  const hash = hashApiKey(plaintextKey);
+  if (!plaintextKey || !plaintextKey.startsWith(PREFIX)) {
+    return null;
+  }
+
+  const candidates = Array.from(
+    new Set([hashApiKey(plaintextKey), legacyHashApiKey(plaintextKey)])
+  );
 
   const client = createClient();
   await client.connect();
 
   try {
-    const result = await client.sql`
-      SELECT id, user_id
-      FROM api_keys
-      WHERE key_hash = ${hash}
-        AND is_active = true
-      LIMIT 1
-    `;
+    // We look up by either of the candidate hashes. ANY ($1) on a text[]
+    // is parameterized, so this stays injection-safe.
+    const result = await client.query(
+      `SELECT id, user_id, key_hash
+         FROM api_keys
+        WHERE key_hash = ANY($1::text[])
+          AND is_active = true
+        LIMIT 1`,
+      [candidates]
+    );
 
     if (result.rows.length === 0) {
       return null;
     }
 
-    const row = result.rows[0];
+    const row = result.rows[0] as ApiKey;
+
+    // Final safety net: confirm the stored hash actually matches one of
+    // our candidates with a timing-safe comparison.
+    const matches = candidates.some((c) => safeHexEqual(c, row.key_hash));
+    if (!matches) {
+      return null;
+    }
 
     await client.sql`
       UPDATE api_keys
-      SET last_used_at = NOW()
-      WHERE id = ${row.id}
+         SET last_used_at = NOW()
+       WHERE id = ${row.id}
     `;
 
     return {
@@ -120,16 +179,18 @@ export async function verifyApiKey(
 /**
  * List all API keys for a user (without hashes).
  */
-export async function listApiKeys(userId: string): Promise<Omit<ApiKey, "key_hash">[]> {
+export async function listApiKeys(
+  userId: string
+): Promise<Omit<ApiKey, "key_hash">[]> {
   const client = createClient();
   await client.connect();
 
   try {
     const result = await client.sql`
       SELECT id, user_id, name, is_active, created_at, updated_at, last_used_at
-      FROM api_keys
-      WHERE user_id = ${userId}
-      ORDER BY created_at DESC
+        FROM api_keys
+       WHERE user_id = ${userId}
+       ORDER BY created_at DESC
     `;
 
     return (result.rows as ApiKey[]).map(stripKeyHash);
@@ -148,9 +209,9 @@ export async function getApiKeyById(
   try {
     const result = await client.sql`
       SELECT id, user_id, key_hash, name, is_active, created_at, updated_at, last_used_at
-      FROM api_keys
-      WHERE id = ${keyId} AND user_id = ${userId}
-      LIMIT 1
+        FROM api_keys
+       WHERE id = ${keyId} AND user_id = ${userId}
+       LIMIT 1
     `;
 
     if (result.rows.length === 0) {
@@ -176,11 +237,11 @@ export async function revokeApiKey(
   try {
     const result = await client.sql`
       UPDATE api_keys
-      SET is_active = false, updated_at = NOW()
-      WHERE id = ${keyId} AND user_id = ${userId}
+         SET is_active = false, updated_at = NOW()
+       WHERE id = ${keyId} AND user_id = ${userId}
     `;
 
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   } finally {
     await client.end();
   }
@@ -199,10 +260,10 @@ export async function deleteApiKey(
   try {
     const result = await client.sql`
       DELETE FROM api_keys
-      WHERE id = ${keyId} AND user_id = ${userId}
+       WHERE id = ${keyId} AND user_id = ${userId}
     `;
 
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   } finally {
     await client.end();
   }
