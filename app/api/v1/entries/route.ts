@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@vercel/postgres";
-import { v4 as uuidv4 } from "uuid";
-import { authenticateAndRateLimitApiRequest } from "@/lib/api-auth";
-import { CreateEntrySchema, BatchCreateEntrySchema } from "@/lib/api-validation";
-import type { CreateEntryInput } from "@/lib/api-validation";
-import { ZodError } from "zod";
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@vercel/postgres';
+import { v4 as uuidv4 } from 'uuid';
+import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
+import {
+  CreateEntrySchema,
+  BatchCreateEntrySchema,
+} from '@/lib/api-validation';
+import type { CreateEntryInput } from '@/lib/api-validation';
+import { ZodError } from 'zod';
 
 function jsonWithHeaders(body: unknown, init: ResponseInit = {}) {
   const response = NextResponse.json(body, init);
@@ -54,10 +57,14 @@ export async function POST(request: NextRequest) {
   console.log(`  Headers:`);
   request.headers.forEach((value, key) => {
     // Mask API key for security
-    if (key.toLowerCase().includes('authorization') || key.toLowerCase().includes('x-api-key')) {
-      const masked = value.length > 10
-        ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
-        : '***';
+    if (
+      key.toLowerCase().includes('authorization') ||
+      key.toLowerCase().includes('x-api-key')
+    ) {
+      const masked =
+        value.length > 10
+          ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
+          : '***';
       console.log(`    ${key}: ${masked}`);
     } else {
       console.log(`    ${key}: ${value}`);
@@ -70,16 +77,17 @@ export async function POST(request: NextRequest) {
   console.log(`[${timestamp}] 🔑 Auth Result #${requestId}:`, {
     authenticated: !!auth,
     userId: auth?.userId || 'none',
-    rateLimitHeaders: rateLimitHeaders ? rateLimitHeaders : {}
+    rateLimitHeaders: rateLimitHeaders ? rateLimitHeaders : {},
   });
 
   if (!auth) {
     return NextResponse.json(
       {
-        error: "Unauthorized",
-        message: "Invalid or missing API key. Provide it via X-API-Key header or Authorization: Bearer <key>.",
+        error: 'Unauthorized',
+        message:
+          'Invalid or missing API key. Provide it via X-API-Key header or Authorization: Bearer <key>.',
       },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
@@ -91,19 +99,20 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
-    console.log(`[${timestamp}] 📦 Body #${requestId}:`, JSON.stringify(body, null, 2));
+    console.log(
+      `[${timestamp}] 📦 Body #${requestId}:`,
+      JSON.stringify(body, null, 2),
+    );
   } catch {
     return jsonWithHeaders(
-      { error: "Bad Request", message: "Invalid JSON body." },
-      { status: 400, headers: rateLimitHeaders }
+      { error: 'Bad Request', message: 'Invalid JSON body.' },
+      { status: 400, headers: rateLimitHeaders },
     );
   }
 
   // 3. Detect batch vs single and handle malformed input
   const isBatch =
-    typeof body === "object" &&
-    body !== null &&
-    "entries" in body;
+    typeof body === 'object' && body !== null && 'entries' in body;
 
   let entriesToCreate: CreateEntryInput[];
 
@@ -114,28 +123,45 @@ export async function POST(request: NextRequest) {
       let entriesData: unknown = rawEntries;
 
       if (typeof rawEntries === 'string') {
-        console.log(`[${timestamp}] 🔧 Detected string entries, attempting to parse #${requestId}`);
+        console.log(
+          `[${timestamp}] 🔧 Detected string entries, attempting to parse #${requestId}`,
+        );
         // Try to extract JSON from markdown code blocks
-        const markdownMatch = rawEntries.match(/```(?:json)?\s*\n?([\s\S]*?)```$/);
+        const markdownMatch = rawEntries.match(
+          /```(?:json)?\s*\n?([\s\S]*?)```$/,
+        );
         if (markdownMatch) {
           entriesData = markdownMatch[1].trim();
-          console.log(`[${timestamp}] 📝 Extracted from markdown #${requestId}:`, (entriesData as string).substring(0, 100));
+          console.log(
+            `[${timestamp}] 📝 Extracted from markdown #${requestId}:`,
+            (entriesData as string).substring(0, 100),
+          );
         }
         try {
           entriesData = JSON.parse(entriesData as string);
         } catch (parseError) {
-          console.error(`[${timestamp}] ❌ Failed to parse entries string #${requestId}:`, parseError);
+          console.error(
+            `[${timestamp}] ❌ Failed to parse entries string #${requestId}:`,
+            parseError,
+          );
           return jsonWithHeaders(
-            { error: "Bad Request", message: "entries field contains invalid JSON string. Send proper JSON array." },
-            { status: 400, headers: rateLimitHeaders }
+            {
+              error: 'Bad Request',
+              message:
+                'entries field contains invalid JSON string. Send proper JSON array.',
+            },
+            { status: 400, headers: rateLimitHeaders },
           );
         }
       }
 
       if (!Array.isArray(entriesData)) {
         return jsonWithHeaders(
-          { error: "Validation Error", message: "entries must be an array of entry objects." },
-          { status: 422, headers: rateLimitHeaders }
+          {
+            error: 'Validation Error',
+            message: 'entries must be an array of entry objects.',
+          },
+          { status: 422, headers: rateLimitHeaders },
         );
       }
 
@@ -143,12 +169,12 @@ export async function POST(request: NextRequest) {
       entriesToCreate = parsed.entries;
       console.log(`[${timestamp}] ✅ Batch validated #${requestId}:`, {
         count: entriesToCreate.length,
-        entries: entriesToCreate.map(e => ({
+        entries: entriesToCreate.map((e) => ({
           tipo: e.tipo,
           accion: e.accion,
           que: e.que,
-          cantidad: e.cantidad
-        }))
+          cantidad: e.cantidad,
+        })),
       });
     } else {
       const parsed = CreateEntrySchema.parse(body);
@@ -157,23 +183,27 @@ export async function POST(request: NextRequest) {
         tipo: parsed.tipo,
         accion: parsed.accion,
         que: parsed.que,
-        cantidad: parsed.cantidad
+        cantidad: parsed.cantidad,
       });
     }
   } catch (err) {
     if (err instanceof ZodError) {
       const issues = err.issues.map((issue) => ({
-        path: issue.path.join("."),
+        path: issue.path.join('.'),
         message: issue.message,
       }));
       return jsonWithHeaders(
-        { error: "Validation Error", message: "Request body failed validation.", issues },
-        { status: 422, headers: rateLimitHeaders }
+        {
+          error: 'Validation Error',
+          message: 'Request body failed validation.',
+          issues,
+        },
+        { status: 422, headers: rateLimitHeaders },
       );
     }
     return jsonWithHeaders(
-      { error: "Validation Error", message: "Invalid request body." },
-      { status: 422, headers: rateLimitHeaders }
+      { error: 'Validation Error', message: 'Invalid request body.' },
+      { status: 422, headers: rateLimitHeaders },
     );
   }
 
@@ -184,7 +214,7 @@ export async function POST(request: NextRequest) {
   console.log(`[${timestamp}] 💾 DB Connection #${requestId}: connected`);
 
   try {
-    await client.query("BEGIN");
+    await client.query('BEGIN');
     console.log(`[${timestamp}] 🔃 Transaction #${requestId}: BEGIN`);
 
     const createdEntries: Array<{
@@ -208,7 +238,7 @@ export async function POST(request: NextRequest) {
         accion: entry.accion,
         que: entry.que,
         cantidad: entry.cantidad,
-        user_id: auth!.userId
+        user_id: auth!.userId,
       });
 
       const result = await client.sql`
@@ -232,12 +262,14 @@ export async function POST(request: NextRequest) {
       createdEntries.push(result.rows[0] as (typeof createdEntries)[0]);
     }
 
-    await client.query("COMMIT");
-    console.log(`[${timestamp}] ✅ Transaction #${requestId}: COMMIT - ${createdEntries.length} entries created`);
+    await client.query('COMMIT');
+    console.log(
+      `[${timestamp}] ✅ Transaction #${requestId}: COMMIT - ${createdEntries.length} entries created`,
+    );
 
     console.log(`[${timestamp}] 🎉 Response #${requestId}: 201 Created`, {
       success: true,
-      count: createdEntries.length
+      count: createdEntries.length,
     });
 
     return jsonWithHeaders(
@@ -245,18 +277,18 @@ export async function POST(request: NextRequest) {
         success: true,
         data: isBatch ? createdEntries : createdEntries[0],
       },
-      { status: 201, headers: rateLimitHeaders }
+      { status: 201, headers: rateLimitHeaders },
     );
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined);
+    await client.query('ROLLBACK').catch(() => undefined);
     console.error(`[${timestamp}] ❌ Error #${requestId}:`, {
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
     });
-    console.error("Public API create entry error:", error);
+    console.error('Public API create entry error:', error);
     return jsonWithHeaders(
-      { error: "Internal Server Error", message: "Failed to create entry." },
-      { status: 500, headers: rateLimitHeaders }
+      { error: 'Internal Server Error', message: 'Failed to create entry.' },
+      { status: 500, headers: rateLimitHeaders },
     );
   } finally {
     await client.end();

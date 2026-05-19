@@ -1,21 +1,31 @@
-import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CATEGORIES } from '@/types/categories'
-import { RecurringRecord } from '@/types/finance'
-import { RecurringFormData } from '@/components/recurring/types'
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CATEGORIES } from '@/types/categories';
+import { RecurringRecord } from '@/types/finance';
+import { RecurringFormData } from '@/components/recurring/types';
 
 interface RecordFormProps {
-  formData: RecurringFormData
-  loading: boolean
-  isEditing: boolean
-  onChange: (next: RecurringFormData) => void
-  onCancel: () => void
-  onSubmit: () => void
+  formData: RecurringFormData;
+  loading: boolean;
+  isEditing: boolean;
+  onChange: (next: RecurringFormData) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
 }
 
-const transactionOptions: RecurringRecord['accion'][] = ['Ingreso', 'Gasto', 'Inversión']
+const transactionOptions: RecurringRecord['accion'][] = [
+  'Ingreso',
+  'Gasto',
+  'Inversión',
+];
 
 export function RecordForm({
   formData,
@@ -42,8 +52,18 @@ export function RecordForm({
         </div>
 
         <div className="space-y-2">
-          <label className="block text-sm font-medium">Tipo de transacción</label>
-          <Select value={formData.accion} onValueChange={(value) => onChange({ ...formData, accion: value as RecurringRecord['accion'] })}>
+          <label className="block text-sm font-medium">
+            Tipo de transacción
+          </label>
+          <Select
+            value={formData.accion}
+            onValueChange={(value) =>
+              onChange({
+                ...formData,
+                accion: value as RecurringRecord['accion'],
+              })
+            }
+          >
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar tipo" />
             </SelectTrigger>
@@ -61,24 +81,31 @@ export function RecordForm({
           <label className="block text-sm font-medium">Día del mes</label>
           <Select
             value={formData.dia.toString()}
-            onValueChange={(value) => onChange({ ...formData, dia: parseInt(value, 10) })}
+            onValueChange={(value) =>
+              onChange({ ...formData, dia: parseInt(value, 10) })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar día" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
-                <SelectItem key={day} value={day.toString()}>
-                  {day}
-                </SelectItem>
-              ))}
+              {Array.from({ length: 31 }, (_, index) => index + 1).map(
+                (day) => (
+                  <SelectItem key={day} value={day.toString()}>
+                    {day}
+                  </SelectItem>
+                ),
+              )}
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium">Categoría</label>
-          <Select value={formData.tipo} onValueChange={(value) => onChange({ ...formData, tipo: value })}>
+          <Select
+            value={formData.tipo}
+            onValueChange={(value) => onChange({ ...formData, tipo: value })}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar categoría" />
             </SelectTrigger>
@@ -106,7 +133,9 @@ export function RecordForm({
           <label className="block text-sm font-medium">Detalle 1</label>
           <Input
             value={formData.detalle1}
-            onChange={(e) => onChange({ ...formData, detalle1: e.target.value })}
+            onChange={(e) =>
+              onChange({ ...formData, detalle1: e.target.value })
+            }
             placeholder="Detalle principal"
           />
         </div>
@@ -115,7 +144,9 @@ export function RecordForm({
           <label className="block text-sm font-medium">Detalle 2</label>
           <Input
             value={formData.detalle2}
-            onChange={(e) => onChange({ ...formData, detalle2: e.target.value })}
+            onChange={(e) =>
+              onChange({ ...formData, detalle2: e.target.value })
+            }
             placeholder="Detalle adicional"
           />
         </div>
@@ -133,7 +164,12 @@ export function RecordForm({
           <label className="block text-sm font-medium">Frecuencia</label>
           <Select
             value={formData.frequency}
-            onValueChange={(value) => onChange({ ...formData, frequency: value as RecurringRecord['frequency'] })}
+            onValueChange={(value) =>
+              onChange({
+                ...formData,
+                frequency: value as RecurringRecord['frequency'],
+              })
+            }
           >
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar frecuencia" />
@@ -148,10 +184,14 @@ export function RecordForm({
         </div>
 
         <div className="space-y-2 lg:col-span-2">
-          <label className="block text-sm font-medium">Plataforma de pago</label>
+          <label className="block text-sm font-medium">
+            Plataforma de pago
+          </label>
           <Input
             value={formData.plataforma_pago}
-            onChange={(e) => onChange({ ...formData, plataforma_pago: e.target.value })}
+            onChange={(e) =>
+              onChange({ ...formData, plataforma_pago: e.target.value })
+            }
             placeholder="Ej: Transferencia, Tarjeta"
           />
         </div>
@@ -161,7 +201,9 @@ export function RecordForm({
           <div className="flex items-center gap-2 rounded-md border px-3 py-2 h-10">
             <Checkbox
               checked={formData.active}
-              onCheckedChange={(checked) => onChange({ ...formData, active: checked as boolean })}
+              onCheckedChange={(checked) =>
+                onChange({ ...formData, active: checked as boolean })
+              }
             />
             <span className="text-sm">Activo</span>
           </div>
@@ -177,5 +219,5 @@ export function RecordForm({
         </Button>
       </div>
     </div>
-  )
+  );
 }

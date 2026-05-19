@@ -1,7 +1,7 @@
-import { createPool } from "@vercel/postgres";
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { createPool } from '@vercel/postgres';
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 /**
  * GET /api/stats
@@ -16,7 +16,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const userId = session.user.id;
 
@@ -27,19 +27,19 @@ export async function GET() {
         `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
            FROM finance_entries
           WHERE accion = 'Ingreso' AND user_id = $1`,
-        [userId]
+        [userId],
       ),
       pool.query(
         `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
            FROM finance_entries
           WHERE accion = 'Gasto' AND user_id = $1`,
-        [userId]
+        [userId],
       ),
       pool.query(
         `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
            FROM finance_entries
           WHERE accion = 'Inversión' AND user_id = $1`,
-        [userId]
+        [userId],
       ),
     ]);
 
@@ -56,10 +56,10 @@ export async function GET() {
       balance: totalIncome - totalExpense,
     });
   } catch (error) {
-    console.error("Database Error:", error);
+    console.error('Database Error:', error);
     return NextResponse.json(
-      { error: "Failed to fetch statistics" },
-      { status: 500 }
+      { error: 'Failed to fetch statistics' },
+      { status: 500 },
     );
   } finally {
     await pool.end();

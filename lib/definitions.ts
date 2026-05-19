@@ -10,6 +10,13 @@ export interface GetEntriesOptions {
   to?: string;
   page?: number;
   itemsPerPage?: number;
-  sortBy?: "fecha" | "accion" | "que" | "tipo" | "plataforma_pago" | "cantidad" | "quien";
-  sortOrder?: "asc" | "desc";
+  sortBy?:
+    | 'fecha'
+    | 'accion'
+    | 'que'
+    | 'tipo'
+    | 'plataforma_pago'
+    | 'cantidad'
+    | 'quien';
+  sortOrder?: 'asc' | 'desc';
 }

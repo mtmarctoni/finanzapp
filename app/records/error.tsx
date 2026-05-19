@@ -1,6 +1,12 @@
-'use client'
+'use client';
 
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Error al cargar los registros</h2>
@@ -13,6 +19,5 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
         Reintentar
       </button>
     </div>
-  )
+  );
 }
-

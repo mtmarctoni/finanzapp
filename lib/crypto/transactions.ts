@@ -1,11 +1,11 @@
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from 'uuid';
 import type {
   CryptoTransaction,
   CryptoTransactionFormData,
-} from "@/types/finance";
-import { withClient } from "@/lib/db";
-import { escapeLikePattern } from "@/lib/utils";
-import { mapDbRowToTransaction } from "./mappers";
+} from '@/types/finance';
+import { withClient } from '@/lib/db';
+import { escapeLikePattern } from '@/lib/utils';
+import { mapDbRowToTransaction } from './mappers';
 
 /**
  * Crypto transaction queries and mutations.
@@ -35,11 +35,11 @@ export interface PaginatedCryptoTransactions {
 }
 
 const VALID_SORT_FIELDS = new Set([
-  "transaction_date",
-  "crypto_symbol",
-  "amount",
-  "transaction_type",
-  "created_at",
+  'transaction_date',
+  'crypto_symbol',
+  'amount',
+  'transaction_type',
+  'created_at',
 ]);
 
 interface CompiledFilter {
@@ -51,11 +51,11 @@ interface CompiledFilter {
 function compileTransactionFilter(
   filters: Omit<
     CryptoTransactionFilter,
-    "page" | "itemsPerPage" | "sortBy" | "sortOrder"
+    'page' | 'itemsPerPage' | 'sortBy' | 'sortOrder'
   >,
-  userId: string
+  userId: string,
 ): CompiledFilter {
-  const conditions: string[] = ["user_id = $1"];
+  const conditions: string[] = ['user_id = $1'];
   const params: (string | number)[] = [userId];
   let paramIndex = 2;
 
@@ -71,7 +71,7 @@ function compileTransactionFilter(
     paramIndex++;
   }
 
-  if (filters.transactionType && filters.transactionType !== "all") {
+  if (filters.transactionType && filters.transactionType !== 'all') {
     conditions.push(`transaction_type = $${paramIndex}`);
     params.push(filters.transactionType);
     paramIndex++;
@@ -79,7 +79,7 @@ function compileTransactionFilter(
 
   if (filters.cryptoSymbol) {
     conditions.push(
-      `(crypto_symbol = $${paramIndex} OR to_crypto_symbol = $${paramIndex})`
+      `(crypto_symbol = $${paramIndex} OR to_crypto_symbol = $${paramIndex})`,
     );
     params.push(filters.cryptoSymbol);
     paramIndex++;
@@ -87,7 +87,7 @@ function compileTransactionFilter(
 
   if (filters.wallet) {
     conditions.push(
-      `(from_wallet = $${paramIndex} OR to_wallet = $${paramIndex})`
+      `(from_wallet = $${paramIndex} OR to_wallet = $${paramIndex})`,
     );
     params.push(filters.wallet);
     paramIndex++;
@@ -106,7 +106,7 @@ function compileTransactionFilter(
   }
 
   return {
-    whereClause: conditions.join(" AND "),
+    whereClause: conditions.join(' AND '),
     params,
     nextParamIndex: paramIndex,
   };
@@ -114,27 +114,29 @@ function compileTransactionFilter(
 
 export async function listTransactions(
   filters: CryptoTransactionFilter,
-  userId: string
+  userId: string,
 ): Promise<PaginatedCryptoTransactions> {
   const {
     page = 1,
     itemsPerPage = 50,
-    sortBy = "transaction_date",
-    sortOrder = "desc",
+    sortBy = 'transaction_date',
+    sortOrder = 'desc',
     ...rest
   } = filters;
   const { whereClause, params, nextParamIndex } = compileTransactionFilter(
     rest,
-    userId
+    userId,
   );
 
-  const safeSortBy = VALID_SORT_FIELDS.has(sortBy) ? sortBy : "transaction_date";
-  const safeSortOrder = sortOrder === "asc" ? "ASC" : "DESC";
+  const safeSortBy = VALID_SORT_FIELDS.has(sortBy)
+    ? sortBy
+    : 'transaction_date';
+  const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
   return withClient(async (client) => {
     const countResult = await client.query(
       `SELECT COUNT(*) FROM crypto_transactions WHERE ${whereClause}`,
-      params
+      params,
     );
     const total = parseInt(countResult.rows[0].count, 10);
 
@@ -144,7 +146,7 @@ export async function listTransactions(
         WHERE ${whereClause}
         ORDER BY ${safeSortBy} ${safeSortOrder}
         LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}`,
-      [...params, itemsPerPage, offset]
+      [...params, itemsPerPage, offset],
     );
 
     return {
@@ -157,7 +159,7 @@ export async function listTransactions(
 
 export async function findTransactionById(
   id: string,
-  userId: string
+  userId: string,
 ): Promise<CryptoTransaction | null> {
   return withClient(async (client) => {
     const result = await client.sql`
@@ -172,7 +174,7 @@ export async function findTransactionById(
 
 export async function insertTransaction(
   formData: CryptoTransactionFormData,
-  userId: string
+  userId: string,
 ): Promise<CryptoTransaction> {
   const id = uuidv4();
   const now = new Date();
@@ -213,7 +215,7 @@ export async function insertTransaction(
 export async function updateTransactionById(
   id: string,
   formData: Partial<CryptoTransactionFormData>,
-  userId: string
+  userId: string,
 ): Promise<CryptoTransaction | null> {
   return withClient(async (client) => {
     const existing = await client.sql`
@@ -249,7 +251,7 @@ export async function updateTransactionById(
 
 export async function deleteTransactionById(
   id: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   return withClient(async (client) => {
     const result = await client.sql`
@@ -263,7 +265,7 @@ export async function deleteTransactionById(
 
 export async function duplicateTransactionById(
   id: string,
-  userId: string
+  userId: string,
 ): Promise<CryptoTransaction | null> {
   return withClient(async (client) => {
     const existing = await client.sql`

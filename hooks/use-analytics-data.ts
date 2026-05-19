@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   CategoryDatum,
   TemporalDatum,
@@ -11,10 +11,10 @@ import {
   CategoryTemporalDatum,
   TypeTemporalDatum,
   CategoryStatDatum,
-} from "@/lib/analytics-charts";
+} from '@/lib/analytics-charts';
 
 interface AnalyticsMetrics {
-  groupBy?: "month" | "year";
+  groupBy?: 'month' | 'year';
   [key: string]: unknown;
 }
 
@@ -49,7 +49,7 @@ export interface Filters {
   types?: string[];
   minAmount?: number;
   maxAmount?: number;
-  groupBy?: "month" | "year";
+  groupBy?: 'month' | 'year';
   useActivePeriods?: boolean;
 }
 
@@ -73,28 +73,28 @@ export function useAnalyticsData() {
   const [loading, setLoading] = useState(true);
 
   const initialFilters = useCallback(() => {
-    const search = searchParams.get("search") || "";
-    const accion = searchParams.get("accion") || "todos";
-    const from = searchParams.get("from")
-      ? new Date(searchParams.get("from") as string)
+    const search = searchParams.get('search') || '';
+    const accion = searchParams.get('accion') || 'todos';
+    const from = searchParams.get('from')
+      ? new Date(searchParams.get('from') as string)
       : undefined;
-    const to = searchParams.get("to")
-      ? new Date(searchParams.get("to") as string)
+    const to = searchParams.get('to')
+      ? new Date(searchParams.get('to') as string)
       : undefined;
-    const actions = searchParams.getAll("action");
-    const categories = searchParams.getAll("category");
-    const platforms = searchParams.getAll("platform");
-    const types = searchParams.getAll("type");
-    const minAmount = searchParams.get("minAmount")
-      ? Number(searchParams.get("minAmount"))
+    const actions = searchParams.getAll('action');
+    const categories = searchParams.getAll('category');
+    const platforms = searchParams.getAll('platform');
+    const types = searchParams.getAll('type');
+    const minAmount = searchParams.get('minAmount')
+      ? Number(searchParams.get('minAmount'))
       : undefined;
-    const maxAmount = searchParams.get("maxAmount")
-      ? Number(searchParams.get("maxAmount"))
+    const maxAmount = searchParams.get('maxAmount')
+      ? Number(searchParams.get('maxAmount'))
       : undefined;
-    const groupBy: "month" | "year" =
-      (searchParams.get("groupBy") || "month") === "year" ? "year" : "month";
+    const groupBy: 'month' | 'year' =
+      (searchParams.get('groupBy') || 'month') === 'year' ? 'year' : 'month';
     const useActivePeriods =
-      (searchParams.get("useActivePeriods") || "false") === "true";
+      (searchParams.get('useActivePeriods') || 'false') === 'true';
     return {
       search,
       accion,
@@ -121,48 +121,48 @@ export function useAnalyticsData() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (filters.search) params.set("search", filters.search);
-      if (filters.accion && filters.accion !== "todos")
-        params.set("action", filters.accion);
+      if (filters.search) params.set('search', filters.search);
+      if (filters.accion && filters.accion !== 'todos')
+        params.set('action', filters.accion);
       (Array.isArray(filters.actions)
         ? filters.actions
         : filters.actions
           ? [filters.actions]
           : []
-      ).forEach((a) => params.append("action", a));
+      ).forEach((a) => params.append('action', a));
       if (filters.from)
-        params.set("from", filters.from.toISOString().split("T")[0]);
-      if (filters.to) params.set("to", filters.to.toISOString().split("T")[0]);
+        params.set('from', filters.from.toISOString().split('T')[0]);
+      if (filters.to) params.set('to', filters.to.toISOString().split('T')[0]);
       (Array.isArray(filters.categories)
         ? filters.categories
         : filters.categories
           ? [filters.categories]
           : []
-      ).forEach((c) => params.append("category", c));
+      ).forEach((c) => params.append('category', c));
       (Array.isArray(filters.platforms)
         ? filters.platforms
         : filters.platforms
           ? [filters.platforms]
           : []
-      ).forEach((p) => params.append("platform", p));
+      ).forEach((p) => params.append('platform', p));
       (Array.isArray(filters.types)
         ? filters.types
         : filters.types
           ? [filters.types]
           : []
-      ).forEach((t) => params.append("type", t));
-      if (typeof filters.minAmount === "number")
-        params.set("minAmount", String(filters.minAmount));
-      if (typeof filters.maxAmount === "number")
-        params.set("maxAmount", String(filters.maxAmount));
-      params.set("groupBy", filters.groupBy || "month");
-      params.set("useActivePeriods", String(filters.useActivePeriods || false));
+      ).forEach((t) => params.append('type', t));
+      if (typeof filters.minAmount === 'number')
+        params.set('minAmount', String(filters.minAmount));
+      if (typeof filters.maxAmount === 'number')
+        params.set('maxAmount', String(filters.maxAmount));
+      params.set('groupBy', filters.groupBy || 'month');
+      params.set('useActivePeriods', String(filters.useActivePeriods || false));
       const response = await fetch(`/api/analytics?${params.toString()}`);
-      if (!response.ok) throw new Error("Error fetching analytics data");
+      if (!response.ok) throw new Error('Error fetching analytics data');
       const result = await response.json();
       setData(result);
     } catch (error) {
-      console.error("Error fetching analytics data:", error);
+      console.error('Error fetching analytics data:', error);
     } finally {
       setLoading(false);
     }

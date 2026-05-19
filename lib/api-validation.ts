@@ -1,10 +1,10 @@
-import { z } from "zod";
-import { normalizeCategory } from "./categories";
+import { z } from 'zod';
+import { normalizeCategory } from './categories';
 
 /**
  * Valid values for accion field
  */
-export const AccionEnum = z.enum(["Ingreso", "Gasto", "Inversión"]);
+export const AccionEnum = z.enum(['Ingreso', 'Gasto', 'Inversión']);
 
 /**
  * Auto-correct stale years in dates.
@@ -25,7 +25,9 @@ function autoCorrectFecha(dateString: string): string {
     // Date is stale: replace year with current year
     const corrected = new Date(inputDate);
     corrected.setFullYear(now.getFullYear());
-    console.log(`[API Validation] Auto-corrected year: ${dateString} -> ${corrected.toISOString()}`);
+    console.log(
+      `[API Validation] Auto-corrected year: ${dateString} -> ${corrected.toISOString()}`,
+    );
     return corrected.toISOString();
   }
 
@@ -51,11 +53,13 @@ function autoCorrectFecha(dateString: string): string {
 function applyTimezoneShift(dateString: string): string {
   // Extract YYYY-MM-DDTHH:mm directly from the string, ignore any Z or ms
   const match = dateString.match(
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/,
   );
 
   if (!match) {
-    console.warn(`[API Validation] Could not parse datetime components from: ${dateString}`);
+    console.warn(
+      `[API Validation] Could not parse datetime components from: ${dateString}`,
+    );
     return dateString;
   }
 
@@ -66,7 +70,9 @@ function applyTimezoneShift(dateString: string): string {
   const localDate = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00`);
 
   if (Number.isNaN(localDate.getTime())) {
-    console.warn(`[API Validation] Invalid local date rebuilt from: ${dateString}`);
+    console.warn(
+      `[API Validation] Invalid local date rebuilt from: ${dateString}`,
+    );
     return dateString;
   }
 
@@ -74,7 +80,7 @@ function applyTimezoneShift(dateString: string): string {
 
   if (shifted !== dateString) {
     console.log(
-      `[API Validation] Timezone shift: ${dateString} -> ${shifted} (treated as local time)`
+      `[API Validation] Timezone shift: ${dateString} -> ${shifted} (treated as local time)`,
     );
   }
 
@@ -90,10 +96,10 @@ function applyJoyntlandaSplit(data: {
   plataforma_pago: string;
   cantidad: number;
 }): number {
-  if (data.plataforma_pago.trim().toLowerCase() === "joyntlanda") {
+  if (data.plataforma_pago.trim().toLowerCase() === 'joyntlanda') {
     const halved = Number((data.cantidad / 2).toFixed(2));
     console.log(
-      `[API Validation] Joyntlanda split: ${data.cantidad} -> ${halved} (50%)`
+      `[API Validation] Joyntlanda split: ${data.cantidad} -> ${halved} (50%)`,
     );
     return halved;
   }
@@ -107,7 +113,7 @@ export const CreateEntrySchema = z
   .object({
     fecha: z
       .string()
-      .datetime({ message: "fecha must be a valid ISO 8601 datetime string" })
+      .datetime({ message: 'fecha must be a valid ISO 8601 datetime string' })
       .transform((val) => applyTimezoneShift(autoCorrectFecha(val))),
     tipo: z
       .string()
@@ -116,17 +122,19 @@ export const CreateEntrySchema = z
       .transform((val) => {
         const normalized = normalizeCategory(val);
         if (normalized !== val) {
-          console.log(`[API Validation] Normalized category: "${val}" -> "${normalized}"`);
+          console.log(
+            `[API Validation] Normalized category: "${val}" -> "${normalized}"`,
+          );
         }
         return normalized;
       }),
     accion: AccionEnum,
     que: z.string().min(1).max(255),
     plataforma_pago: z.string().min(1).max(255),
-    cantidad: z.number().positive("cantidad must be a positive number"),
+    cantidad: z.number().positive('cantidad must be a positive number'),
     detalle1: z.string().max(255).optional().nullable(),
     detalle2: z.string().max(255).optional().nullable(),
-    quien: z.string().min(1).max(255).optional().default("Yo"),
+    quien: z.string().min(1).max(255).optional().default('Yo'),
   })
   .transform((data) => ({
     ...data,
@@ -141,14 +149,14 @@ export type CreateEntryInput = z.infer<typeof CreateEntrySchema>;
 export const BatchCreateEntrySchema = z.object({
   entries: z
     .array(CreateEntrySchema)
-    .min(1, "At least one entry is required")
-    .max(100, "Maximum 100 entries per batch"),
+    .min(1, 'At least one entry is required')
+    .max(100, 'Maximum 100 entries per batch'),
 });
 
 export type BatchCreateEntryInput = z.infer<typeof BatchCreateEntrySchema>;
 
 export const CreateApiKeySchema = z.object({
-  name: z.string().trim().min(1, "name is required").max(255),
+  name: z.string().trim().min(1, 'name is required').max(255),
 });
 
 export type CreateApiKeyInput = z.infer<typeof CreateApiKeySchema>;

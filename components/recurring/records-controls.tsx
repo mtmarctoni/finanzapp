@@ -1,28 +1,34 @@
-import { format } from 'date-fns'
-import { CalendarDays, Plus, Search } from 'lucide-react'
+import { format } from 'date-fns';
+import { CalendarDays, Plus, Search } from 'lucide-react';
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FilterState, SortState } from '@/components/recurring/types'
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { FilterState, SortState } from '@/components/recurring/types';
 
 interface RecordsControlsProps {
-  loading: boolean
-  formOpen: boolean
-  isEditing: boolean
-  generateDate: Date
-  search: string
-  filter: FilterState
-  sortBy: SortState
-  resultsCount: number
-  hasActiveFilters: boolean
-  onGenerateDateChange: (date: Date) => void
-  onGenerateRecords: () => void
-  onToggleForm: () => void
-  onSearchChange: (value: string) => void
-  onFilterChange: (value: FilterState) => void
-  onSortChange: (value: SortState) => void
-  onClearFilters: () => void
+  loading: boolean;
+  formOpen: boolean;
+  isEditing: boolean;
+  generateDate: Date;
+  search: string;
+  filter: FilterState;
+  sortBy: SortState;
+  resultsCount: number;
+  hasActiveFilters: boolean;
+  onGenerateDateChange: (date: Date) => void;
+  onGenerateRecords: () => void;
+  onToggleForm: () => void;
+  onSearchChange: (value: string) => void;
+  onFilterChange: (value: FilterState) => void;
+  onSortChange: (value: SortState) => void;
+  onClearFilters: () => void;
 }
 
 export function RecordsControls({
@@ -59,7 +65,10 @@ export function RecordsControls({
           </Button>
         </div>
 
-        <Button variant={formOpen ? 'secondary' : 'default'} onClick={onToggleForm}>
+        <Button
+          variant={formOpen ? 'secondary' : 'default'}
+          onClick={onToggleForm}
+        >
           <Plus className="mr-2 h-4 w-4" />
           {isEditing ? 'Editando registro' : 'Nuevo registro'}
         </Button>
@@ -77,7 +86,10 @@ export function RecordsControls({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Select value={filter} onValueChange={(value) => onFilterChange(value as FilterState)}>
+          <Select
+            value={filter}
+            onValueChange={(value) => onFilterChange(value as FilterState)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -88,7 +100,10 @@ export function RecordsControls({
             </SelectContent>
           </Select>
 
-          <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortState)}>
+          <Select
+            value={sortBy}
+            onValueChange={(value) => onSortChange(value as SortState)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Ordenar" />
             </SelectTrigger>
@@ -102,7 +117,9 @@ export function RecordsControls({
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">{resultsCount} registros encontrados</span>
+        <span className="text-muted-foreground">
+          {resultsCount} registros encontrados
+        </span>
         {hasActiveFilters ? (
           <Button variant="ghost" size="sm" onClick={onClearFilters}>
             Limpiar filtros
@@ -110,5 +127,5 @@ export function RecordsControls({
         ) : null}
       </div>
     </div>
-  )
+  );
 }

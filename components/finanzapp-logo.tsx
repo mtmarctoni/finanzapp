@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react';
 
 // Simple FinanzApp logo: FA in a green circle
 export function FinanzAppLogo({ size = 32 }: { size?: number }) {

@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Bar } from 'react-chartjs-2';
 import { ChartData, ChartOptions } from 'chart.js';
 import {
@@ -12,7 +18,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { TipoQueDatum } from "@/lib/analytics-charts";
+import { TipoQueDatum } from '@/lib/analytics-charts';
 
 ChartJS.register(
   CategoryScale,
@@ -20,12 +26,22 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 interface TipoDeepDiveProps {
   tipoQueData: TipoQueDatum[];
-  getChartData: (data: TipoQueDatum[], type: string) => ChartData<'bar', number[], string> & { details?: Array<{ category: string; total: number; count: number; action: string }> };
+  getChartData: (
+    data: TipoQueDatum[],
+    type: string,
+  ) => ChartData<'bar', number[], string> & {
+    details?: Array<{
+      category: string;
+      total: number;
+      count: number;
+      action: string;
+    }>;
+  };
   getChartOptions: () => ChartOptions<'bar'>;
   loading: boolean;
 }
@@ -38,7 +54,7 @@ export function TipoDeepDive({
 }: TipoDeepDiveProps) {
   // Get unique types that have que breakdowns
   const types = Array.from(new Set(tipoQueData.map((d) => d.type))).sort();
-  const [selectedType, setSelectedType] = useState<string>(types[0] || "");
+  const [selectedType, setSelectedType] = useState<string>(types[0] || '');
 
   const chartData = getChartData(tipoQueData, selectedType);
   const chartOptions = getChartOptions();
@@ -53,8 +69,12 @@ export function TipoDeepDive({
         <div>
           <CardTitle>Explorador por Tipo</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Dentro de <span className="font-semibold">{selectedType}</span> has movido{" "}
-            {typeTotal.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+            Dentro de <span className="font-semibold">{selectedType}</span> has
+            movido{' '}
+            {typeTotal.toLocaleString('es-ES', {
+              style: 'currency',
+              currency: 'EUR',
+            })}
           </p>
         </div>
         <Select value={selectedType} onValueChange={setSelectedType}>
@@ -96,35 +116,51 @@ export function TipoDeepDive({
             ) : chartData.details && chartData.details.length > 0 ? (
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {chartData.details.map((item) => {
-                  const pct = typeTotal > 0 ? (item.total / typeTotal) * 100 : 0;
-                  const isExpense = item.action === "Gasto" || item.action === "Inversión";
+                  const pct =
+                    typeTotal > 0 ? (item.total / typeTotal) * 100 : 0;
+                  const isExpense =
+                    item.action === 'Gasto' || item.action === 'Inversión';
                   return (
-                    <div key={item.category} className="flex items-center justify-between text-sm">
+                    <div
+                      key={item.category}
+                      className="flex items-center justify-between text-sm"
+                    >
                       <div className="flex-1 min-w-0 mr-3">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">{item.category}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                              isExpense
-                                ? "bg-red-100 text-red-700"
-                                : "bg-green-100 text-green-700"
-                            }`}>
+                            <span className="font-medium truncate">
+                              {item.category}
+                            </span>
+                            <span
+                              className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                isExpense
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}
+                            >
                               {item.action}
                             </span>
                           </div>
                           <span className="text-muted-foreground ml-2 shrink-0">
-                            {item.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                            {item.total.toLocaleString('es-ES', {
+                              style: 'currency',
+                              currency: 'EUR',
+                            })}
                           </span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full transition-all ${isExpense ? "bg-red-400" : "bg-green-400"}`}
+                            className={`h-2 rounded-full transition-all ${isExpense ? 'bg-red-400' : 'bg-green-400'}`}
                             style={{ width: `${Math.min(pct, 100)}%` }}
                           />
                         </div>
                         <div className="flex justify-between mt-0.5">
-                          <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
-                          <span className="text-xs text-muted-foreground">{item.count} mov.</span>
+                          <span className="text-xs text-muted-foreground">
+                            {pct.toFixed(1)}%
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {item.count} mov.
+                          </span>
                         </div>
                       </div>
                     </div>

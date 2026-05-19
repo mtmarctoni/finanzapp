@@ -1,21 +1,22 @@
-"use client";
+'use client';
 
-import type { UIMessage } from "ai";
-import { isToolUIPart } from "ai";
-import { cn } from "@/lib/utils";
+import type { UIMessage } from 'ai';
+import { isToolUIPart } from 'ai';
+import { cn } from '@/lib/utils';
 
 interface ChatMessageProps {
   message: UIMessage;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  const isUser = message.role === "user";
+  const isUser = message.role === 'user';
 
   // Extract text content from message parts
-  const textContent = message.parts
-    ?.filter((part) => part.type === "text")
-    .map((part) => part.text)
-    .join("") || "";
+  const textContent =
+    message.parts
+      ?.filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('') || '';
 
   // Check for tool invocation parts
   const toolParts = message.parts?.filter((part) => isToolUIPart(part)) || [];
@@ -23,16 +24,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        "flex w-full mb-3",
-        isUser ? "justify-end" : "justify-start"
+        'flex w-full mb-3',
+        isUser ? 'justify-end' : 'justify-start',
       )}
     >
       <div
         className={cn(
-          "max-w-[85%] rounded-lg px-3 py-2 text-sm",
+          'max-w-[85%] rounded-lg px-3 py-2 text-sm',
           isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-muted-foreground',
         )}
       >
         {textContent && (
@@ -44,7 +45,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {toolParts.map((part) => {
               if (!isToolUIPart(part)) return null;
 
-              if (part.state === "output-available") {
+              if (part.state === 'output-available') {
                 const result = part.output as Record<string, unknown>;
                 if (result?.success === true && result?.message) {
                   return (
@@ -68,7 +69,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 }
               }
 
-              if (part.state === "output-error") {
+              if (part.state === 'output-error') {
                 return (
                   <div
                     key={part.toolCallId}
@@ -79,7 +80,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 );
               }
 
-              if (part.state === "input-available" || part.state === "input-streaming") {
+              if (
+                part.state === 'input-available' ||
+                part.state === 'input-streaming'
+              ) {
                 return (
                   <div
                     key={part.toolCallId}

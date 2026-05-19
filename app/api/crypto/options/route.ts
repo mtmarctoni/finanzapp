@@ -1,59 +1,59 @@
-import { getCryptoSymbols, getUsedWallets } from "@/lib/cryptoActions";
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getCryptoSymbols, getUsedWallets } from '@/lib/cryptoActions';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Common crypto symbols for autocomplete
 const COMMON_CRYPTO_SYMBOLS = [
-  "BTC",
-  "ETH",
-  "USDT",
-  "USDC",
-  "BNB",
-  "XRP",
-  "ADA",
-  "DOGE",
-  "SOL",
-  "DOT",
-  "MATIC",
-  "SHIB",
-  "LTC",
-  "TRX",
-  "AVAX",
-  "LINK",
-  "ATOM",
-  "UNI",
-  "XMR",
-  "ETC",
-  "XLM",
-  "BCH",
-  "ALGO",
-  "VET",
-  "MANA",
-  "SAND",
-  "AXS",
-  "FTM",
-  "NEAR",
-  "FLOW",
+  'BTC',
+  'ETH',
+  'USDT',
+  'USDC',
+  'BNB',
+  'XRP',
+  'ADA',
+  'DOGE',
+  'SOL',
+  'DOT',
+  'MATIC',
+  'SHIB',
+  'LTC',
+  'TRX',
+  'AVAX',
+  'LINK',
+  'ATOM',
+  'UNI',
+  'XMR',
+  'ETC',
+  'XLM',
+  'BCH',
+  'ALGO',
+  'VET',
+  'MANA',
+  'SAND',
+  'AXS',
+  'FTM',
+  'NEAR',
+  'FLOW',
 ];
 
 // Common transaction types
 const TRANSACTION_TYPES = [
-  { value: "deposit", label: "Depósito (Compra)" },
-  { value: "withdrawal", label: "Retiro (Venta)" },
-  { value: "wallet_transfer", label: "Transferencia entre wallets" },
-  { value: "exchange", label: "Intercambio entre criptos" },
-  { value: "staking", label: "Recompensa de staking" },
-  { value: "airdrop", label: "Airdrop" },
-  { value: "fee", label: "Comisión" },
-  { value: "genesis", label: "Génesis (Origen)" },
+  { value: 'deposit', label: 'Depósito (Compra)' },
+  { value: 'withdrawal', label: 'Retiro (Venta)' },
+  { value: 'wallet_transfer', label: 'Transferencia entre wallets' },
+  { value: 'exchange', label: 'Intercambio entre criptos' },
+  { value: 'staking', label: 'Recompensa de staking' },
+  { value: 'airdrop', label: 'Airdrop' },
+  { value: 'fee', label: 'Comisión' },
+  { value: 'genesis', label: 'Génesis (Origen)' },
 ];
 
 export async function GET(_: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -75,10 +75,10 @@ export async function GET(_: NextRequest) {
       transactionTypes: TRANSACTION_TYPES,
     });
   } catch (error) {
-    console.error("Error fetching crypto options:", error);
+    console.error('Error fetching crypto options:', error);
     return NextResponse.json(
-      { error: "Failed to fetch options" },
-      { status: 500 }
+      { error: 'Failed to fetch options' },
+      { status: 500 },
     );
   }
 }

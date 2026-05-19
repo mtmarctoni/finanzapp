@@ -3,7 +3,7 @@ import {
   createPool,
   type VercelClient,
   type VercelPool,
-} from "@vercel/postgres";
+} from '@vercel/postgres';
 
 /**
  * Run `fn` with a connected `@vercel/postgres` client and guarantee the
@@ -17,7 +17,7 @@ import {
  * avoid the connect/handshake roundtrip.
  */
 export async function withClient<T>(
-  fn: (client: VercelClient) => Promise<T>
+  fn: (client: VercelClient) => Promise<T>,
 ): Promise<T> {
   const client = createClient();
   await client.connect();
@@ -28,7 +28,7 @@ export async function withClient<T>(
       await client.end();
     } catch (err) {
       // Surface but don't mask the original error in the caller.
-      console.error("[db] error closing client:", err);
+      console.error('[db] error closing client:', err);
     }
   }
 }
@@ -37,7 +37,9 @@ export async function withClient<T>(
  * Run `fn` with a `@vercel/postgres` pool and tear it down at the end.
  * Mirrors `withClient` but for read-mostly handlers.
  */
-export async function withPool<T>(fn: (pool: VercelPool) => Promise<T>): Promise<T> {
+export async function withPool<T>(
+  fn: (pool: VercelPool) => Promise<T>,
+): Promise<T> {
   const pool = createPool();
   try {
     return await fn(pool);
@@ -45,7 +47,7 @@ export async function withPool<T>(fn: (pool: VercelPool) => Promise<T>): Promise
     try {
       await pool.end();
     } catch (err) {
-      console.error("[db] error closing pool:", err);
+      console.error('[db] error closing pool:', err);
     }
   }
 }

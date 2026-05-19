@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0.0] - 2026-04-20
 
 ### Added
+
 - **Quién pagó (Payer) Field**: Added new field to track who made each payment
   - Database migration with `quien` column (defaults to "Yo")
   - Smart suggestions based on previously used payer names
@@ -19,8 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test coverage updated for new field
 
 ### Fixed
+
 - Removed duplicate `tipo` condition in SQL query
 - API response field alignment (`totalItems` vs `total`)
 - Form default values now include `quien` field
 - Type definitions for `ParsedData` interface
-

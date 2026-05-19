@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from "uuid";
-import type { CryptoWallet } from "@/types/finance";
-import { withClient } from "@/lib/db";
-import { mapDbRowToWallet } from "./mappers";
+import { v4 as uuidv4 } from 'uuid';
+import type { CryptoWallet } from '@/types/finance';
+import { withClient } from '@/lib/db';
+import { mapDbRowToWallet } from './mappers';
 
 export async function listWallets(userId: string): Promise<CryptoWallet[]> {
   return withClient(async (client) => {
@@ -16,7 +16,7 @@ export async function listWallets(userId: string): Promise<CryptoWallet[]> {
 
 export async function insertWallet(
   data: { name: string; walletType: string; address?: string; notes?: string },
-  userId: string
+  userId: string,
 ): Promise<CryptoWallet> {
   const id = uuidv4();
   const now = new Date();

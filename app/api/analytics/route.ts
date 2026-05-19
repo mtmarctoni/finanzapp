@@ -1,9 +1,9 @@
 // app/api/analytics/route.ts
-import { createPool } from "@vercel/postgres";
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { escapeLikePattern } from "@/lib/utils";
+import { createPool } from '@vercel/postgres';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { escapeLikePattern } from '@/lib/utils';
 
 interface TemporalRow {
   period: Date;
@@ -16,31 +16,31 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
   // Get all possible filter parameters
-  const search = searchParams.get("search");
-  const fromDate = searchParams.get("from");
-  const toDate = searchParams.get("to");
-  const groupBy = (searchParams.get("groupBy") || "month").toLowerCase() === "year" ? "year" : "month";
-  const useActivePeriods = (searchParams.get("useActivePeriods") || "false").toLowerCase() === "true";
-  const minAmountParam = searchParams.get("minAmount");
-  const maxAmountParam = searchParams.get("maxAmount");
+  const search = searchParams.get('search');
+  const fromDate = searchParams.get('from');
+  const toDate = searchParams.get('to');
+  const groupBy =
+    (searchParams.get('groupBy') || 'month').toLowerCase() === 'year'
+      ? 'year'
+      : 'month';
+  const useActivePeriods =
+    (searchParams.get('useActivePeriods') || 'false').toLowerCase() === 'true';
+  const minAmountParam = searchParams.get('minAmount');
+  const maxAmountParam = searchParams.get('maxAmount');
   const minAmount = minAmountParam ? Number(minAmountParam) : undefined;
   const maxAmount = maxAmountParam ? Number(maxAmountParam) : undefined;
   // Support both 'action' (recommended) and legacy 'accion'
-  const actionValues = searchParams.getAll("action");
-  const accionLegacy = searchParams.get("accion");
+  const actionValues = searchParams.getAll('action');
+  const accionLegacy = searchParams.get('accion');
   const actions =
-    actionValues.length > 0
-      ? actionValues
-      : accionLegacy
-      ? [accionLegacy]
-      : [];
-  const categories = searchParams.getAll("category");
-  const platforms = searchParams.getAll("platform");
-  const types = searchParams.getAll("type");
+    actionValues.length > 0 ? actionValues : accionLegacy ? [accionLegacy] : [];
+  const categories = searchParams.getAll('category');
+  const platforms = searchParams.getAll('platform');
+  const types = searchParams.getAll('type');
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (actions && actions.length > 0) {
-        const placeholders = actions.map(() => `$${paramIndex++}`).join(", ");
+        const placeholders = actions.map(() => `$${paramIndex++}`).join(', ');
         whereClauses.push(`accion IN (${placeholders})`);
         for (const a of actions) queryParams.push(a);
       }
@@ -85,47 +85,49 @@ export async function GET(request: NextRequest) {
 
       if (toDate) {
         whereClauses.push(
-          `fecha <= $${paramIndex}::date + INTERVAL '1 day - 1 second'`
+          `fecha <= $${paramIndex}::date + INTERVAL '1 day - 1 second'`,
         );
         queryParams.push(toDate);
         paramIndex++;
       }
 
       if (categories && categories.length > 0) {
-        const placeholders = categories.map(() => `$${paramIndex++}`).join(", ");
+        const placeholders = categories
+          .map(() => `$${paramIndex++}`)
+          .join(', ');
         whereClauses.push(`que IN (${placeholders})`);
         for (const c of categories) queryParams.push(c);
       }
 
       if (platforms && platforms.length > 0) {
-        const placeholders = platforms.map(() => `$${paramIndex++}`).join(", ");
+        const placeholders = platforms.map(() => `$${paramIndex++}`).join(', ');
         whereClauses.push(`plataforma_pago IN (${placeholders})`);
         for (const p of platforms) queryParams.push(p);
       }
 
       if (types && types.length > 0) {
-        const placeholders = types.map(() => `$${paramIndex++}`).join(", ");
+        const placeholders = types.map(() => `$${paramIndex++}`).join(', ');
         whereClauses.push(`tipo IN (${placeholders})`);
         for (const t of types) queryParams.push(t);
       }
 
-      if (typeof minAmount === "number" && !Number.isNaN(minAmount)) {
+      if (typeof minAmount === 'number' && !Number.isNaN(minAmount)) {
         whereClauses.push(`cantidad >= $${paramIndex}`);
         queryParams.push(String(minAmount));
         paramIndex++;
       }
 
-      if (typeof maxAmount === "number" && !Number.isNaN(maxAmount)) {
+      if (typeof maxAmount === 'number' && !Number.isNaN(maxAmount)) {
         whereClauses.push(`cantidad <= $${paramIndex}`);
         queryParams.push(String(maxAmount));
         paramIndex++;
       }
 
       const whereClause =
-        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+        whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
       // Get data for temporal chart (grouped by month and action)
-      const truncUnit = groupBy === "year" ? "year" : "month";
+      const truncUnit = groupBy === 'year' ? 'year' : 'month';
       const temporalData = await pool.query(
         `SELECT 
           date_trunc('${truncUnit}', fecha) as period,
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY date_trunc('${truncUnit}', fecha), accion
         ORDER BY period, accion`,
-        queryParams
+        queryParams,
       );
 
       // Get data for category breakdown
@@ -151,7 +153,7 @@ export async function GET(request: NextRequest) {
         GROUP BY que, accion
         HAVING SUM(cantidad) != 0
         ORDER BY total DESC`,
-        queryParams
+        queryParams,
       );
 
       // Calculate sums for each action type
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY accion
         HAVING SUM(cantidad) != 0`,
-        queryParams
+        queryParams,
       );
 
       // Overall totals and counts
@@ -174,31 +176,37 @@ export async function GET(request: NextRequest) {
           COUNT(*) as entry_count
         FROM finance_entries
         ${whereClause}`,
-        queryParams
+        queryParams,
       );
 
       // Convert to a more usable format
-      const sums = actionSums.rows.reduce((acc, row) => {
-        acc[row.action] = row.total;
-        return acc;
-      }, {} as Record<string, number>);
-      const countsByAction = actionSums.rows.reduce((acc, row) => {
-        acc[row.action] = Number(row.count || 0);
-        return acc;
-      }, {} as Record<string, number>);
+      const sums = actionSums.rows.reduce(
+        (acc, row) => {
+          acc[row.action] = row.total;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+      const countsByAction = actionSums.rows.reduce(
+        (acc, row) => {
+          acc[row.action] = Number(row.count || 0);
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       // Compute periodCount
       let periodCount = 0;
       if (useActivePeriods) {
         // count distinct periods present in temporalData
         const periodSet = new Set<string>();
-          for (const row of temporalData.rows as unknown as TemporalRow[]) {
+        for (const row of temporalData.rows as unknown as TemporalRow[]) {
           // Normalize to ISO date string (YYYY-MM-01 for month, YYYY-01-01 for year)
           const dt = new Date(row.period);
           const iso =
-            truncUnit === "year"
+            truncUnit === 'year'
               ? `${dt.getUTCFullYear()}-01-01`
-              : `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-01`;
+              : `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-01`;
           periodSet.add(iso);
         }
         periodCount = periodSet.size;
@@ -207,7 +215,7 @@ export async function GET(request: NextRequest) {
         if (fromDate && toDate) {
           const start = new Date(fromDate);
           const end = new Date(toDate);
-          if (truncUnit === "year") {
+          if (truncUnit === 'year') {
             const startYear = start.getUTCFullYear();
             const endYear = end.getUTCFullYear();
             periodCount = Math.max(0, endYear - startYear + 1);
@@ -216,17 +224,20 @@ export async function GET(request: NextRequest) {
             const startMonth = start.getUTCMonth();
             const endYear = end.getUTCFullYear();
             const endMonth = end.getUTCMonth();
-            periodCount = Math.max(0, (endYear - startYear) * 12 + (endMonth - startMonth) + 1);
+            periodCount = Math.max(
+              0,
+              (endYear - startYear) * 12 + (endMonth - startMonth) + 1,
+            );
           }
         } else {
           // If bounds are missing, fall back to active periods
           const periodSet = new Set<string>();
-        for (const row of temporalData.rows as unknown as TemporalRow[]) {
+          for (const row of temporalData.rows as unknown as TemporalRow[]) {
             const dt = new Date(row.period);
             const iso =
-              truncUnit === "year"
+              truncUnit === 'year'
                 ? `${dt.getUTCFullYear()}-01-01`
-                : `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-01`;
+                : `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-01`;
             periodSet.add(iso);
           }
           periodCount = periodSet.size;
@@ -243,7 +254,7 @@ export async function GET(request: NextRequest) {
         const amt = Number(row.total || 0);
         const act: string = row.action;
         const current = netByPeriod.get(key) || 0;
-        if (act === "Ingreso") {
+        if (act === 'Ingreso') {
           netByPeriod.set(key, current + amt);
         } else {
           // Treat Gasto and Inversión as outflows
@@ -266,7 +277,7 @@ export async function GET(request: NextRequest) {
         GROUP BY plataforma_pago, accion
         HAVING SUM(cantidad) != 0
         ORDER BY total DESC`,
-        queryParams
+        queryParams,
       );
 
       // Get type/subcategory breakdown
@@ -281,7 +292,7 @@ export async function GET(request: NextRequest) {
         GROUP BY tipo, accion
         HAVING SUM(cantidad) != 0
         ORDER BY total DESC`,
-        queryParams
+        queryParams,
       );
 
       // Get top transactions (largest absolute amounts)
@@ -301,7 +312,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         ORDER BY ABS(cantidad) DESC
         LIMIT 10`,
-        queryParams
+        queryParams,
       );
 
       // Get category × platform cross-tab for expense deep-dive
@@ -316,7 +327,7 @@ export async function GET(request: NextRequest) {
         GROUP BY que, plataforma_pago
         HAVING SUM(cantidad) != 0
         ORDER BY total DESC`,
-        queryParams
+        queryParams,
       );
 
       // Get tipo × que breakdown (type explorer)
@@ -332,7 +343,7 @@ export async function GET(request: NextRequest) {
         GROUP BY tipo, que, accion
         HAVING SUM(cantidad) != 0
         ORDER BY total DESC`,
-        queryParams
+        queryParams,
       );
 
       // Get temporal data per category (for trend tracking) — includes tipo
@@ -348,7 +359,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY date_trunc('${truncUnit}', fecha), que, tipo, accion
         ORDER BY period, que, accion`,
-        queryParams
+        queryParams,
       );
 
       // Get temporal data per tipo (for tipo-level trends)
@@ -363,7 +374,7 @@ export async function GET(request: NextRequest) {
         ${whereClause}
         GROUP BY date_trunc('${truncUnit}', fecha), tipo, accion
         ORDER BY period, tipo, accion`,
-        queryParams
+        queryParams,
       );
 
       // Get per-category statistics (avg, min, max, count)
@@ -379,7 +390,7 @@ export async function GET(request: NextRequest) {
         FROM finance_entries
         ${whereClause}
         GROUP BY que, tipo, accion`,
-        queryParams
+        queryParams,
       );
 
       return NextResponse.json({
@@ -394,20 +405,30 @@ export async function GET(request: NextRequest) {
         typeTemporalData: typeTemporalData.rows,
         categoryStats: categoryStats.rows,
         sums: {
-          gastos: Math.abs(sums["Gasto"] || 0),
-          ingresos: Math.abs(sums["Ingreso"] || 0),
-          inversion: Math.abs(sums["Inversión"] || 0),
+          gastos: Math.abs(sums['Gasto'] || 0),
+          ingresos: Math.abs(sums['Ingreso'] || 0),
+          inversion: Math.abs(sums['Inversión'] || 0),
         },
         metrics: {
           totalAmount: Math.abs(totalAmount),
           entryCount,
           periodCount,
-          avgPerPeriodAmount: periodCount > 0 ? Math.abs(totalAmount) / periodCount : 0,
+          avgPerPeriodAmount:
+            periodCount > 0 ? Math.abs(totalAmount) / periodCount : 0,
           avgPerPeriodCount: periodCount > 0 ? entryCount / periodCount : 0,
           perAction: {
-            Ingreso: { amount: Math.abs(sums["Ingreso"] || 0), count: countsByAction["Ingreso"] || 0 },
-            Gasto: { amount: Math.abs(sums["Gasto"] || 0), count: countsByAction["Gasto"] || 0 },
-            Inversión: { amount: Math.abs(sums["Inversión"] || 0), count: countsByAction["Inversión"] || 0 },
+            Ingreso: {
+              amount: Math.abs(sums['Ingreso'] || 0),
+              count: countsByAction['Ingreso'] || 0,
+            },
+            Gasto: {
+              amount: Math.abs(sums['Gasto'] || 0),
+              count: countsByAction['Gasto'] || 0,
+            },
+            Inversión: {
+              amount: Math.abs(sums['Inversión'] || 0),
+              count: countsByAction['Inversión'] || 0,
+            },
           },
           groupBy: truncUnit,
           useActivePeriods,
@@ -415,17 +436,17 @@ export async function GET(request: NextRequest) {
         netTemporal,
       });
     } catch (error) {
-      console.error("Database query error:", error);
+      console.error('Database query error:', error);
       return NextResponse.json(
-        { error: "Error querying database" },
-        { status: 500 }
+        { error: 'Error querying database' },
+        { status: 500 },
       );
     }
   } catch (error) {
-    console.error("Database connection error:", error);
+    console.error('Database connection error:', error);
     return NextResponse.json(
-      { error: "Error connecting to database" },
-      { status: 500 }
+      { error: 'Error connecting to database' },
+      { status: 500 },
     );
   }
 }

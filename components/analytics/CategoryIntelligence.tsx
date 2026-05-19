@@ -1,8 +1,25 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CategoryStatDatum, CategoryPlatformDatum, CategoryDatum } from "@/lib/analytics-charts";
-import { CreditCard, Wallet, TrendingUp, Hash, Calendar, Store } from "lucide-react";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  CategoryStatDatum,
+  CategoryPlatformDatum,
+  CategoryDatum,
+} from '@/lib/analytics-charts';
+import {
+  CreditCard,
+  Wallet,
+  TrendingUp,
+  Hash,
+  Calendar,
+  Store,
+} from 'lucide-react';
 
 interface CategoryIntelligenceProps {
   categoryStats: CategoryStatDatum[];
@@ -20,13 +37,15 @@ export function CategoryIntelligence({
   loading,
 }: CategoryIntelligenceProps) {
   // Get categories that have stats
-  const categories = Array.from(new Set(categoryStats.map((d) => d.category))).sort();
+  const categories = Array.from(
+    new Set(categoryStats.map((d) => d.category)),
+  ).sort();
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    categories[0] || "",
+    categories[0] || '',
   );
 
   const stats = categoryStats.filter((s) => s.category === selectedCategory);
-  const expenseStats = stats.find((s) => s.action === "Gasto");
+  const expenseStats = stats.find((s) => s.action === 'Gasto');
 
   // Top platform for this category
   const platformBreakdown = categoryPlatformData
@@ -41,10 +60,11 @@ export function CategoryIntelligence({
 
   // Total of all expenses
   const totalExpenses = categoryData
-    .filter((c) => c.action === "Gasto" || !c.action)
+    .filter((c) => c.action === 'Gasto' || !c.action)
     .reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
 
-  const pctOfTotal = totalExpenses > 0 ? (totalForCategory / totalExpenses) * 100 : 0;
+  const pctOfTotal =
+    totalExpenses > 0 ? (totalForCategory / totalExpenses) * 100 : 0;
 
   // Count distinct periods for frequency calculation
   const distinctPeriods = new Set(temporalData.map((t) => t.period)).size;
@@ -55,63 +75,63 @@ export function CategoryIntelligence({
 
   const statCards = [
     {
-      label: "Transacción media",
+      label: 'Transacción media',
       value: expenseStats
-        ? expenseStats.avg.toLocaleString("es-ES", {
-            style: "currency",
-            currency: "EUR",
+        ? expenseStats.avg.toLocaleString('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
           })
-        : "—",
+        : '—',
       icon: CreditCard,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
     },
     {
-      label: "Mayor gasto",
+      label: 'Mayor gasto',
       value: expenseStats
-        ? expenseStats.max.toLocaleString("es-ES", {
-            style: "currency",
-            currency: "EUR",
+        ? expenseStats.max.toLocaleString('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
           })
-        : "—",
+        : '—',
       icon: TrendingUp,
-      color: "text-red-600",
-      bg: "bg-red-50",
+      color: 'text-red-600',
+      bg: 'bg-red-50',
     },
     {
-      label: "Menor gasto",
+      label: 'Menor gasto',
       value: expenseStats
-        ? expenseStats.min.toLocaleString("es-ES", {
-            style: "currency",
-            currency: "EUR",
+        ? expenseStats.min.toLocaleString('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
           })
-        : "—",
+        : '—',
       icon: Wallet,
-      color: "text-green-600",
-      bg: "bg-green-50",
+      color: 'text-green-600',
+      bg: 'bg-green-50',
     },
     {
-      label: "Total transacciones",
-      value: expenseStats ? `${expenseStats.count}` : "—",
+      label: 'Total transacciones',
+      value: expenseStats ? `${expenseStats.count}` : '—',
       icon: Hash,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
     },
     {
-      label: "Frecuencia",
+      label: 'Frecuencia',
       value: expenseStats
-        ? `${transactionsPerPeriod.toFixed(1)} / ${distinctPeriods > 12 ? "año" : "mes"}`
-        : "—",
+        ? `${transactionsPerPeriod.toFixed(1)} / ${distinctPeriods > 12 ? 'año' : 'mes'}`
+        : '—',
       icon: Calendar,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
     },
     {
-      label: "Plataforma principal",
-      value: topPlatform?.platform || "—",
+      label: 'Plataforma principal',
+      value: topPlatform?.platform || '—',
       icon: Store,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50",
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50',
     },
   ];
 
@@ -146,14 +166,23 @@ export function CategoryIntelligence({
           <>
             <div className="mb-4 p-3 rounded-lg bg-muted/50 flex items-center justify-between">
               <div>
-                <div className="text-sm text-muted-foreground">Total en {selectedCategory}</div>
+                <div className="text-sm text-muted-foreground">
+                  Total en {selectedCategory}
+                </div>
                 <div className="text-2xl font-bold">
-                  {totalForCategory.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                  {totalForCategory.toLocaleString('es-ES', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  })}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-muted-foreground">Del gasto total</div>
-                <div className="text-2xl font-bold">{pctOfTotal.toFixed(1)}%</div>
+                <div className="text-sm text-muted-foreground">
+                  Del gasto total
+                </div>
+                <div className="text-2xl font-bold">
+                  {pctOfTotal.toFixed(1)}%
+                </div>
               </div>
             </div>
 
@@ -167,9 +196,13 @@ export function CategoryIntelligence({
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`h-4 w-4 ${stat.color}`} />
-                      <span className="text-xs text-muted-foreground">{stat.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {stat.label}
+                      </span>
                     </div>
-                    <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
+                    <div className={`text-lg font-bold ${stat.color}`}>
+                      {stat.value}
+                    </div>
                   </div>
                 );
               })}
@@ -185,9 +218,14 @@ export function CategoryIntelligence({
                   {platformBreakdown.slice(0, 5).map((p) => {
                     const amount = Math.abs(Number(p.total));
                     const pct =
-                      totalForCategory > 0 ? (amount / totalForCategory) * 100 : 0;
+                      totalForCategory > 0
+                        ? (amount / totalForCategory) * 100
+                        : 0;
                     return (
-                      <div key={p.platform} className="flex items-center gap-3 text-sm">
+                      <div
+                        key={p.platform}
+                        className="flex items-center gap-3 text-sm"
+                      >
                         <span className="w-24 truncate text-muted-foreground">
                           {p.platform}
                         </span>
@@ -201,9 +239,9 @@ export function CategoryIntelligence({
                           {pct.toFixed(0)}%
                         </span>
                         <span className="w-20 text-right text-muted-foreground">
-                          {amount.toLocaleString("es-ES", {
-                            style: "currency",
-                            currency: "EUR",
+                          {amount.toLocaleString('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR',
                           })}
                         </span>
                       </div>

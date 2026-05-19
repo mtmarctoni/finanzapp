@@ -16,7 +16,7 @@ export const CATEGORIES = [
   'Piso JB38',
   'MasTrafico',
   'Salud',
-  'Autónomo'
-] as const
+  'Autónomo',
+] as const;
 
-export type Category = typeof CATEGORIES[number]
+export type Category = (typeof CATEGORIES)[number];

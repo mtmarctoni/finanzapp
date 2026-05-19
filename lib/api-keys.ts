@@ -1,8 +1,8 @@
-import { createClient } from "@vercel/postgres";
-import { randomBytes, createHash, createHmac, timingSafeEqual } from "crypto";
-import { v4 as uuidv4 } from "uuid";
+import { createClient } from '@vercel/postgres';
+import { randomBytes, createHash, createHmac, timingSafeEqual } from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
-const PREFIX = "fa_";
+const PREFIX = 'fa_';
 const KEY_RANDOM_BYTES = 32; // 256 bits of entropy
 
 export interface ApiKey {
@@ -20,7 +20,7 @@ export interface ApiKeyWithPlaintext extends ApiKey {
   plaintext: string;
 }
 
-export type SafeApiKey = Omit<ApiKey, "key_hash">;
+export type SafeApiKey = Omit<ApiKey, 'key_hash'>;
 
 let pepperWarningEmitted = false;
 
@@ -38,16 +38,16 @@ let pepperWarningEmitted = false;
 export function hashApiKey(key: string): string {
   const pepper = process.env.API_KEY_PEPPER;
   if (pepper && pepper.length > 0) {
-    return createHmac("sha256", pepper).update(key).digest("hex");
+    return createHmac('sha256', pepper).update(key).digest('hex');
   }
   if (!pepperWarningEmitted) {
     console.warn(
-      "[api-keys] API_KEY_PEPPER is not set; falling back to plain SHA-256. " +
-        "Set API_KEY_PEPPER to a high-entropy random string to enable HMAC hashing."
+      '[api-keys] API_KEY_PEPPER is not set; falling back to plain SHA-256. ' +
+        'Set API_KEY_PEPPER to a high-entropy random string to enable HMAC hashing.',
     );
     pepperWarningEmitted = true;
   }
-  return createHash("sha256").update(key).digest("hex");
+  return createHash('sha256').update(key).digest('hex');
 }
 
 /**
@@ -55,7 +55,7 @@ export function hashApiKey(key: string): string {
  * minted before the pepper rollout still verify.
  */
 function legacyHashApiKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex");
+  return createHash('sha256').update(key).digest('hex');
 }
 
 /**
@@ -65,7 +65,7 @@ function legacyHashApiKey(key: string): string {
 function safeHexEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   try {
-    return timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
+    return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
   } catch {
     return false;
   }
@@ -77,7 +77,7 @@ function safeHexEqual(a: string, b: string): boolean {
  * Returns the plaintext key (shown once) and its hash.
  */
 export function generateApiKey(): { plaintext: string; hash: string } {
-  const plaintext = `${PREFIX}${randomBytes(KEY_RANDOM_BYTES).toString("hex")}`;
+  const plaintext = `${PREFIX}${randomBytes(KEY_RANDOM_BYTES).toString('hex')}`;
   const hash = hashApiKey(plaintext);
   return { plaintext, hash };
 }
@@ -93,7 +93,7 @@ function stripKeyHash(key: ApiKey): SafeApiKey {
  */
 export async function createApiKey(
   userId: string,
-  name: string
+  name: string,
 ): Promise<ApiKeyWithPlaintext> {
   const { plaintext, hash } = generateApiKey();
   const id = uuidv4();
@@ -122,14 +122,14 @@ export async function createApiKey(
  * Also updates last_used_at timestamp.
  */
 export async function verifyApiKey(
-  plaintextKey: string
+  plaintextKey: string,
 ): Promise<{ userId: string; keyId: string } | null> {
   if (!plaintextKey || !plaintextKey.startsWith(PREFIX)) {
     return null;
   }
 
   const candidates = Array.from(
-    new Set([hashApiKey(plaintextKey), legacyHashApiKey(plaintextKey)])
+    new Set([hashApiKey(plaintextKey), legacyHashApiKey(plaintextKey)]),
   );
 
   const client = createClient();
@@ -144,7 +144,7 @@ export async function verifyApiKey(
         WHERE key_hash = ANY($1::text[])
           AND is_active = true
         LIMIT 1`,
-      [candidates]
+      [candidates],
     );
 
     if (result.rows.length === 0) {
@@ -179,8 +179,8 @@ export async function verifyApiKey(
  * List all API keys for a user (without hashes).
  */
 export async function listApiKeys(
-  userId: string
-): Promise<Omit<ApiKey, "key_hash">[]> {
+  userId: string,
+): Promise<Omit<ApiKey, 'key_hash'>[]> {
   const client = createClient();
   await client.connect();
 
@@ -200,7 +200,7 @@ export async function listApiKeys(
 
 export async function getApiKeyById(
   keyId: string,
-  userId: string
+  userId: string,
 ): Promise<SafeApiKey | null> {
   const client = createClient();
   await client.connect();
@@ -228,7 +228,7 @@ export async function getApiKeyById(
  */
 export async function revokeApiKey(
   keyId: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   const client = createClient();
   await client.connect();
@@ -251,7 +251,7 @@ export async function revokeApiKey(
  */
 export async function deleteApiKey(
   keyId: string,
-  userId: string
+  userId: string,
 ): Promise<boolean> {
   const client = createClient();
   await client.connect();

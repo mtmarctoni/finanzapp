@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import type { Entry, GetEntriesOptions } from "./definitions";
-import { ITEMS_PER_PAGE } from "@/config";
+import type { Entry, GetEntriesOptions } from './definitions';
+import { ITEMS_PER_PAGE } from '@/config';
 
 /**
  * Fetches finance entries from the API with optional filtering and pagination
  */
 export async function getFinanceEntries(options: GetEntriesOptions = {}) {
   const {
-    search = "",
-    accion = "todos",
-    from = "",
-    to = "",
+    search = '',
+    accion = 'todos',
+    from = '',
+    to = '',
     page = 1,
     itemsPerPage,
     sortBy,
@@ -21,18 +21,18 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
   try {
     // Build query parameters for API request
     const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (accion && accion !== "todos") params.set("accion", accion);
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
-    params.set("page", page.toString());
-    params.set("itemsPerPage", (itemsPerPage ?? ITEMS_PER_PAGE).toString());
-    if (sortBy) params.set("sortBy", String(sortBy));
-    if (sortOrder) params.set("sortOrder", String(sortOrder));
+    if (search) params.set('search', search);
+    if (accion && accion !== 'todos') params.set('accion', accion);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    params.set('page', page.toString());
+    params.set('itemsPerPage', (itemsPerPage ?? ITEMS_PER_PAGE).toString());
+    if (sortBy) params.set('sortBy', String(sortBy));
+    if (sortOrder) params.set('sortOrder', String(sortOrder));
 
     // Call API route instead of connecting directly to database
     // Use absolute URL to avoid parsing errors
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/entries?${params.toString()}`);
 
     if (!response.ok) {
@@ -41,7 +41,7 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return {
       data: [],
       totalItems: 0,
@@ -56,7 +56,7 @@ export async function getFinanceEntries(options: GetEntriesOptions = {}) {
  */
 export async function getEntryById(id: string): Promise<Entry | null> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/entries/${id}`);
 
     if (!response.ok) {
@@ -65,7 +65,7 @@ export async function getEntryById(id: string): Promise<Entry | null> {
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return null;
   }
 }
@@ -76,9 +76,9 @@ export async function getEntryById(id: string): Promise<Entry | null> {
 export async function duplicateEntry(id: string): Promise<Entry | null> {
   try {
     // call duplicate api request with the entry id to duplicate
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/entries/${id}/duplicate`, {
-      method: "POST",
+      method: 'POST',
     });
 
     if (!response.ok) {
@@ -87,7 +87,7 @@ export async function duplicateEntry(id: string): Promise<Entry | null> {
 
     return await response.json();
   } catch (error) {
-    console.error("Error duplicating entry:", error);
+    console.error('Error duplicating entry:', error);
     throw error; // Re-throw to allow handling in the component
   }
 }
@@ -97,7 +97,7 @@ export async function duplicateEntry(id: string): Promise<Entry | null> {
  */
 export async function getSummaryStats() {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/stats`);
 
     if (!response.ok) {
@@ -106,7 +106,7 @@ export async function getSummaryStats() {
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return {
       totalIncome: 0,
       incomeCount: 0,

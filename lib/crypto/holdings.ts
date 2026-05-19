@@ -1,5 +1,5 @@
-import type { CryptoHoldingsSummary } from "@/types/finance";
-import { withClient } from "@/lib/db";
+import type { CryptoHoldingsSummary } from '@/types/finance';
+import { withClient } from '@/lib/db';
 
 /**
  * Aggregate holdings across all of a user's crypto transactions and
@@ -9,7 +9,7 @@ import { withClient } from "@/lib/db";
  * into the shared `withClient` helper.
  */
 export async function aggregateHoldings(
-  userId: string
+  userId: string,
 ): Promise<CryptoHoldingsSummary[]> {
   return withClient(async (client) => {
     const result = await client.sql`
@@ -74,13 +74,12 @@ export async function aggregateHoldings(
 
     return result.rows.map((row) => {
       const totalAmount = parseFloat(row.total_amount as string);
-      const totalInvested = parseFloat((row.total_invested as string) || "0");
+      const totalInvested = parseFloat((row.total_invested as string) || '0');
       return {
         symbol: row.crypto_symbol as string,
         totalAmount,
         totalInvested,
-        averagePrice:
-          totalAmount > 0 ? totalInvested / totalAmount : 0,
+        averagePrice: totalAmount > 0 ? totalInvested / totalAmount : 0,
       };
     });
   });

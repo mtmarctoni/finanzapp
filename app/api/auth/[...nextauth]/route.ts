@@ -1,5 +1,5 @@
-import GithubProvider, { GithubProfile } from "next-auth/providers/github";
-import CredentialsProvider from "next-auth/providers/credentials";
+import GithubProvider, { GithubProfile } from 'next-auth/providers/github';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import NextAuth, {
   DefaultSession,
   SessionStrategy,
@@ -7,11 +7,11 @@ import NextAuth, {
   User,
   Account,
   Profile,
-} from "next-auth";
-type Provider = NonNullable<AuthOptions["providers"]>[number];
-import { JWT } from "next-auth/jwt";
-import { createUser, getUserByEmail } from "@/lib/actions";
-import { timingSafeEqual } from "crypto";
+} from 'next-auth';
+type Provider = NonNullable<AuthOptions['providers']>[number];
+import { JWT } from 'next-auth/jwt';
+import { createUser, getUserByEmail } from '@/lib/actions';
+import { timingSafeEqual } from 'crypto';
 
 // Extend the default session type to include id
 interface Session extends DefaultSession {
@@ -49,13 +49,13 @@ function loadDevCredentials(): DevUser[] {
     return parsed.filter(
       (u): u is DevUser =>
         u &&
-        typeof u.id === "string" &&
-        typeof u.email === "string" &&
-        typeof u.password === "string" &&
-        typeof u.name === "string"
+        typeof u.id === 'string' &&
+        typeof u.email === 'string' &&
+        typeof u.password === 'string' &&
+        typeof u.name === 'string',
     );
   } catch (err) {
-    console.error("[Auth] Failed to parse DEV_CREDENTIALS:", err);
+    console.error('[Auth] Failed to parse DEV_CREDENTIALS:', err);
     return [];
   }
 }
@@ -85,7 +85,7 @@ function isAllowed(identity: string | undefined | null): boolean {
   if (!identity) return false;
 
   const allowed = raw
-    .split(",")
+    .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
   if (allowed.length === 0) return false;
@@ -113,13 +113,13 @@ function getProviders(): Provider[] {
   // table. Adding a real password column is a larger change; until then
   // this provider is restricted to local development behind an explicit
   // env var.
-  if (process.env.NODE_ENV !== "production" && process.env.DEV_CREDENTIALS) {
+  if (process.env.NODE_ENV !== 'production' && process.env.DEV_CREDENTIALS) {
     providers.push(
       CredentialsProvider({
-        name: "Credentials",
+        name: 'Credentials',
         credentials: {
-          email: { label: "Email", type: "email" },
-          password: { label: "Password", type: "password" },
+          email: { label: 'Email', type: 'email' },
+          password: { label: 'Password', type: 'password' },
         },
         async authorize(credentials) {
           if (!credentials?.email || !credentials?.password) return null;
@@ -127,12 +127,12 @@ function getProviders(): Provider[] {
           const user = devUsers.find(
             (u) =>
               safeEqual(u.email, credentials.email) &&
-              safeEqual(u.password, credentials.password)
+              safeEqual(u.password, credentials.password),
           );
           if (!user) return null;
           return { id: user.id, email: user.email, name: user.name };
         },
-      })
+      }),
     );
   }
 
@@ -142,26 +142,26 @@ function getProviders(): Provider[] {
 export const authOptions: AuthOptions = {
   providers: getProviders(),
   session: {
-    strategy: "jwt" as SessionStrategy,
+    strategy: 'jwt' as SessionStrategy,
   },
   // Avoid leaking auth internals in production logs.
-  debug: process.env.NODE_ENV !== "production",
+  debug: process.env.NODE_ENV !== 'production',
   pages: {
-    signIn: "/auth/signin",
-    signOut: "/auth/signout",
-    error: "/auth/unauthorized",
+    signIn: '/auth/signin',
+    signOut: '/auth/signout',
+    error: '/auth/unauthorized',
   },
   callbacks: {
     async jwt({ token, user, account }) {
-      if (account?.provider === "credentials" && user) {
+      if (account?.provider === 'credentials' && user) {
         token.id = user.id;
         return token;
       }
 
       if (user) {
-        const existingUser = await getUserByEmail(user.email ?? "");
+        const existingUser = await getUserByEmail(user.email ?? '');
         if (!existingUser) {
-          throw new Error("User not found");
+          throw new Error('User not found');
         }
         token.id = existingUser.id;
       }
@@ -182,16 +182,16 @@ export const authOptions: AuthOptions = {
       account: Account | null;
       profile?: Profile | undefined;
     }) {
-      if (account?.provider === "credentials") {
+      if (account?.provider === 'credentials') {
         if (!isAllowed(user.name)) {
           console.error(`User ${user.email} is not allowed to sign in.`);
           return false;
         }
-        const existingUser = await getUserByEmail(user?.email ?? "");
+        const existingUser = await getUserByEmail(user?.email ?? '');
         if (!existingUser) {
           await createUser({
-            name: user?.name ?? "",
-            email: user?.email ?? "",
+            name: user?.name ?? '',
+            email: user?.email ?? '',
           });
         }
         return true;
@@ -202,11 +202,11 @@ export const authOptions: AuthOptions = {
         return false;
       }
 
-      const existingUser = await getUserByEmail(githubProfile?.email ?? "");
+      const existingUser = await getUserByEmail(githubProfile?.email ?? '');
       if (!existingUser) {
         await createUser({
-          name: githubProfile?.name ?? "",
-          email: githubProfile?.email ?? "",
+          name: githubProfile?.name ?? '',
+          email: githubProfile?.email ?? '',
         });
       }
       return true;

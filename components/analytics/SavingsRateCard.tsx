@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PiggyBank } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PiggyBank } from 'lucide-react';
 
 interface SavingsRateCardProps {
   income: number;
@@ -20,11 +20,13 @@ export function SavingsRateCard({ income, expenses }: SavingsRateCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold ${isPositive ? "text-green-600" : "text-destructive"}`}>
+        <div
+          className={`text-2xl font-bold ${isPositive ? 'text-green-600' : 'text-destructive'}`}
+        >
           {rate.toFixed(1)}%
         </div>
         <div className="text-sm text-muted-foreground mt-1">
-          {isPositive ? "Ahorrando" : "Gastando más de lo que entra"}
+          {isPositive ? 'Ahorrando' : 'Gastando más de lo que entra'}
         </div>
         <div className="mt-3">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -33,26 +35,37 @@ export function SavingsRateCard({ income, expenses }: SavingsRateCardProps) {
           </div>
           <div className="w-full bg-muted rounded-full h-2.5">
             <div
-              className={`h-2.5 rounded-full transition-all ${isPositive ? "bg-green-500" : "bg-destructive"}`}
+              className={`h-2.5 rounded-full transition-all ${isPositive ? 'bg-green-500' : 'bg-destructive'}`}
               style={{ width: `${Math.min(100, Math.max(0, rate))}%` }}
             />
           </div>
           <div className="flex justify-between text-xs mt-2">
             <span className="text-muted-foreground">Ingresos</span>
             <span className="font-medium">
-              {income.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+              {income.toLocaleString('es-ES', {
+                style: 'currency',
+                currency: 'EUR',
+              })}
             </span>
           </div>
           <div className="flex justify-between text-xs mt-1">
             <span className="text-muted-foreground">Gastos</span>
             <span className="font-medium">
-              {expenses.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+              {expenses.toLocaleString('es-ES', {
+                style: 'currency',
+                currency: 'EUR',
+              })}
             </span>
           </div>
           <div className="flex justify-between text-xs mt-1">
             <span className="text-muted-foreground">Neto</span>
-            <span className={`font-medium ${isPositive ? "text-green-600" : "text-destructive"}`}>
-              {savings.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+            <span
+              className={`font-medium ${isPositive ? 'text-green-600' : 'text-destructive'}`}
+            >
+              {savings.toLocaleString('es-ES', {
+                style: 'currency',
+                currency: 'EUR',
+              })}
             </span>
           </div>
         </div>

@@ -6,7 +6,11 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export function DatePicker({
   className,
@@ -30,12 +34,16 @@ export function DatePicker({
           className={cn(
             'w-full justify-start text-left font-normal',
             !selected && 'text-muted-foreground',
-            className
+            className,
           )}
           {...props}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {selected ? format(selected, 'PPP', { locale: es }) : <span>{placeholder}</span>}
+          {selected ? (
+            format(selected, 'PPP', { locale: es })
+          ) : (
+            <span>{placeholder}</span>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -79,20 +87,43 @@ const es = {
   localize: {
     month: (n: number) => {
       const months = [
-        'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+        'enero',
+        'febrero',
+        'marzo',
+        'abril',
+        'mayo',
+        'junio',
+        'julio',
+        'agosto',
+        'septiembre',
+        'octubre',
+        'noviembre',
+        'diciembre',
       ];
       return months[n];
     },
     day: (n: number) => {
-      const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      const days = [
+        'domingo',
+        'lunes',
+        'martes',
+        'miércoles',
+        'jueves',
+        'viernes',
+        'sábado',
+      ];
       return days[n];
     },
-    dayPeriod: (period: string) => period === 'am' ? 'a. m.' : 'p. m.',
+    dayPeriod: (period: string) => (period === 'am' ? 'a. m.' : 'p. m.'),
     ordinalNumber: (n: number) => `${n}º`,
-    era: (n: number) => n === 0 ? 'antes de Cristo' : 'después de Cristo',
+    era: (n: number) => (n === 0 ? 'antes de Cristo' : 'después de Cristo'),
     quarter: (n: number) => {
-      const quarters = ['1er trimestre', '2do trimestre', '3er trimestre', '4to trimestre'];
+      const quarters = [
+        '1er trimestre',
+        '2do trimestre',
+        '3er trimestre',
+        '4to trimestre',
+      ];
       return quarters[n - 1];
     },
   },

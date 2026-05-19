@@ -1,56 +1,74 @@
-"use client"
+'use client';
 
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Search, X } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect } from "react"
-import { getCryptoOptions } from "@/lib/crypto-data"
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Search, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { getCryptoOptions } from '@/lib/crypto-data';
 
 export function CryptoSearchFilter() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  
-  const [search, setSearch] = useState(searchParams.get("search") || "")
-  const [transactionType, setTransactionType] = useState(searchParams.get("transactionType") || "all")
-  const [cryptoSymbol, setCryptoSymbol] = useState(searchParams.get("cryptoSymbol") || "")
-  const [from, setFrom] = useState(searchParams.get("from") || "")
-  const [to, setTo] = useState(searchParams.get("to") || "")
-  
-  const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([])
-  const [transactionTypes, setTransactionTypes] = useState<{ value: string; label: string }[]>([])
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [transactionType, setTransactionType] = useState(
+    searchParams.get('transactionType') || 'all',
+  );
+  const [cryptoSymbol, setCryptoSymbol] = useState(
+    searchParams.get('cryptoSymbol') || '',
+  );
+  const [from, setFrom] = useState(searchParams.get('from') || '');
+  const [to, setTo] = useState(searchParams.get('to') || '');
+
+  const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([]);
+  const [transactionTypes, setTransactionTypes] = useState<
+    { value: string; label: string }[]
+  >([]);
 
   useEffect(() => {
     const fetchOptions = async () => {
-      const options = await getCryptoOptions()
-      setCryptoSymbols(options.cryptoSymbols || [])
-      setTransactionTypes(options.transactionTypes || [])
-    }
-    fetchOptions()
-  }, [])
+      const options = await getCryptoOptions();
+      setCryptoSymbols(options.cryptoSymbols || []);
+      setTransactionTypes(options.transactionTypes || []);
+    };
+    fetchOptions();
+  }, []);
 
   const applyFilters = () => {
-    const params = new URLSearchParams()
-    if (search) params.set("search", search)
-    if (transactionType && transactionType !== "all") params.set("transactionType", transactionType)
-    if (cryptoSymbol) params.set("cryptoSymbol", cryptoSymbol)
-    if (from) params.set("from", from)
-    if (to) params.set("to", to)
-    params.set("page", "1")
-    router.push(`/investment/crypto?${params.toString()}`)
-  }
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (transactionType && transactionType !== 'all')
+      params.set('transactionType', transactionType);
+    if (cryptoSymbol) params.set('cryptoSymbol', cryptoSymbol);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    params.set('page', '1');
+    router.push(`/investment/crypto?${params.toString()}`);
+  };
 
   const clearFilters = () => {
-    setSearch("")
-    setTransactionType("all")
-    setCryptoSymbol("")
-    setFrom("")
-    setTo("")
-    router.push("/investment/crypto")
-  }
+    setSearch('');
+    setTransactionType('all');
+    setCryptoSymbol('');
+    setFrom('');
+    setTo('');
+    router.push('/investment/crypto');
+  };
 
-  const hasFilters = search || (transactionType && transactionType !== "all") || cryptoSymbol || from || to
+  const hasFilters =
+    search ||
+    (transactionType && transactionType !== 'all') ||
+    cryptoSymbol ||
+    from ||
+    to;
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-end">
@@ -63,7 +81,7 @@ export function CryptoSearchFilter() {
             placeholder="Buscar en notas, wallets..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && applyFilters()}
+            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
             className="pl-9"
           />
         </div>
@@ -119,11 +137,7 @@ export function CryptoSearchFilter() {
       {/* Date To */}
       <div className="w-full md:w-[150px]">
         <label className="text-sm font-medium mb-1 block">Hasta</label>
-        <Input
-          type="date"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-        />
+        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>
 
       {/* Actions */}
@@ -136,5 +150,5 @@ export function CryptoSearchFilter() {
         )}
       </div>
     </div>
-  )
+  );
 }

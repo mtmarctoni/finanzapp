@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import type { CryptoTransaction, CryptoHoldingsSummary } from "@/types/finance";
-import type { GetCryptoTransactionsOptions } from "@/types/api";
+import { useState, useEffect, useCallback } from 'react';
+import type { CryptoTransaction, CryptoHoldingsSummary } from '@/types/finance';
+import type { GetCryptoTransactionsOptions } from '@/types/api';
 import {
   getCryptoTransactions,
   getCryptoHoldings,
   getCryptoOptions,
   deleteCryptoTransaction,
-} from "@/lib/crypto-data";
+} from '@/lib/crypto-data';
 
 interface UseCryptoDataOptions extends GetCryptoTransactionsOptions {
   autoFetch?: boolean;
@@ -40,7 +40,7 @@ interface UseCryptoDataReturn {
 }
 
 export function useCryptoData(
-  options: UseCryptoDataOptions = {}
+  options: UseCryptoDataOptions = {},
 ): UseCryptoDataReturn {
   const { autoFetch = true, ...filterOptions } = options;
 
@@ -76,7 +76,7 @@ export function useCryptoData(
       setTotalPages(result.totalPages || 0);
       setCurrentPage(result.currentPage || 1);
     } catch (err) {
-      setError("Failed to fetch transactions");
+      setError('Failed to fetch transactions');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -90,7 +90,7 @@ export function useCryptoData(
       const result = await getCryptoHoldings();
       setHoldings(result);
     } catch (err) {
-      console.error("Failed to fetch holdings:", err);
+      console.error('Failed to fetch holdings:', err);
     } finally {
       setHoldingsLoading(false);
     }
@@ -105,7 +105,7 @@ export function useCryptoData(
       setWallets(result.wallets || []);
       setTransactionTypes(result.transactionTypes || []);
     } catch (err) {
-      console.error("Failed to fetch options:", err);
+      console.error('Failed to fetch options:', err);
     } finally {
       setOptionsLoading(false);
     }
@@ -121,7 +121,7 @@ export function useCryptoData(
       }
       return success;
     },
-    [fetchTransactions, fetchHoldings]
+    [fetchTransactions, fetchHoldings],
   );
 
   // Auto-fetch on mount and when filters change

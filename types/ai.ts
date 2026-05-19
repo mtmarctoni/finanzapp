@@ -15,7 +15,7 @@ export type ParseEntryRequest = {
 export type ParsedEntry = {
   fecha: string;
   tipo: string;
-  accion: "Ingreso" | "Gasto" | "Inversión";
+  accion: 'Ingreso' | 'Gasto' | 'Inversión';
   que: string;
   plataforma_pago: string;
   cantidad: number;
@@ -38,7 +38,7 @@ export type ParseEntryResponse = {
  */
 export type ChatMessage = {
   id: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
   createdAt?: Date;
 };

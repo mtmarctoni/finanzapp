@@ -1,8 +1,25 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CategoryStatDatum, CategoryPlatformDatum, CategoryDatum } from "@/lib/analytics-charts";
-import { CreditCard, Wallet, TrendingUp, Hash, Calendar, Store } from "lucide-react";
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  CategoryStatDatum,
+  CategoryPlatformDatum,
+  CategoryDatum,
+} from '@/lib/analytics-charts';
+import {
+  CreditCard,
+  Wallet,
+  TrendingUp,
+  Hash,
+  Calendar,
+  Store,
+} from 'lucide-react';
 
 interface IntelligenceExplorerProps {
   categoryStats: CategoryStatDatum[];
@@ -21,8 +38,8 @@ export function IntelligenceExplorer({
   types,
   loading,
 }: IntelligenceExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>("");
-  const [selectedQue, setSelectedQue] = useState<string>("__all__");
+  const [selectedTipo, setSelectedTipo] = useState<string>('');
+  const [selectedQue, setSelectedQue] = useState<string>('__all__');
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -34,18 +51,19 @@ export function IntelligenceExplorer({
     return map;
   }, [categoryStats]);
 
-  const availableQue = selectedTipo && tipoToQueMap.has(selectedTipo)
-    ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
-    : [];
+  const availableQue =
+    selectedTipo && tipoToQueMap.has(selectedTipo)
+      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      : [];
 
   const handleTipoChange = (tipo: string) => {
     setSelectedTipo(tipo);
-    setSelectedQue("__all__");
+    setSelectedQue('__all__');
   };
 
   // Determine what stats to show
-  const isTipoOnly = selectedTipo && selectedQue === "__all__";
-  const isQue = selectedTipo && selectedQue !== "__all__";
+  const isTipoOnly = selectedTipo && selectedQue === '__all__';
+  const isQue = selectedTipo && selectedQue !== '__all__';
 
   // Stats computation
   let stats: CategoryStatDatum[] = [];
@@ -63,14 +81,15 @@ export function IntelligenceExplorer({
       .reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
   }
 
-  const expenseStats = stats.find((s) => s.action === "Gasto");
+  const expenseStats = stats.find((s) => s.action === 'Gasto');
 
   // Total expenses for percentage
   const totalExpenses = categoryData
-    .filter((c) => c.action === "Gasto" || !c.action)
+    .filter((c) => c.action === 'Gasto' || !c.action)
     .reduce((sum, c) => sum + Math.abs(Number(c.total)), 0);
 
-  const pctOfTotal = totalExpenses > 0 ? (totalForSelection / totalExpenses) * 100 : 0;
+  const pctOfTotal =
+    totalExpenses > 0 ? (totalForSelection / totalExpenses) * 100 : 0;
 
   const distinctPeriods = new Set(temporalData.map((t) => t.period)).size;
   const transactionsPerPeriod =
@@ -85,7 +104,9 @@ export function IntelligenceExplorer({
     const raw = categoryPlatformData.filter((p) => {
       // We need to know the tipo for each platform entry... but categoryPlatformData doesn't have tipo
       // So we use categoryData to map que → tipo
-      const tipoForQue = categoryData.find((c) => c.category === p.category)?.type;
+      const tipoForQue = categoryData.find(
+        (c) => c.category === p.category,
+      )?.type;
       return tipoForQue === selectedTipo;
     });
     const aggregated = new Map<string, number>();
@@ -94,7 +115,7 @@ export function IntelligenceExplorer({
       aggregated.set(item.platform, current + Math.abs(Number(item.total)));
     }
     platformBreakdown = Array.from(aggregated.entries())
-      .map(([platform, total]) => ({ platform, category: "", total, count: 0 }))
+      .map(([platform, total]) => ({ platform, category: '', total, count: 0 }))
       .sort((a, b) => b.total - a.total);
   } else if (isQue) {
     platformBreakdown = categoryPlatformData
@@ -106,54 +127,63 @@ export function IntelligenceExplorer({
 
   const statCards = [
     {
-      label: "Transacción media",
+      label: 'Transacción media',
       value: expenseStats
-        ? expenseStats.avg.toLocaleString("es-ES", { style: "currency", currency: "EUR" })
-        : "—",
+        ? expenseStats.avg.toLocaleString('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+          })
+        : '—',
       icon: CreditCard,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
     },
     {
-      label: "Mayor gasto",
+      label: 'Mayor gasto',
       value: expenseStats
-        ? expenseStats.max.toLocaleString("es-ES", { style: "currency", currency: "EUR" })
-        : "—",
+        ? expenseStats.max.toLocaleString('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+          })
+        : '—',
       icon: TrendingUp,
-      color: "text-red-600",
-      bg: "bg-red-50",
+      color: 'text-red-600',
+      bg: 'bg-red-50',
     },
     {
-      label: "Menor gasto",
+      label: 'Menor gasto',
       value: expenseStats
-        ? expenseStats.min.toLocaleString("es-ES", { style: "currency", currency: "EUR" })
-        : "—",
+        ? expenseStats.min.toLocaleString('es-ES', {
+            style: 'currency',
+            currency: 'EUR',
+          })
+        : '—',
       icon: Wallet,
-      color: "text-green-600",
-      bg: "bg-green-50",
+      color: 'text-green-600',
+      bg: 'bg-green-50',
     },
     {
-      label: "Total transacciones",
-      value: expenseStats ? `${expenseStats.count}` : "—",
+      label: 'Total transacciones',
+      value: expenseStats ? `${expenseStats.count}` : '—',
       icon: Hash,
-      color: "text-purple-600",
-      bg: "bg-purple-50",
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
     },
     {
-      label: "Frecuencia",
+      label: 'Frecuencia',
       value: expenseStats
-        ? `${transactionsPerPeriod.toFixed(1)} / ${distinctPeriods > 12 ? "año" : "mes"}`
-        : "—",
+        ? `${transactionsPerPeriod.toFixed(1)} / ${distinctPeriods > 12 ? 'año' : 'mes'}`
+        : '—',
       icon: Calendar,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
+      color: 'text-amber-600',
+      bg: 'bg-amber-50',
     },
     {
-      label: "Plataforma principal",
-      value: topPlatform?.platform || "—",
+      label: 'Plataforma principal',
+      value: topPlatform?.platform || '—',
       icon: Store,
-      color: "text-indigo-600",
-      bg: "bg-indigo-50",
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50',
     },
   ];
 
@@ -179,9 +209,19 @@ export function IntelligenceExplorer({
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedQue} onValueChange={setSelectedQue} disabled={!selectedTipo}>
+          <Select
+            value={selectedQue}
+            onValueChange={setSelectedQue}
+            disabled={!selectedTipo}
+          >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={selectedTipo ? "Categoría (específica)" : "Selecciona tipo primero"} />
+              <SelectValue
+                placeholder={
+                  selectedTipo
+                    ? 'Categoría (específica)'
+                    : 'Selecciona tipo primero'
+                }
+              />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
               <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
@@ -207,12 +247,19 @@ export function IntelligenceExplorer({
                   Total en {selectedQue || selectedTipo}
                 </div>
                 <div className="text-2xl font-bold">
-                  {totalForSelection.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                  {totalForSelection.toLocaleString('es-ES', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  })}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm text-muted-foreground">Del gasto total</div>
-                <div className="text-2xl font-bold">{pctOfTotal.toFixed(1)}%</div>
+                <div className="text-sm text-muted-foreground">
+                  Del gasto total
+                </div>
+                <div className="text-2xl font-bold">
+                  {pctOfTotal.toFixed(1)}%
+                </div>
               </div>
             </div>
 
@@ -220,12 +267,19 @@ export function IntelligenceExplorer({
               {statCards.map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className={`p-3 rounded-lg ${stat.bg} border border-opacity-20`}>
+                  <div
+                    key={stat.label}
+                    className={`p-3 rounded-lg ${stat.bg} border border-opacity-20`}
+                  >
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`h-4 w-4 ${stat.color}`} />
-                      <span className="text-xs text-muted-foreground">{stat.label}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {stat.label}
+                      </span>
                     </div>
-                    <div className={`text-lg font-bold ${stat.color}`}>{stat.value}</div>
+                    <div className={`text-lg font-bold ${stat.color}`}>
+                      {stat.value}
+                    </div>
                   </div>
                 );
               })}
@@ -239,16 +293,32 @@ export function IntelligenceExplorer({
                 <div className="space-y-2">
                   {platformBreakdown.slice(0, 5).map((p) => {
                     const amount = Math.abs(Number(p.total));
-                    const pct = totalForSelection > 0 ? (amount / totalForSelection) * 100 : 0;
+                    const pct =
+                      totalForSelection > 0
+                        ? (amount / totalForSelection) * 100
+                        : 0;
                     return (
-                      <div key={p.platform} className="flex items-center gap-3 text-sm">
-                        <span className="w-24 truncate text-muted-foreground">{p.platform}</span>
+                      <div
+                        key={p.platform}
+                        className="flex items-center gap-3 text-sm"
+                      >
+                        <span className="w-24 truncate text-muted-foreground">
+                          {p.platform}
+                        </span>
                         <div className="flex-1 bg-muted rounded-full h-2">
-                          <div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%` }} />
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
                         </div>
-                        <span className="w-16 text-right font-medium">{pct.toFixed(0)}%</span>
+                        <span className="w-16 text-right font-medium">
+                          {pct.toFixed(0)}%
+                        </span>
                         <span className="w-20 text-right text-muted-foreground">
-                          {amount.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                          {amount.toLocaleString('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR',
+                          })}
                         </span>
                       </div>
                     );

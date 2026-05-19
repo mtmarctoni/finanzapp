@@ -35,12 +35,15 @@ export interface RateLimitResult {
  */
 export function checkRateLimit(
   identifier: string,
-  config: RateLimitConfig = { maxRequests: DEFAULT_MAX_REQUESTS, windowMs: DEFAULT_WINDOW_MS }
+  config: RateLimitConfig = {
+    maxRequests: DEFAULT_MAX_REQUESTS,
+    windowMs: DEFAULT_WINDOW_MS,
+  },
 ): RateLimitResult {
   const now = Date.now();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const windowStart = now - config.windowMs;
-  
+
   // Clean up old entries periodically (simple cleanup strategy)
   if (rateLimitStore.size > 10000) {
     for (const [key, entry] of rateLimitStore.entries()) {
@@ -49,9 +52,9 @@ export function checkRateLimit(
       }
     }
   }
-  
+
   const existing = rateLimitStore.get(identifier);
-  
+
   // If no entry or window has passed, create new entry
   if (!existing || existing.resetTime < now) {
     const newEntry: RateLimitEntry = {
@@ -59,7 +62,7 @@ export function checkRateLimit(
       resetTime: now + config.windowMs,
     };
     rateLimitStore.set(identifier, newEntry);
-    
+
     return {
       allowed: true,
       remaining: config.maxRequests - 1,
@@ -67,7 +70,7 @@ export function checkRateLimit(
       retryAfter: 0,
     };
   }
-  
+
   // Check if limit exceeded
   if (existing.count >= config.maxRequests) {
     return {
@@ -77,10 +80,10 @@ export function checkRateLimit(
       retryAfter: Math.ceil((existing.resetTime - now) / 1000),
     };
   }
-  
+
   // Increment count
   existing.count += 1;
-  
+
   return {
     allowed: true,
     remaining: config.maxRequests - existing.count,
@@ -92,11 +95,13 @@ export function checkRateLimit(
 /**
  * Get rate limit headers for HTTP response
  */
-export function getRateLimitHeaders(result: RateLimitResult): Record<string, string> {
+export function getRateLimitHeaders(
+  result: RateLimitResult,
+): Record<string, string> {
   return {
-    "X-RateLimit-Limit": String(result.remaining + (result.allowed ? 1 : 0)),
-    "X-RateLimit-Remaining": String(result.remaining),
-    "X-RateLimit-Reset": String(Math.ceil(result.resetTime / 1000)),
+    'X-RateLimit-Limit': String(result.remaining + (result.allowed ? 1 : 0)),
+    'X-RateLimit-Remaining': String(result.remaining),
+    'X-RateLimit-Reset': String(Math.ceil(result.resetTime / 1000)),
   };
 }
 
@@ -106,18 +111,18 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
 export function createRateLimitResponse(result: RateLimitResult): Response {
   return new Response(
     JSON.stringify({
-      error: "Rate limit exceeded",
+      error: 'Rate limit exceeded',
       message: `Too many requests. Please try again in ${result.retryAfter} seconds.`,
       retryAfter: result.retryAfter,
     }),
     {
       status: 429,
       headers: {
-        "Content-Type": "application/json",
-        "Retry-After": String(result.retryAfter),
+        'Content-Type': 'application/json',
+        'Retry-After': String(result.retryAfter),
         ...getRateLimitHeaders(result),
       },
-    }
+    },
   );
 }
 
@@ -126,36 +131,43 @@ export function createRateLimitResponse(result: RateLimitResult): Response {
  * Usage: export const POST = withRateLimit(handler, { maxRequests: 5, windowMs: 60000 })
  */
 export function withRateLimit(
-  handler: (request: Request, context?: { params: Record<string, string> }) => Promise<Response>,
-  config?: Partial<RateLimitConfig>
+  handler: (
+    request: Request,
+    context?: { params: Record<string, string> },
+  ) => Promise<Response>,
+  config?: Partial<RateLimitConfig>,
 ) {
-  return async (request: Request, context?: { params: Record<string, string> }): Promise<Response> => {
+  return async (
+    request: Request,
+    context?: { params: Record<string, string> },
+  ): Promise<Response> => {
     // Get user identifier from session or IP
     // Note: This is a placeholder - actual implementation should extract from auth context
-    const identifier = request.headers.get("x-user-id") || 
-                       request.headers.get("x-forwarded-for") || 
-                       "anonymous";
-    
+    const identifier =
+      request.headers.get('x-user-id') ||
+      request.headers.get('x-forwarded-for') ||
+      'anonymous';
+
     const finalConfig: RateLimitConfig = {
       maxRequests: config?.maxRequests ?? DEFAULT_MAX_REQUESTS,
       windowMs: config?.windowMs ?? DEFAULT_WINDOW_MS,
     };
-    
+
     const result = checkRateLimit(identifier, finalConfig);
-    
+
     if (!result.allowed) {
       return createRateLimitResponse(result);
     }
-    
+
     // Call the actual handler
     const response = await handler(request, context);
-    
+
     // Add rate limit headers to successful response
     const headers = getRateLimitHeaders(result);
     Object.entries(headers).forEach(([key, value]) => {
       response.headers.set(key, value);
     });
-    
+
     return response;
   };
 }

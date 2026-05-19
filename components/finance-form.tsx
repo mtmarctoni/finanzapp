@@ -1,177 +1,206 @@
-"use client"
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, type Resolver } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useRouter } from "next/navigation"
-import { createEntry, updateEntry } from "@/lib/actions"
-import { useSession } from "next-auth/react"
-import { Card, CardContent } from "@/components/ui/card"
-import type { Entry } from "@/lib/definitions"
-import { shouldSplitTransaction } from "@/lib/utils"
-import { Combobox } from "@/components/ui/combobox"
-import { useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Wand2, DollarSign } from "lucide-react"
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, type Resolver } from 'react-hook-form';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
+import { createEntry, updateEntry } from '@/lib/actions';
+import { useSession } from 'next-auth/react';
+import { Card, CardContent } from '@/components/ui/card';
+import type { Entry } from '@/lib/definitions';
+import { shouldSplitTransaction } from '@/lib/utils';
+import { Combobox } from '@/components/ui/combobox';
+import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Wand2, DollarSign } from 'lucide-react';
 
 const formSchema = z.object({
-  fecha: z.string().min(1, { message: "La fecha es requerida" }),
-  hora: z.coerce.number().min(0).max(23, { message: "La hora debe estar entre 0 y 23" }),
-  minuto: z.coerce.number().min(0).max(59, { message: "El minuto debe estar entre 0 y 59" }),
-  tipo: z.string().min(1, { message: "El tipo es requerido" }),
-  accion: z.string().min(1, { message: "La acción es requerida" }),
+  fecha: z.string().min(1, { message: 'La fecha es requerida' }),
+  hora: z.coerce
+    .number()
+    .min(0)
+    .max(23, { message: 'La hora debe estar entre 0 y 23' }),
+  minuto: z.coerce
+    .number()
+    .min(0)
+    .max(59, { message: 'El minuto debe estar entre 0 y 59' }),
+  tipo: z.string().min(1, { message: 'El tipo es requerido' }),
+  accion: z.string().min(1, { message: 'La acción es requerida' }),
   que: z.string().min(1, { message: "El campo 'Qué' es requerido" }),
-  plataforma_pago: z.string().min(1, { message: "La plataforma de pago es requerida" }),
-  cantidad: z.coerce.number().min(0.01, { message: "La cantidad debe ser mayor a 0" }),
+  plataforma_pago: z
+    .string()
+    .min(1, { message: 'La plataforma de pago es requerida' }),
+  cantidad: z.coerce
+    .number()
+    .min(0.01, { message: 'La cantidad debe ser mayor a 0' }),
   detalle1: z.string().optional(),
   detalle2: z.string().optional(),
-  quien: z.string().min(1, { message: "El pagador es requerido" }),
-})
+  quien: z.string().min(1, { message: 'El pagador es requerido' }),
+});
 
-type FinanceFormValues = z.infer<typeof formSchema>
+type FinanceFormValues = z.infer<typeof formSchema>;
 
 // Pre-filled data from AI parsing
 interface ParsedData {
-  fecha?: string
-  hora?: number
-  minuto?: number
-  tipo?: string
-  accion?: string
-  que?: string
-  plataforma_pago?: string
-  cantidad?: number
-  detalle1?: string
-  detalle2?: string
-  quien?: string
-  ai_text?: string
-  ai_provider?: string
-  ai_model?: string
-  ai_cost?: number
-  ai_paid?: boolean
+  fecha?: string;
+  hora?: number;
+  minuto?: number;
+  tipo?: string;
+  accion?: string;
+  que?: string;
+  plataforma_pago?: string;
+  cantidad?: number;
+  detalle1?: string;
+  detalle2?: string;
+  quien?: string;
+  ai_text?: string;
+  ai_provider?: string;
+  ai_model?: string;
+  ai_cost?: number;
+  ai_paid?: boolean;
 }
 
 interface FinanceFormProps {
-  entry?: Entry
-  parsedData?: ParsedData
+  entry?: Entry;
+  parsedData?: ParsedData;
 }
 
 export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
-  const router = useRouter()
-  const { data: session } = useSession()
-  const [tipoOptions, setTipoOptions] = useState<string[]>([])
-  const [queOptions, setQueOptions] = useState<string[]>([])
-  const [plataformaOptions, setPlataformaOptions] = useState<string[]>([])
-  const [quienOptions, setQuienOptions] = useState<string[]>([])
-  const [optionsLoading, setOptionsLoading] = useState(true)
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [tipoOptions, setTipoOptions] = useState<string[]>([]);
+  const [queOptions, setQueOptions] = useState<string[]>([]);
+  const [plataformaOptions, setPlataformaOptions] = useState<string[]>([]);
+  const [quienOptions, setQuienOptions] = useState<string[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
 
   // Fetch dynamic options on mount
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const response = await fetch('/api/options')
+        const response = await fetch('/api/options');
         if (response.ok) {
-          const data = await response.json()
-          setTipoOptions(data.tipo)
-          setQueOptions(data.que)
-          setPlataformaOptions(data.plataforma_pago)
-          setQuienOptions(data.quien || ["Yo"])
+          const data = await response.json();
+          setTipoOptions(data.tipo);
+          setQueOptions(data.que);
+          setPlataformaOptions(data.plataforma_pago);
+          setQuienOptions(data.quien || ['Yo']);
         }
       } catch (error) {
-        console.error('Failed to fetch options:', error)
+        console.error('Failed to fetch options:', error);
         // Keep empty arrays on error
       } finally {
-        setOptionsLoading(false)
+        setOptionsLoading(false);
       }
-    }
+    };
 
-    fetchOptions()
-  }, [])
+    fetchOptions();
+  }, []);
 
   // Build default values based on entry or parsedData
   const getDefaultValues = (): FinanceFormValues => {
-    const now = new Date()
-    
+    const now = new Date();
+
     if (entry) {
       // Use the existing date when editing
       return {
         fecha: new Date(entry.fecha).toISOString().split('T')[0],
         hora: new Date(entry.fecha).getHours(),
         minuto: new Date(entry.fecha).getMinutes(),
-        tipo: entry.tipo || "",
-        accion: entry.accion || "",
-        que: entry.que || "",
-        plataforma_pago: entry.plataforma_pago || "",
-        cantidad: shouldSplitTransaction(entry.plataforma_pago, entry.detalle1, entry.accion) ? entry.cantidad * 2 : entry.cantidad,
-        detalle1: entry.detalle1 || "",
-        detalle2: entry.detalle2 || "",
-        quien: entry.quien || "Yo",
-      }
+        tipo: entry.tipo || '',
+        accion: entry.accion || '',
+        que: entry.que || '',
+        plataforma_pago: entry.plataforma_pago || '',
+        cantidad: shouldSplitTransaction(
+          entry.plataforma_pago,
+          entry.detalle1,
+          entry.accion,
+        )
+          ? entry.cantidad * 2
+          : entry.cantidad,
+        detalle1: entry.detalle1 || '',
+        detalle2: entry.detalle2 || '',
+        quien: entry.quien || 'Yo',
+      };
     }
-    
+
     if (parsedData) {
       // Use AI-parsed data
       return {
-        fecha: parsedData.fecha || now.toISOString().split("T")[0],
+        fecha: parsedData.fecha || now.toISOString().split('T')[0],
         hora: parsedData.hora ?? now.getHours(),
         minuto: parsedData.minuto ?? now.getMinutes(),
-        tipo: parsedData.tipo || "",
-        accion: parsedData.accion || "",
-        que: parsedData.que || "",
-        plataforma_pago: parsedData.plataforma_pago || "",
+        tipo: parsedData.tipo || '',
+        accion: parsedData.accion || '',
+        que: parsedData.que || '',
+        plataforma_pago: parsedData.plataforma_pago || '',
         cantidad: parsedData.cantidad || 0,
-        detalle1: parsedData.detalle1 || "",
-        detalle2: parsedData.detalle2 || "",
-        quien: parsedData.quien || "Yo",
-      }
+        detalle1: parsedData.detalle1 || '',
+        detalle2: parsedData.detalle2 || '',
+        quien: parsedData.quien || 'Yo',
+      };
     }
-    
+
     // Default empty form
     return {
-      fecha: now.toISOString().split("T")[0],
+      fecha: now.toISOString().split('T')[0],
       hora: now.getHours(),
       minuto: now.getMinutes(),
-      tipo: "",
-      accion: "",
-      que: "",
-      plataforma_pago: "",
+      tipo: '',
+      accion: '',
+      que: '',
+      plataforma_pago: '',
       cantidad: 0,
-      detalle1: "",
-      detalle2: "",
-      quien: "Yo",
-    }
-  }
+      detalle1: '',
+      detalle2: '',
+      quien: 'Yo',
+    };
+  };
 
   const form = useForm<FinanceFormValues>({
     resolver: zodResolver(formSchema) as unknown as Resolver<FinanceFormValues>,
     defaultValues: getDefaultValues(),
-  })
+  });
 
   // Update form when parsedData changes (in case it arrives after mount)
   useEffect(() => {
     if (parsedData && !entry) {
-      const now = new Date()
+      const now = new Date();
       form.reset({
-        fecha: parsedData.fecha || now.toISOString().split("T")[0],
+        fecha: parsedData.fecha || now.toISOString().split('T')[0],
         hora: parsedData.hora ?? now.getHours(),
         minuto: parsedData.minuto ?? now.getMinutes(),
-        tipo: parsedData.tipo || "",
-        accion: parsedData.accion || "",
-        que: parsedData.que || "",
-        plataforma_pago: parsedData.plataforma_pago || "",
+        tipo: parsedData.tipo || '',
+        accion: parsedData.accion || '',
+        que: parsedData.que || '',
+        plataforma_pago: parsedData.plataforma_pago || '',
         cantidad: parsedData.cantidad || 0,
-        detalle1: parsedData.detalle1 || "",
-        detalle2: parsedData.detalle2 || "",
-        quien: parsedData.quien || "Yo",
-      })
+        detalle1: parsedData.detalle1 || '',
+        detalle2: parsedData.detalle2 || '',
+        quien: parsedData.quien || 'Yo',
+      });
     }
-  }, [parsedData, entry, form])
+  }, [parsedData, entry, form]);
 
-  const plataformaPago = form.watch('plataforma_pago')
-  const detalle1 = form.watch('detalle1')
+  const plataformaPago = form.watch('plataforma_pago');
+  const detalle1 = form.watch('detalle1');
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // Combine date and time into a single ISO string
@@ -183,27 +212,35 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
     const { hora, minuto, ...otherValues } = values;
     const formattedValues = {
       ...otherValues,
-      fecha: dateWithTime.toISOString()
+      fecha: dateWithTime.toISOString(),
     };
 
     // For joyntlanda transactions, the entered cantidad is the total, so save half as my part
-    if (shouldSplitTransaction(formattedValues.plataforma_pago, formattedValues.detalle1, formattedValues.accion)) {
+    if (
+      shouldSplitTransaction(
+        formattedValues.plataforma_pago,
+        formattedValues.detalle1,
+        formattedValues.accion,
+      )
+    ) {
       formattedValues.cantidad /= 2;
     }
 
-    console.log('FECHA:', formattedValues.fecha)
+    console.log('FECHA:', formattedValues.fecha);
 
     if (!session?.user?.id) {
-      throw new Error("User not authenticated")
+      throw new Error('User not authenticated');
     }
 
     if (entry) {
-      await updateEntry(entry.id, formattedValues, { user: { id: session.user.id } })
+      await updateEntry(entry.id, formattedValues, {
+        user: { id: session.user.id },
+      });
     } else {
-      await createEntry(formattedValues, { user: { id: session.user.id } })
+      await createEntry(formattedValues, { user: { id: session.user.id } });
     }
-    router.push("/")
-    router.refresh()
+    router.push('/');
+    router.refresh();
   }
 
   return (
@@ -226,9 +263,12 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                 {parsedData.ai_provider} / {parsedData.ai_model}
               </Badge>
               {parsedData.ai_paid && (
-                <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Badge
+                  variant="outline"
+                  className="text-xs flex items-center gap-1"
+                >
                   <DollarSign className="h-3 w-3" />
-                  Cost: ${parsedData.ai_cost?.toFixed(4) || "0.0000"}
+                  Cost: ${parsedData.ai_cost?.toFixed(4) || '0.0000'}
                 </Badge>
               )}
             </div>
@@ -291,7 +331,10 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Acción</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona un tipo" />
@@ -373,7 +416,15 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                 name="cantidad"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{shouldSplitTransaction(plataformaPago, detalle1, form.watch('accion')) ? 'Total Amount' : 'Cantidad'}</FormLabel>
+                    <FormLabel>
+                      {shouldSplitTransaction(
+                        plataformaPago,
+                        detalle1,
+                        form.watch('accion'),
+                      )
+                        ? 'Total Amount'
+                        : 'Cantidad'}
+                    </FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" {...field} />
                     </FormControl>
@@ -432,14 +483,18 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => router.back()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
                 Cancelar
               </Button>
-              <Button type="submit">{entry ? "Actualizar" : "Guardar"}</Button>
+              <Button type="submit">{entry ? 'Actualizar' : 'Guardar'}</Button>
             </div>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }

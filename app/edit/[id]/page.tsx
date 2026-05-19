@@ -1,8 +1,8 @@
-import { FinanceForm } from "@/components/finance-form";
-import { getEntryById } from "@/lib/server-data";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { redirect, notFound } from "next/navigation";
+import { FinanceForm } from '@/components/finance-form';
+import { getEntryById } from '@/lib/server-data';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { redirect, notFound } from 'next/navigation';
 
 export default async function EditEntryPage({
   params,
@@ -16,7 +16,7 @@ export default async function EditEntryPage({
   // current user's rows.
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    redirect("/auth/signin");
+    redirect('/auth/signin');
   }
 
   const { id } = await params;

@@ -1,25 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { createApiKey, listApiKeys } from "@/lib/api-keys";
-import { CreateApiKeySchema } from "@/lib/api-validation";
-import { ZodError } from "zod";
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createApiKey, listApiKeys } from '@/lib/api-keys';
+import { CreateApiKeySchema } from '@/lib/api-validation';
+import { ZodError } from 'zod';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
     const apiKeys = await listApiKeys(session.user.id);
     return NextResponse.json({ data: apiKeys });
   } catch (error) {
-    console.error("Error listing API keys:", error);
+    console.error('Error listing API keys:', error);
     return NextResponse.json(
-      { error: "Failed to list API keys" },
-      { status: 500 }
+      { error: 'Failed to list API keys' },
+      { status: 500 },
     );
   }
 }
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -48,26 +48,26 @@ export async function POST(request: NextRequest) {
           plaintext: apiKey.plaintext,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
         {
-          error: "Validation Error",
+          error: 'Validation Error',
           issues: error.issues.map((issue) => ({
-            path: issue.path.join("."),
+            path: issue.path.join('.'),
             message: issue.message,
           })),
         },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
-    console.error("Error creating API key:", error);
+    console.error('Error creating API key:', error);
     return NextResponse.json(
-      { error: "Failed to create API key" },
-      { status: 500 }
+      { error: 'Failed to create API key' },
+      { status: 500 },
     );
   }
 }

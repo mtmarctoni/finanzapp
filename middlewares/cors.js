@@ -8,4 +8,4 @@ export const corsMiddleware = async (req, res) => {
   }
 
   return res;
-}
+};

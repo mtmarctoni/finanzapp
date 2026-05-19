@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Bar } from 'react-chartjs-2';
 import { ChartData, ChartOptions } from 'chart.js';
 import {
@@ -12,8 +18,8 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { SeasonalItem } from "@/lib/analytics-charts";
-import { Sun, Snowflake, Leaf, Flower2 } from "lucide-react";
+import { SeasonalItem } from '@/lib/analytics-charts';
+import { Sun, Snowflake, Leaf, Flower2 } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -21,7 +27,7 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 interface SeasonalPatternsProps {
@@ -40,7 +46,7 @@ export function SeasonalPatterns({
   loading,
 }: SeasonalPatternsProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    categories[0] || "",
+    categories[0] || '',
   );
 
   const seasonalData = getSeasonalData(selectedCategory);
@@ -55,32 +61,32 @@ export function SeasonalPatterns({
   // Season totals
   const seasons = [
     {
-      name: "Invierno",
+      name: 'Invierno',
       months: [11, 0, 1],
       icon: Snowflake,
-      color: "text-blue-500",
-      bg: "bg-blue-50",
+      color: 'text-blue-500',
+      bg: 'bg-blue-50',
     },
     {
-      name: "Primavera",
+      name: 'Primavera',
       months: [2, 3, 4],
       icon: Flower2,
-      color: "text-green-500",
-      bg: "bg-green-50",
+      color: 'text-green-500',
+      bg: 'bg-green-50',
     },
     {
-      name: "Verano",
+      name: 'Verano',
       months: [5, 6, 7],
       icon: Sun,
-      color: "text-amber-500",
-      bg: "bg-amber-50",
+      color: 'text-amber-500',
+      bg: 'bg-amber-50',
     },
     {
-      name: "Otoño",
+      name: 'Otoño',
       months: [8, 9, 10],
       icon: Leaf,
-      color: "text-orange-500",
-      bg: "bg-orange-50",
+      color: 'text-orange-500',
+      bg: 'bg-orange-50',
     },
   ];
 
@@ -97,7 +103,8 @@ export function SeasonalPatterns({
         <div>
           <CardTitle>Patrones Estacionales</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            ¿En qué meses gastas más en <span className="font-semibold">{selectedCategory}</span>?
+            ¿En qué meses gastas más en{' '}
+            <span className="font-semibold">{selectedCategory}</span>?
           </p>
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -133,17 +140,31 @@ export function SeasonalPatterns({
             {/* Peak/Low */}
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                <div className="text-xs text-red-600 font-medium mb-1">Pico</div>
-                <div className="text-lg font-bold text-red-700">{peakMonth?.monthName}</div>
+                <div className="text-xs text-red-600 font-medium mb-1">
+                  Pico
+                </div>
+                <div className="text-lg font-bold text-red-700">
+                  {peakMonth?.monthName}
+                </div>
                 <div className="text-xs text-red-600">
-                  {peakMonth?.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                  {peakMonth?.total.toLocaleString('es-ES', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  })}
                 </div>
               </div>
               <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-                <div className="text-xs text-green-600 font-medium mb-1">Valle</div>
-                <div className="text-lg font-bold text-green-700">{lowMonth?.monthName}</div>
+                <div className="text-xs text-green-600 font-medium mb-1">
+                  Valle
+                </div>
+                <div className="text-lg font-bold text-green-700">
+                  {lowMonth?.monthName}
+                </div>
                 <div className="text-xs text-green-600">
-                  {lowMonth?.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                  {lowMonth?.total.toLocaleString('es-ES', {
+                    style: 'currency',
+                    currency: 'EUR',
+                  })}
                 </div>
               </div>
             </div>
@@ -165,7 +186,10 @@ export function SeasonalPatterns({
                       <span className="text-sm font-medium">{season.name}</span>
                     </div>
                     <span className={`text-sm font-bold ${season.color}`}>
-                      {season.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                      {season.total.toLocaleString('es-ES', {
+                        style: 'currency',
+                        currency: 'EUR',
+                      })}
                     </span>
                   </div>
                 );
