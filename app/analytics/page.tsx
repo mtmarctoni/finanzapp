@@ -3,7 +3,7 @@
 
 import { useMemo } from "react";
 import { AnalyticsFilter } from "@/components/analytics-filter";
-import { useAnalyticsData } from "@/hooks/use-analytics-data";
+import { useAnalyticsData, type Filters } from "@/hooks/use-analytics-data";
 import {
   getTemporalChartData,
   getCategoryChartData,
@@ -110,7 +110,7 @@ export default function AnalyticsPage() {
       <div className="mb-6">
         <AnalyticsFilter
           value={filters}
-          onChange={setFilters}
+          onChange={(f) => setFilters(f as Filters)}
           actions={[...new Set(data.temporalData.map(d => d.action))]}
           categories={[...new Set(data.categoryData.map(d => d.category))]}
           platforms={[...new Set([

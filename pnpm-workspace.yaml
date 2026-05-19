@@ -1,5 +1,6 @@
-onlyBuiltDependencies:
-  - bufferutil
-  - esbuild
-  - sharp
-  - unrs-resolver
+allowBuilds:
+  bufferutil: true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+trustPolicy: strict

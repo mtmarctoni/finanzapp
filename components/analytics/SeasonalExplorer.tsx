@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { CategoryTemporalDatum } from "@/lib/analytics-charts";
+import { CategoryTemporalDatum, SeasonalItem } from "@/lib/analytics-charts";
 import { Sun, Snowflake, Leaf, Flower2 } from "lucide-react";
 
 ChartJS.register(
@@ -27,7 +27,7 @@ ChartJS.register(
 interface SeasonalExplorerProps {
   categoryTemporalData: CategoryTemporalDatum[];
   types: string[];
-  getChartData: (data: Array<{ monthName: string; total: number }>) => ChartData<'bar', number[], string>;
+  getChartData: (data: SeasonalItem[]) => ChartData<'bar', number[], string>;
   getChartOptions: () => ChartOptions<'bar'>;
   loading: boolean;
 }
