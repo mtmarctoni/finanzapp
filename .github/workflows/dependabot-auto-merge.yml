@@ -22,18 +22,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-approve and merge patch/minor updates
-        if: >
-          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
-          steps.metadata.outputs.update-type == 'version-update:semver-minor'
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --squash --auto "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Auto-approve and merge security updates
+      - name: Auto-approve and merge security advisories only
         if: steps.metadata.outputs.cvss > 0
         run: |
           gh pr review --approve "$PR_URL"
@@ -42,10 +31,10 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Label major updates for manual review
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+      - name: Label non-security updates for manual review
+        if: steps.metadata.outputs.cvss == '0'
         run: |
-          gh pr edit "$PR_URL" --add-label "major-update"
+          gh pr edit "$PR_URL" --add-label "needs-review"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
