@@ -1,48 +1,40 @@
-"use client"
+'use client';
 
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
-const iconVariants = cva(
-  "transition-transform duration-300 ease-in-out",
-  {
-    variants: {
-      active: {
-        true: "scale-110",
-        false: "scale-100"
-      }
+const iconVariants = cva('transition-transform duration-300 ease-in-out', {
+  variants: {
+    active: {
+      true: 'scale-110',
+      false: 'scale-100',
     },
-    defaultVariants: {
-      active: false
-    }
-  }
-)
+  },
+  defaultVariants: {
+    active: false,
+  },
+});
 
-interface AnimatedIconProps 
-  extends React.HTMLAttributes<HTMLDivElement>,
+interface AnimatedIconProps
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof iconVariants> {
-  active?: boolean
-  children: React.ReactNode
+  active?: boolean;
+  children: React.ReactNode;
 }
 
-export function AnimatedIcon({ 
-  className, 
-  active = false, 
+export function AnimatedIcon({
+  className,
+  active = false,
   children,
-  ...props 
+  ...props
 }: AnimatedIconProps) {
-
-
-
   return (
     <div
-      className={cn(
-        iconVariants({ active, className }),
-        "h-5 w-5"
-      )}
+      className={cn(iconVariants({ active, className }), 'h-5 w-5')}
       {...props}
     >
       {children}
     </div>
-  )
+  );
 }

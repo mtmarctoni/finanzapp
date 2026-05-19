@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import { signIn } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Loader2, Github } from "lucide-react";
+import { signIn } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Loader2, Github } from 'lucide-react';
 
 export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -30,12 +30,12 @@ export default function SignIn() {
     setIsLoading(true);
     setError(null);
     try {
-      await signIn("github", {
+      await signIn('github', {
         callbackUrl,
       });
     } catch (error) {
-      console.error("GitHub sign in error:", error);
-      setError("Error al iniciar sesión con GitHub");
+      console.error('GitHub sign in error:', error);
+      setError('Error al iniciar sesión con GitHub');
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +44,7 @@ export default function SignIn() {
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError("Por favor ingresa tu correo y contraseña");
+      setError('Por favor ingresa tu correo y contraseña');
       return;
     }
 
@@ -52,7 +52,7 @@ export default function SignIn() {
     setError(null);
 
     try {
-      const result = await signIn("credentials", {
+      const result = await signIn('credentials', {
         // redirect: false,
         email,
         password,
@@ -60,13 +60,13 @@ export default function SignIn() {
       });
 
       if (result?.error) {
-        setError("Credenciales inválidas");
+        setError('Credenciales inválidas');
       } else {
         router.push(callbackUrl);
       }
     } catch (error) {
-      console.error("Sign in error:", error);
-      setError("Error al iniciar sesión");
+      console.error('Sign in error:', error);
+      setError('Error al iniciar sesión');
     } finally {
       setIsLoading(false);
     }
@@ -81,8 +81,8 @@ export default function SignIn() {
           <h1 className="text-3xl font-bold tracking-tight">Bienvenido</h1>
           <p className="text-muted-foreground">
             {isDevelopment
-              ? "Inicia sesión para continuar"
-              : "Inicia sesión con tu cuenta para continuar"}
+              ? 'Inicia sesión para continuar'
+              : 'Inicia sesión con tu cuenta para continuar'}
           </p>
         </div>
 
@@ -127,14 +127,8 @@ export default function SignIn() {
                   required
                 />
               </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Iniciar sesión
               </Button>
             </form>

@@ -13,7 +13,7 @@ describe('Utils', () => {
   describe('formatDate', () => {
     it('should format date correctly', () => {
       expect(formatDate('2023-01-15')).toMatch(/\d{2}\/\d{2}\/\d{4}/);
-      
+
       const date = new Date('2023-01-15');
       expect(formatDate(date.toISOString())).toMatch(/\d{2}\/\d{2}\/\d{4}/);
     });

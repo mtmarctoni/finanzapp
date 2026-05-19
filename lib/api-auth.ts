@@ -1,9 +1,9 @@
-import { verifyApiKey } from "./api-keys";
+import { verifyApiKey } from './api-keys';
 import {
   checkRateLimit,
   createRateLimitResponse,
   getRateLimitHeaders,
-} from "./ai/rate-limit";
+} from './ai/rate-limit';
 
 export interface ApiAuthContext {
   userId: string;
@@ -22,10 +22,10 @@ export interface ApiAuthenticationResult {
  * Returns null if missing or invalid.
  */
 export async function authenticateApiRequest(
-  request: Request
+  request: Request,
 ): Promise<ApiAuthContext | null> {
   // Check X-API-Key header first
-  const apiKey = request.headers.get("x-api-key");
+  const apiKey = request.headers.get('x-api-key');
   if (apiKey) {
     const result = await verifyApiKey(apiKey);
     if (result) {
@@ -34,8 +34,8 @@ export async function authenticateApiRequest(
   }
 
   // Fallback to Authorization: Bearer <key>
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.toLowerCase().startsWith("bearer ")) {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.toLowerCase().startsWith('bearer ')) {
     const token = authHeader.slice(7).trim();
     const result = await verifyApiKey(token);
     if (result) {
@@ -47,7 +47,7 @@ export async function authenticateApiRequest(
 }
 
 export async function authenticateAndRateLimitApiRequest(
-  request: Request
+  request: Request,
 ): Promise<ApiAuthenticationResult> {
   const auth = await authenticateApiRequest(request);
 

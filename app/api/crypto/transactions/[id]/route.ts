@@ -2,19 +2,19 @@ import {
   getCryptoTransactionById,
   updateCryptoTransaction,
   deleteCryptoTransaction,
-} from "@/lib/cryptoActions";
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+} from '@/lib/cryptoActions';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -25,29 +25,29 @@ export async function GET(
 
     if (!transaction) {
       return NextResponse.json(
-        { error: "Transaction not found" },
-        { status: 404 }
+        { error: 'Transaction not found' },
+        { status: 404 },
       );
     }
 
     return NextResponse.json(transaction);
   } catch (error) {
-    console.error("Error fetching crypto transaction:", error);
+    console.error('Error fetching crypto transaction:', error);
     return NextResponse.json(
-      { error: "Failed to fetch crypto transaction" },
-      { status: 500 }
+      { error: 'Failed to fetch crypto transaction' },
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -60,29 +60,29 @@ export async function PUT(
 
     if (!transaction) {
       return NextResponse.json(
-        { error: "Transaction not found" },
-        { status: 404 }
+        { error: 'Transaction not found' },
+        { status: 404 },
       );
     }
 
     return NextResponse.json(transaction);
   } catch (error) {
-    console.error("Error updating crypto transaction:", error);
+    console.error('Error updating crypto transaction:', error);
     return NextResponse.json(
-      { error: "Failed to update crypto transaction" },
-      { status: 500 }
+      { error: 'Failed to update crypto transaction' },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -93,17 +93,17 @@ export async function DELETE(
 
     if (!deleted) {
       return NextResponse.json(
-        { error: "Transaction not found" },
-        { status: 404 }
+        { error: 'Transaction not found' },
+        { status: 404 },
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting crypto transaction:", error);
+    console.error('Error deleting crypto transaction:', error);
     return NextResponse.json(
-      { error: "Failed to delete crypto transaction" },
-      { status: 500 }
+      { error: 'Failed to delete crypto transaction' },
+      { status: 500 },
     );
   }
 }

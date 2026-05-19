@@ -1,4 +1,9 @@
-import { getFinanceEntries, getEntryById, getSummaryStats, duplicateEntry } from '@/lib/data';
+import {
+  getFinanceEntries,
+  getEntryById,
+  getSummaryStats,
+  duplicateEntry,
+} from '@/lib/data';
 import { Entry } from '@/lib/definitions';
 
 const baseURL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
@@ -11,9 +16,9 @@ describe('Data fetching functions', () => {
     // Mock window.location.origin after jsdom is initialized
     Object.defineProperty(window, 'location', {
       value: {
-        origin: baseURL
+        origin: baseURL,
       },
-      writable: true
+      writable: true,
     });
   });
 
@@ -26,43 +31,45 @@ describe('Data fetching functions', () => {
     it('should fetch entries with correct parameters', async () => {
       // Mock successful response
       const mockResponse = {
-        data: [{ 
-          id: '1', 
-          fecha: '2023-01-01', 
-          tipo: 'Ingreso',
-          accion: 'Salario',
-          que: 'Trabajo',
-          plataforma_pago: 'Banco',
-          cantidad: 1000,
-          detalle1: null,
-          detalle2: null,
-          quien: 'Yo',
-          created_at: '2023-01-01T00:00:00.000Z',
-          updated_at: '2023-01-01T00:00:00.000Z'
-        }],
+        data: [
+          {
+            id: '1',
+            fecha: '2023-01-01',
+            tipo: 'Ingreso',
+            accion: 'Salario',
+            que: 'Trabajo',
+            plataforma_pago: 'Banco',
+            cantidad: 1000,
+            detalle1: null,
+            detalle2: null,
+            quien: 'Yo',
+            created_at: '2023-01-01T00:00:00.000Z',
+            updated_at: '2023-01-01T00:00:00.000Z',
+          },
+        ],
         totalItems: 1,
         totalPages: 1,
-        currentPage: 1
+        currentPage: 1,
       };
-      
+
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockResponse
+        json: async () => mockResponse,
       });
 
       // Call the function with search parameters
-      const result = await getFinanceEntries({ 
+      const result = await getFinanceEntries({
         search: 'test',
-        from: '2023-01-01', 
-        to: '2023-01-31', 
-        page: 2
+        from: '2023-01-01',
+        to: '2023-01-31',
+        page: 2,
       });
 
       // Check that fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(
-        `${baseURL}/api/entries?search=test&from=2023-01-01&to=2023-01-31&page=2&itemsPerPage=100`
+        `${baseURL}/api/entries?search=test&from=2023-01-01&to=2023-01-31&page=2&itemsPerPage=100`,
       );
-      
+
       // Check that the function returns the expected result
       expect(result).toEqual(mockResponse);
     });
@@ -71,7 +78,7 @@ describe('Data fetching functions', () => {
       // Mock failed response
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
-        status: 500
+        status: 500,
       });
 
       // Call the function
@@ -102,13 +109,13 @@ describe('Data fetching functions', () => {
         detalle2: null,
         quien: 'Yo',
         created_at: '2023-01-01T00:00:00.000Z',
-        updated_at: '2023-01-01T00:00:00.000Z'
+        updated_at: '2023-01-01T00:00:00.000Z',
       };
 
       // Mock successful response
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockEntry
+        json: async () => mockEntry,
       });
 
       // Call the function
@@ -116,7 +123,7 @@ describe('Data fetching functions', () => {
 
       // Check that fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(`${baseURL}/api/entries/123`);
-      
+
       // Check that the function returns the expected result
       expect(result).toEqual(mockEntry);
     });
@@ -125,7 +132,7 @@ describe('Data fetching functions', () => {
       // Mock error response
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
-        status: 404
+        status: 404,
       });
 
       // Call the function
@@ -146,13 +153,13 @@ describe('Data fetching functions', () => {
         expenseCount: 10,
         totalInvestment: 2000,
         investmentCount: 2,
-        balance: 2000
+        balance: 2000,
       };
 
       // Mock successful response
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockStats
+        json: async () => mockStats,
       });
 
       // Call the function
@@ -160,7 +167,7 @@ describe('Data fetching functions', () => {
 
       // Check that fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(`${baseURL}/api/stats`);
-      
+
       // Check that the function returns the expected result
       expect(result).toEqual(mockStats);
     });
@@ -169,7 +176,7 @@ describe('Data fetching functions', () => {
       // Mock failed response
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
-        status: 500
+        status: 500,
       });
 
       // Call the function
@@ -183,7 +190,7 @@ describe('Data fetching functions', () => {
         totalInvestment: 0,
         investmentCount: 0,
         expenseCount: 0,
-        balance: 0
+        balance: 0,
       });
     });
   });
@@ -202,31 +209,33 @@ describe('Data fetching functions', () => {
         detalle2: null,
         quien: 'Yo',
         created_at: '2023-01-01T00:00:00.000Z',
-        updated_at: '2023-01-01T00:00:00.000Z'
+        updated_at: '2023-01-01T00:00:00.000Z',
       };
-  
+
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => mockDuplicatedEntry
+        json: async () => mockDuplicatedEntry,
       });
-  
+
       const result = await duplicateEntry('original-id');
-  
+
       expect(fetch).toHaveBeenCalledWith(
         `${baseURL}/api/entries/original-id/duplicate`,
-        { method: 'POST' }
+        { method: 'POST' },
       );
-  
+
       expect(result).toEqual(mockDuplicatedEntry);
     });
-  
+
     it('should throw an error when duplication fails', async () => {
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
-        status: 500
+        status: 500,
       });
-  
-      await expect(duplicateEntry('original-id')).rejects.toThrow('API error: 500');
+
+      await expect(duplicateEntry('original-id')).rejects.toThrow(
+        'API error: 500',
+      );
     });
   });
 });

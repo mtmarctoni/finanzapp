@@ -1,85 +1,119 @@
-"use client"
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Combobox } from "@/components/ui/combobox"
-import { useEffect, useState } from "react"
-import type { CryptoTransaction, CryptoTransactionType } from "@/types/finance"
-import { createCryptoTransaction, updateCryptoTransaction, getCryptoOptions } from "@/lib/crypto-data"
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
+import { useEffect, useState } from 'react';
+import type { CryptoTransaction, CryptoTransactionType } from '@/types/finance';
+import {
+  createCryptoTransaction,
+  updateCryptoTransaction,
+  getCryptoOptions,
+} from '@/lib/crypto-data';
 
-const TRANSACTION_TYPES = ["deposit", "withdrawal", "wallet_transfer", "exchange", "staking", "airdrop", "fee", "genesis"] as const
+const TRANSACTION_TYPES = [
+  'deposit',
+  'withdrawal',
+  'wallet_transfer',
+  'exchange',
+  'staking',
+  'airdrop',
+  'fee',
+  'genesis',
+] as const;
 
 // Helper for optional number fields that properly handles empty strings
-const optionalNumber = z.union([
-  z.literal("").transform(() => null),
-  z.coerce.number(),
-]).nullable().optional()
+const optionalNumber = z
+  .union([z.literal('').transform(() => null), z.coerce.number()])
+  .nullable()
+  .optional();
 
 const formSchema = z.object({
-  transactionDate: z.string().min(1, "La fecha es requerida"),
+  transactionDate: z.string().min(1, 'La fecha es requerida'),
   transactionType: z.enum(TRANSACTION_TYPES),
-  cryptoSymbol: z.string().min(1, "El símbolo de la cripto es requerido"),
-  amount: z.coerce.number().positive("La cantidad debe ser mayor a 0"),
+  cryptoSymbol: z.string().min(1, 'El símbolo de la cripto es requerido'),
+  amount: z.coerce.number().positive('La cantidad debe ser mayor a 0'),
   priceAtTransaction: optionalNumber,
   toCryptoSymbol: z.string().optional().nullable(),
   toAmount: optionalNumber,
   fromWallet: z.string().optional().nullable(),
   toWallet: z.string().optional().nullable(),
-  fee: z.union([z.literal("").transform(() => 0), z.coerce.number().min(0)]).optional(),
+  fee: z
+    .union([z.literal('').transform(() => 0), z.coerce.number().min(0)])
+    .optional(),
   feeCrypto: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   externalTxId: z.string().optional().nullable(),
-})
+});
 
-type CryptoFormValues = z.infer<typeof formSchema>
+type CryptoFormValues = z.infer<typeof formSchema>;
 
 interface CryptoTransactionFormProps {
-  transaction?: CryptoTransaction
+  transaction?: CryptoTransaction;
 }
 
-export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProps) {
-  const router = useRouter()
-  const { data: session } = useSession()
-  const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([])
-  const [wallets, setWallets] = useState<string[]>([])
-  const [transactionTypes, setTransactionTypes] = useState<{ value: string; label: string }[]>([])
-  const [optionsLoading, setOptionsLoading] = useState(true)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+export function CryptoTransactionForm({
+  transaction,
+}: CryptoTransactionFormProps) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([]);
+  const [wallets, setWallets] = useState<string[]>([]);
+  const [transactionTypes, setTransactionTypes] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch options on mount
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const data = await getCryptoOptions()
-        setCryptoSymbols(data.cryptoSymbols || [])
-        setWallets(data.wallets || [])
-        setTransactionTypes(data.transactionTypes || [])
+        const data = await getCryptoOptions();
+        setCryptoSymbols(data.cryptoSymbols || []);
+        setWallets(data.wallets || []);
+        setTransactionTypes(data.transactionTypes || []);
       } catch (error) {
-        console.error('Failed to fetch options:', error)
+        console.error('Failed to fetch options:', error);
       } finally {
-        setOptionsLoading(false)
+        setOptionsLoading(false);
       }
-    }
-    fetchOptions()
-  }, [])
+    };
+    fetchOptions();
+  }, []);
 
   const form = useForm<CryptoFormValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(formSchema) as any,
     defaultValues: transaction
       ? {
-          transactionDate: new Date(transaction.transactionDate).toISOString().split('T')[0],
+          transactionDate: new Date(transaction.transactionDate)
+            .toISOString()
+            .split('T')[0],
           transactionType: transaction.transactionType,
-          cryptoSymbol: transaction.cryptoSymbol || "",
+          cryptoSymbol: transaction.cryptoSymbol || '',
           amount: transaction.amount,
           priceAtTransaction: transaction.priceAtTransaction,
           toCryptoSymbol: transaction.toCryptoSymbol,
@@ -92,9 +126,9 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
           externalTxId: transaction.externalTxId,
         }
       : {
-          transactionDate: new Date().toISOString().split("T")[0],
-          transactionType: "deposit" as CryptoTransactionType,
-          cryptoSymbol: "",
+          transactionDate: new Date().toISOString().split('T')[0],
+          transactionType: 'deposit' as CryptoTransactionType,
+          cryptoSymbol: '',
           amount: 0,
           priceAtTransaction: null,
           toCryptoSymbol: null,
@@ -106,47 +140,57 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
           notes: null,
           externalTxId: null,
         },
-  })
+  });
 
-  const transactionType = form.watch('transactionType')
-  const showExchangeFields = transactionType === 'exchange'
-  const showWalletFields = ['wallet_transfer', 'exchange', 'deposit', 'withdrawal', 'genesis'].includes(transactionType)
-  const showPriceField = ['deposit', 'withdrawal', 'genesis'].includes(transactionType)
+  const transactionType = form.watch('transactionType');
+  const showExchangeFields = transactionType === 'exchange';
+  const showWalletFields = [
+    'wallet_transfer',
+    'exchange',
+    'deposit',
+    'withdrawal',
+    'genesis',
+  ].includes(transactionType);
+  const showPriceField = ['deposit', 'withdrawal', 'genesis'].includes(
+    transactionType,
+  );
 
   async function onSubmit(values: CryptoFormValues) {
     if (!session?.user?.id) {
-      alert("Debes iniciar sesión")
-      return
+      alert('Debes iniciar sesión');
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       const data = {
         ...values,
         transactionDate: new Date(values.transactionDate).toISOString(),
-      }
+      };
 
       if (transaction) {
-        await updateCryptoTransaction(transaction.id, data)
+        await updateCryptoTransaction(transaction.id, data);
       } else {
-        await createCryptoTransaction(data)
+        await createCryptoTransaction(data);
       }
-      
-      router.push("/investment/crypto")
-      router.refresh()
+
+      router.push('/investment/crypto');
+      router.refresh();
     } catch (error) {
-      console.error('Error saving transaction:', error)
-      alert("Error al guardar la transacción")
+      console.error('Error saving transaction:', error);
+      alert('Error al guardar la transacción');
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{transaction ? "Editar Transacción" : "Nueva Transacción Cripto"}</CardTitle>
+        <CardTitle>
+          {transaction ? 'Editar Transacción' : 'Nueva Transacción Cripto'}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -174,7 +218,10 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo de Transacción</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona tipo" />
@@ -238,12 +285,18 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
                     <FormItem>
                       <FormLabel>Precio (EUR)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          {...field} 
-                          value={field.value ?? ''} 
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value
+                                ? parseFloat(e.target.value)
+                                : null,
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />
@@ -281,12 +334,18 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
                       <FormItem>
                         <FormLabel>Cantidad recibida</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.00000001" 
-                            {...field} 
-                            value={field.value ?? ''} 
-                            onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                          <Input
+                            type="number"
+                            step="0.00000001"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value
+                                  ? parseFloat(e.target.value)
+                                  : null,
+                              )
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -384,7 +443,11 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
                   <FormItem className="md:col-span-2">
                     <FormLabel>TX ID / Order ID</FormLabel>
                     <FormControl>
-                      <Input {...field} value={field.value ?? ''} placeholder="ID de transacción blockchain o exchange" />
+                      <Input
+                        {...field}
+                        value={field.value ?? ''}
+                        placeholder="ID de transacción blockchain o exchange"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -399,7 +462,11 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
                   <FormItem className="md:col-span-2">
                     <FormLabel>Notas</FormLabel>
                     <FormControl>
-                      <Textarea {...field} value={field.value ?? ''} placeholder="Notas adicionales..." />
+                      <Textarea
+                        {...field}
+                        value={field.value ?? ''}
+                        placeholder="Notas adicionales..."
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -408,16 +475,24 @@ export function CryptoTransactionForm({ transaction }: CryptoTransactionFormProp
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => router.back()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Guardando..." : transaction ? "Actualizar" : "Guardar"}
+                {isSubmitting
+                  ? 'Guardando...'
+                  : transaction
+                    ? 'Actualizar'
+                    : 'Guardar'}
               </Button>
             </div>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }

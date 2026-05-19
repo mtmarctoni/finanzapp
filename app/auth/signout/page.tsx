@@ -1,15 +1,14 @@
-"use client";
+'use client';
 
-import { signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
+import { signOut } from 'next-auth/react';
+import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
 
 export default function SignOut() {
-
   useEffect(() => {
     // Sign out the user
     signOut({
-      callbackUrl: "/auth/signin",
+      callbackUrl: '/auth/signin',
       redirect: true,
     });
   }, []);
@@ -18,14 +17,16 @@ export default function SignOut() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="container flex flex-col items-center justify-center gap-4 px-4 py-8">
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Cerrando sesión...</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Cerrando sesión...
+          </h1>
           <p className="text-sm text-muted-foreground">
             Estamos cerrando tu sesión. Serás redirigido al inicio de sesión.
           </p>
         </div>
         <Button
           onClick={() => {
-            signOut({ callbackUrl: "/auth/signin" });
+            signOut({ callbackUrl: '/auth/signin' });
           }}
           className="mt-4"
         >

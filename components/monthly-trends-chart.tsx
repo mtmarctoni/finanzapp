@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { useMemo } from 'react'
-import { Bar } from 'react-chartjs-2'
+import { useMemo } from 'react';
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,11 +12,11 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js'
-import { ChartData, ChartOptions } from 'chart.js'
-import { formatCurrency } from "@/lib/utils"
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+} from 'chart.js';
+import { ChartData, ChartOptions } from 'chart.js';
+import { formatCurrency } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 ChartJS.register(
   CategoryScale,
@@ -26,17 +26,21 @@ ChartJS.register(
   PointElement,
   Title,
   Tooltip,
-  Legend
-)
+  Legend,
+);
 
 interface MonthlyTrend {
-  month: string // 'YYYY-MM-01' format
-  income: number
-  expenses: number
-  investments: number
+  month: string; // 'YYYY-MM-01' format
+  income: number;
+  expenses: number;
+  investments: number;
 }
 
-export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: MonthlyTrend[] }) {
+export default function MonthlyTrendsChart({
+  monthlyTrends,
+}: {
+  monthlyTrends: MonthlyTrend[];
+}) {
   const monthlyData = useMemo(() => {
     return [...monthlyTrends]
       .sort((left, right) => left.month.localeCompare(right.month))
@@ -46,8 +50,8 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
         expenses: item.expenses,
         investments: item.investments,
         netFlow: item.income - item.expenses - item.investments,
-      }))
-  }, [monthlyTrends])
+      }));
+  }, [monthlyTrends]);
 
   const chartOptions: ChartOptions<'bar'> = {
     responsive: true,
@@ -63,8 +67,11 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
       tooltip: {
         callbacks: {
           label: (context) => {
-            const rawValue = typeof context.raw === 'number' ? context.raw : Number(context.raw)
-            return `${context.dataset.label}: ${formatCurrency(rawValue)}`
+            const rawValue =
+              typeof context.raw === 'number'
+                ? context.raw
+                : Number(context.raw);
+            return `${context.dataset.label}: ${formatCurrency(rawValue)}`;
           },
         },
       },
@@ -74,46 +81,47 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
         beginAtZero: true,
         ticks: {
           callback: (tickValue: string | number) => {
-            const value = typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
+            const value =
+              typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
             return value !== undefined ? formatCurrency(value) : '';
-          }
-        }
+          },
+        },
       },
       x: {
         grid: {
           display: false,
         },
-      }
-    }
-  }
+      },
+    },
+  };
 
   const chartData = {
-    labels: monthlyData.map(d => d.month),
+    labels: monthlyData.map((d) => d.month),
     datasets: [
       {
         label: 'Ingresos',
-        data: monthlyData.map(d => d.income),
+        data: monthlyData.map((d) => d.income),
         backgroundColor: 'rgba(34, 197, 94, 0.35)',
         borderColor: 'rgb(34, 197, 94)',
         borderWidth: 1,
       },
       {
         label: 'Gastos',
-        data: monthlyData.map(d => d.expenses),
+        data: monthlyData.map((d) => d.expenses),
         backgroundColor: 'rgba(239, 68, 68, 0.35)',
         borderColor: 'rgb(239, 68, 68)',
         borderWidth: 1,
       },
       {
         label: 'Inversiones',
-        data: monthlyData.map(d => d.investments),
+        data: monthlyData.map((d) => d.investments),
         backgroundColor: 'rgba(59, 130, 246, 0.35)',
         borderColor: 'rgb(59, 130, 246)',
         borderWidth: 1,
       },
       {
         label: 'Flujo neto',
-        data: monthlyData.map(d => d.netFlow),
+        data: monthlyData.map((d) => d.netFlow),
         type: 'line' as const,
         borderColor: 'rgb(168, 85, 247)',
         backgroundColor: 'rgba(168, 85, 247, 0.20)',
@@ -123,14 +131,11 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
         tension: 0.3,
       },
     ],
-  }
+  };
 
   return (
     <div className="h-80 w-full">
-      <Bar 
-        options={chartOptions} 
-        data={chartData as ChartData<'bar'>}
-      />
+      <Bar options={chartOptions} data={chartData as ChartData<'bar'>} />
     </div>
-  )
+  );
 }

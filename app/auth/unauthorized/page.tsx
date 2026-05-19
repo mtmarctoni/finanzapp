@@ -1,17 +1,20 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 
 export default function Unauthorized() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="container flex flex-col items-center justify-center gap-8 px-4 py-8">
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-4xl font-bold tracking-tight">Acceso no autorizado</h1>
+          <h1 className="text-4xl font-bold tracking-tight">
+            Acceso no autorizado
+          </h1>
           <p className="text-lg text-muted-foreground mt-2">
-            Este proyecto está protegido y solo está disponible para usuarios autorizados.
+            Este proyecto está protegido y solo está disponible para usuarios
+            autorizados.
           </p>
         </div>
 
@@ -45,10 +48,7 @@ export default function Unauthorized() {
           </ul>
         </div>
 
-        <Button
-          asChild
-          className="mt-8"
-        >
+        <Button asChild className="mt-8">
           <Link href="https://github.com/mtmarctoni/finanzapp">
             <ExternalLink className="mr-2 h-4 w-4" />
             Ir al repositorio

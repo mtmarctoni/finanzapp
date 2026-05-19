@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { AlertCircle, DollarSign } from "lucide-react";
+} from '@/components/ui/dialog';
+import { AlertCircle, DollarSign } from 'lucide-react';
 
 interface PaidFallbackDialogProps {
   isOpen: boolean;
@@ -35,20 +35,20 @@ export function PaidFallbackDialog({
     setIsLoading(true);
     try {
       // Save confirmation to server
-      const response = await fetch("/api/ai/confirm-paid", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/ai/confirm-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmed: true }),
       });
 
       if (response.ok) {
         onConfirm();
       } else {
-        console.error("Failed to save confirmation");
+        console.error('Failed to save confirmation');
         onDecline();
       }
     } catch (error) {
-      console.error("Error confirming paid fallback:", error);
+      console.error('Error confirming paid fallback:', error);
       onDecline();
     } finally {
       setIsLoading(false);
@@ -58,13 +58,13 @@ export function PaidFallbackDialog({
   const handleDecline = async () => {
     setIsLoading(true);
     try {
-      await fetch("/api/ai/confirm-paid", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/ai/confirm-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ confirmed: false }),
       });
     } catch (error) {
-      console.error("Error declining paid fallback:", error);
+      console.error('Error declining paid fallback:', error);
     } finally {
       setIsLoading(false);
       onDecline();
@@ -117,7 +117,7 @@ export function PaidFallbackDialog({
             Cancel
           </Button>
           <Button onClick={handleConfirm} disabled={isLoading}>
-            {isLoading ? "Confirming..." : "Use Paid Model"}
+            {isLoading ? 'Confirming...' : 'Use Paid Model'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -137,7 +137,6 @@ pnpm run <script>
    ```
 
 4. **Set up the database**
-
    - Create a new PostgreSQL database.
    - Run the database migrations:
      ```bash

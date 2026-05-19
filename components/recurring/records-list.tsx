@@ -1,19 +1,23 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
-import { frequencyLabel } from '@/components/recurring/constants'
-import { cn, formatCurrency } from '@/lib/utils'
-import { RecurringRecord } from '@/types/finance'
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import { frequencyLabel } from '@/components/recurring/constants';
+import { cn, formatCurrency } from '@/lib/utils';
+import { RecurringRecord } from '@/types/finance';
 
 interface RecordsListProps {
-  records: RecurringRecord[]
-  selectedRecordId: string | null
-  loading: boolean
-  onSelectRecord: (id: string) => void
-  onEditRecord: (record: RecurringRecord) => void
-  onDeleteRecord: (id: string) => void
+  records: RecurringRecord[];
+  selectedRecordId: string | null;
+  loading: boolean;
+  onSelectRecord: (id: string) => void;
+  onEditRecord: (record: RecurringRecord) => void;
+  onDeleteRecord: (id: string) => void;
 }
 
 function RecordPreview({ record }: { record: RecurringRecord }) {
@@ -25,16 +29,19 @@ function RecordPreview({ record }: { record: RecurringRecord }) {
       </p>
       <div className="text-sm grid gap-1">
         <p>
-          <span className="font-medium">Monto:</span> {formatCurrency(record.amount)}
+          <span className="font-medium">Monto:</span>{' '}
+          {formatCurrency(record.amount)}
         </p>
         <p>
-          <span className="font-medium">Frecuencia:</span> {frequencyLabel[record.frequency]}
+          <span className="font-medium">Frecuencia:</span>{' '}
+          {frequencyLabel[record.frequency]}
         </p>
         <p>
           <span className="font-medium">Día:</span> {record.dia}
         </p>
         <p>
-          <span className="font-medium">Plataforma:</span> {record.plataforma_pago}
+          <span className="font-medium">Plataforma:</span>{' '}
+          {record.plataforma_pago}
         </p>
         {record.detalle1 ? (
           <p>
@@ -51,7 +58,7 @@ function RecordPreview({ record }: { record: RecurringRecord }) {
         </p>
       </div>
     </div>
-  )
+  );
 }
 
 function RecordItem({
@@ -62,12 +69,12 @@ function RecordItem({
   onEditRecord,
   onDeleteRecord,
 }: {
-  record: RecurringRecord
-  isSelected: boolean
-  loading: boolean
-  onSelectRecord: (id: string) => void
-  onEditRecord: (record: RecurringRecord) => void
-  onDeleteRecord: (id: string) => void
+  record: RecurringRecord;
+  isSelected: boolean;
+  loading: boolean;
+  onSelectRecord: (id: string) => void;
+  onEditRecord: (record: RecurringRecord) => void;
+  onDeleteRecord: (id: string) => void;
 }) {
   return (
     <HoverCard openDelay={120} closeDelay={100}>
@@ -79,7 +86,7 @@ function RecordItem({
             'w-full text-left rounded-lg border px-3 py-3 transition-all',
             isSelected
               ? 'border-primary bg-primary/10 shadow-sm'
-              : 'border-border hover:border-primary/40 hover:bg-muted/30'
+              : 'border-border hover:border-primary/40 hover:bg-muted/30',
           )}
           aria-pressed={isSelected}
           aria-label={`Seleccionar ${record.name}`}
@@ -91,22 +98,27 @@ function RecordItem({
                 <Badge variant={record.active ? 'default' : 'secondary'}>
                   {record.active ? 'Activo' : 'Inactivo'}
                 </Badge>
-                <Badge variant="outline">{frequencyLabel[record.frequency]}</Badge>
+                <Badge variant="outline">
+                  {frequencyLabel[record.frequency]}
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1 truncate">
-                {record.accion} · {record.tipo} · Día {record.dia} · {record.plataforma_pago} · {record.quien || 'Yo'}
+                {record.accion} · {record.tipo} · Día {record.dia} ·{' '}
+                {record.plataforma_pago} · {record.quien || 'Yo'}
               </p>
             </div>
 
             <div className="flex items-center justify-between gap-2 sm:justify-end">
-              <span className="font-semibold">{formatCurrency(record.amount)}</span>
+              <span className="font-semibold">
+                {formatCurrency(record.amount)}
+              </span>
               <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    onEditRecord(record)
+                    e.stopPropagation();
+                    onEditRecord(record);
                   }}
                   disabled={loading}
                   aria-label={`Editar ${record.name}`}
@@ -117,8 +129,8 @@ function RecordItem({
                   variant="destructive"
                   size="sm"
                   onClick={(e) => {
-                    e.stopPropagation()
-                    onDeleteRecord(record.id)
+                    e.stopPropagation();
+                    onDeleteRecord(record.id);
                   }}
                   disabled={loading}
                   aria-label={`Eliminar ${record.name}`}
@@ -135,7 +147,7 @@ function RecordItem({
         <RecordPreview record={record} />
       </HoverCardContent>
     </HoverCard>
-  )
+  );
 }
 
 export function RecordsList({
@@ -151,7 +163,7 @@ export function RecordsList({
       <div className="text-center py-12 text-muted-foreground">
         No se encontraron registros para este filtro.
       </div>
-    )
+    );
   }
 
   return (
@@ -168,5 +180,5 @@ export function RecordsList({
         />
       ))}
     </div>
-  )
+  );
 }

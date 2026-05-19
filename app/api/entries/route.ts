@@ -1,26 +1,26 @@
-import { getEntries } from "@/lib/actions";
-import { ITEMS_PER_PAGE } from "@/config";
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getEntries } from '@/lib/actions';
+import { ITEMS_PER_PAGE } from '@/config';
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get("search") || "";
-  const accion = searchParams.get("accion") || "";
-  const from = searchParams.get("from") || "";
-  const to = searchParams.get("to") || "";
-  const page = parseInt(searchParams.get("page") || "1");
+  const search = searchParams.get('search') || '';
+  const accion = searchParams.get('accion') || '';
+  const from = searchParams.get('from') || '';
+  const to = searchParams.get('to') || '';
+  const page = parseInt(searchParams.get('page') || '1');
   const itemsPerPage = parseInt(
-    searchParams.get("itemsPerPage") || ITEMS_PER_PAGE.toString()
+    searchParams.get('itemsPerPage') || ITEMS_PER_PAGE.toString(),
   );
-  const sortBy = searchParams.get("sortBy") || "";
-  const sortOrder = searchParams.get("sortOrder") || "";
+  const sortBy = searchParams.get('sortBy') || '';
+  const sortOrder = searchParams.get('sortOrder') || '';
 
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
       currentPage: page,
     });
   } catch (error) {
-    console.error("Error fetching entries:", error);
+    console.error('Error fetching entries:', error);
     return NextResponse.json(
-      { error: "Failed to fetch entries" },
-      { status: 500 }
+      { error: 'Failed to fetch entries' },
+      { status: 500 },
     );
   }
 }

@@ -1,48 +1,52 @@
-"use client"
+'use client';
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Plus } from "lucide-react"
-import { AnimatedIcon } from "@/components/ui/animated-icon"
-import { NAV_ITEMS, isActivePath } from "@/config"
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { Plus } from 'lucide-react';
+import { AnimatedIcon } from '@/components/ui/animated-icon';
+import { NAV_ITEMS, isActivePath } from '@/config';
 
 export function MobileNav() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   // Don't show on auth pages
-  if (pathname.startsWith("/auth")) return null
+  if (pathname.startsWith('/auth')) return null;
 
   return (
     <nav className="mobile-nav fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-background/95 backdrop-blur-sm md:hidden">
       {NAV_ITEMS.map((item) => {
-        const isActive = isActivePath(pathname, item.href)
+        const isActive = isActivePath(pathname, item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
-            aria-current={isActive ? "page" : undefined}
+            aria-current={isActive ? 'page' : undefined}
             className={cn(
-              "group relative flex flex-1 flex-col items-center justify-center p-2 text-xs font-medium transition-all duration-200",
-              isActive 
-                ? "text-primary" 
-                : "text-muted-foreground hover:text-foreground"
+              'group relative flex flex-1 flex-col items-center justify-center p-2 text-xs font-medium transition-all duration-200',
+              isActive
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             <AnimatedIcon active={isActive}>
               <item.icon className="h-5 w-5" />
             </AnimatedIcon>
-            <span className={cn(
-              "mt-1 transition-all duration-200",
-              isActive ? "scale-100 opacity-100" : "scale-90 opacity-80 group-hover:scale-100 group-hover:opacity-100"
-            )}>
+            <span
+              className={cn(
+                'mt-1 transition-all duration-200',
+                isActive
+                  ? 'scale-100 opacity-100'
+                  : 'scale-90 opacity-80 group-hover:scale-100 group-hover:opacity-100',
+              )}
+            >
               {item.name}
             </span>
             {isActive && (
               <span className="absolute -top-1 h-1 w-6 rounded-full bg-primary" />
             )}
           </Link>
-        )
+        );
       })}
       <Link
         href="/new"
@@ -52,5 +56,5 @@ export function MobileNav() {
         <span className="sr-only">Nueva Transacción</span>
       </Link>
     </nav>
-  )
+  );
 }

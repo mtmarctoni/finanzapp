@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
 import type {
   CryptoTransaction,
   CryptoHoldingsSummary,
   CryptoWallet,
-} from "@/types/finance";
-import type { GetCryptoTransactionsOptions } from "@/types/api";
-import { ITEMS_PER_PAGE } from "@/config";
+} from '@/types/finance';
+import type { GetCryptoTransactionsOptions } from '@/types/api';
+import { ITEMS_PER_PAGE } from '@/config';
 
 /**
  * Fetches crypto transactions from the API with optional filtering and pagination
  */
 export async function getCryptoTransactions(
-  options: GetCryptoTransactionsOptions = {}
+  options: GetCryptoTransactionsOptions = {},
 ) {
   const {
-    search = "",
-    transactionType = "",
-    cryptoSymbol = "",
-    wallet = "",
-    from = "",
-    to = "",
+    search = '',
+    transactionType = '',
+    cryptoSymbol = '',
+    wallet = '',
+    from = '',
+    to = '',
     page = 1,
     itemsPerPage,
     sortBy,
@@ -29,21 +29,21 @@ export async function getCryptoTransactions(
 
   try {
     const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (transactionType && transactionType !== "all")
-      params.set("transactionType", transactionType);
-    if (cryptoSymbol) params.set("cryptoSymbol", cryptoSymbol);
-    if (wallet) params.set("wallet", wallet);
-    if (from) params.set("from", from);
-    if (to) params.set("to", to);
-    params.set("page", page.toString());
-    params.set("itemsPerPage", (itemsPerPage ?? ITEMS_PER_PAGE).toString());
-    if (sortBy) params.set("sortBy", String(sortBy));
-    if (sortOrder) params.set("sortOrder", String(sortOrder));
+    if (search) params.set('search', search);
+    if (transactionType && transactionType !== 'all')
+      params.set('transactionType', transactionType);
+    if (cryptoSymbol) params.set('cryptoSymbol', cryptoSymbol);
+    if (wallet) params.set('wallet', wallet);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    params.set('page', page.toString());
+    params.set('itemsPerPage', (itemsPerPage ?? ITEMS_PER_PAGE).toString());
+    if (sortBy) params.set('sortBy', String(sortBy));
+    if (sortOrder) params.set('sortOrder', String(sortOrder));
 
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(
-      `${baseUrl}/api/crypto/transactions?${params.toString()}`
+      `${baseUrl}/api/crypto/transactions?${params.toString()}`,
     );
 
     if (!response.ok) {
@@ -52,7 +52,7 @@ export async function getCryptoTransactions(
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return {
       data: [],
       totalItems: 0,
@@ -66,10 +66,10 @@ export async function getCryptoTransactions(
  * Fetches a single crypto transaction by ID
  */
 export async function getCryptoTransactionById(
-  id: string
+  id: string,
 ): Promise<CryptoTransaction | null> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/transactions/${id}`);
 
     if (!response.ok) {
@@ -78,7 +78,7 @@ export async function getCryptoTransactionById(
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return null;
   }
 }
@@ -87,13 +87,13 @@ export async function getCryptoTransactionById(
  * Creates a new crypto transaction
  */
 export async function createCryptoTransaction(
-  data: Partial<CryptoTransaction>
+  data: Partial<CryptoTransaction>,
 ): Promise<CryptoTransaction | null> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/transactions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
 
@@ -103,7 +103,7 @@ export async function createCryptoTransaction(
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return null;
   }
 }
@@ -113,13 +113,13 @@ export async function createCryptoTransaction(
  */
 export async function updateCryptoTransaction(
   id: string,
-  data: Partial<CryptoTransaction>
+  data: Partial<CryptoTransaction>,
 ): Promise<CryptoTransaction | null> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/transactions/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
 
@@ -129,7 +129,7 @@ export async function updateCryptoTransaction(
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return null;
   }
 }
@@ -139,9 +139,9 @@ export async function updateCryptoTransaction(
  */
 export async function deleteCryptoTransaction(id: string): Promise<boolean> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/transactions/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
 
     if (!response.ok) {
@@ -150,7 +150,7 @@ export async function deleteCryptoTransaction(id: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return false;
   }
 }
@@ -160,7 +160,7 @@ export async function deleteCryptoTransaction(id: string): Promise<boolean> {
  */
 export async function getCryptoHoldings(): Promise<CryptoHoldingsSummary[]> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/holdings`);
 
     if (!response.ok) {
@@ -170,7 +170,7 @@ export async function getCryptoHoldings(): Promise<CryptoHoldingsSummary[]> {
     const result = await response.json();
     return result.data || [];
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return [];
   }
 }
@@ -184,7 +184,7 @@ export async function getCryptoOptions(): Promise<{
   transactionTypes: { value: string; label: string }[];
 }> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/options`);
 
     if (!response.ok) {
@@ -193,7 +193,7 @@ export async function getCryptoOptions(): Promise<{
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return {
       cryptoSymbols: [],
       wallets: [],
@@ -210,7 +210,7 @@ export async function getCryptoWallets(): Promise<{
   usedWallets: string[];
 }> {
   try {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const response = await fetch(`${baseUrl}/api/crypto/wallets`);
 
     if (!response.ok) {
@@ -219,7 +219,7 @@ export async function getCryptoWallets(): Promise<{
 
     return await response.json();
   } catch (error) {
-    console.error("API Error:", error);
+    console.error('API Error:', error);
     return {
       savedWallets: [],
       usedWallets: [],
@@ -227,4 +227,4 @@ export async function getCryptoWallets(): Promise<{
   }
 }
 
-export { duplicateCryptoTransaction } from "./cryptoActions";
+export { duplicateCryptoTransaction } from './cryptoActions';

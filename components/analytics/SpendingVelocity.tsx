@@ -1,6 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VelocityItem } from "@/lib/analytics-charts";
-import { TrendingUp, TrendingDown, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { VelocityItem } from '@/lib/analytics-charts';
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+} from 'lucide-react';
 
 interface SpendingVelocityProps {
   velocities: VelocityItem[];
@@ -8,9 +14,15 @@ interface SpendingVelocityProps {
   title?: string;
 }
 
-export function SpendingVelocity({ velocities, loading, title = "Velocidad de Gasto" }: SpendingVelocityProps) {
-  const growing = velocities.filter((v) => v.direction === "up").slice(0, 3);
-  const shrinking = velocities.filter((v) => v.direction === "down").slice(0, 3);
+export function SpendingVelocity({
+  velocities,
+  loading,
+  title = 'Velocidad de Gasto',
+}: SpendingVelocityProps) {
+  const growing = velocities.filter((v) => v.direction === 'up').slice(0, 3);
+  const shrinking = velocities
+    .filter((v) => v.direction === 'down')
+    .slice(0, 3);
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -48,20 +60,20 @@ export function SpendingVelocity({ velocities, loading, title = "Velocidad de Ga
                           {item.category}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {item.previous.toLocaleString("es-ES", {
-                            style: "currency",
-                            currency: "EUR",
-                          })}{" "}
-                          →{" "}
-                          {item.current.toLocaleString("es-ES", {
-                            style: "currency",
-                            currency: "EUR",
+                          {item.previous.toLocaleString('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR',
+                          })}{' '}
+                          →{' '}
+                          {item.current.toLocaleString('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR',
                           })}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-red-600 font-bold text-sm shrink-0">
-                        <ArrowUpRight className="h-4 w-4" />
-                        +{item.changePercent.toFixed(0)}%
+                        <ArrowUpRight className="h-4 w-4" />+
+                        {item.changePercent.toFixed(0)}%
                       </div>
                     </div>
                   ))
@@ -91,14 +103,14 @@ export function SpendingVelocity({ velocities, loading, title = "Velocidad de Ga
                           {item.category}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {item.previous.toLocaleString("es-ES", {
-                            style: "currency",
-                            currency: "EUR",
-                          })}{" "}
-                          →{" "}
-                          {item.current.toLocaleString("es-ES", {
-                            style: "currency",
-                            currency: "EUR",
+                          {item.previous.toLocaleString('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR',
+                          })}{' '}
+                          →{' '}
+                          {item.current.toLocaleString('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR',
                           })}
                         </div>
                       </div>

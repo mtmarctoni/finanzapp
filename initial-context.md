@@ -56,7 +56,6 @@ FinanzApp is a personal finance management application designed to help users tr
 ## Constraints and Priorities
 
 - **Constraints**:
-
   - Limited team size may impact development speed.
   - Dependency on PostgreSQL for database operations.
   - Ensuring accessibility and performance across devices.
@@ -69,13 +68,11 @@ FinanzApp is a personal finance management application designed to help users tr
 ## Future Plans
 
 - **Feature Enhancements**:
-
   - Add support for multi-currency transactions.
   - Introduce budgeting tools and financial goals.
   - Implement AI-driven financial insights.
 
 - **Scalability**:
-
   - Optimize the application for larger user bases.
   - Explore cloud hosting solutions for better performance.
 

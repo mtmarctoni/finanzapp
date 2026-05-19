@@ -1,15 +1,18 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import type { CryptoHoldingsSummary } from "@/types/finance"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { CryptoHoldingsSummary } from '@/types/finance';
 
 interface CryptoHoldingsCardProps {
-  holdings: CryptoHoldingsSummary[]
-  loading?: boolean
+  holdings: CryptoHoldingsSummary[];
+  loading?: boolean;
 }
 
-export function CryptoHoldingsCard({ holdings, loading }: CryptoHoldingsCardProps) {
+export function CryptoHoldingsCard({
+  holdings,
+  loading,
+}: CryptoHoldingsCardProps) {
   if (loading) {
     return (
       <Card>
@@ -27,7 +30,7 @@ export function CryptoHoldingsCard({ holdings, loading }: CryptoHoldingsCardProp
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (holdings.length === 0) {
@@ -42,7 +45,7 @@ export function CryptoHoldingsCard({ holdings, loading }: CryptoHoldingsCardProp
           </p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -53,27 +56,32 @@ export function CryptoHoldingsCard({ holdings, loading }: CryptoHoldingsCardProp
       <CardContent>
         <div className="space-y-4">
           {holdings.map((holding) => (
-            <div key={holding.symbol} className="flex items-center justify-between py-2 border-b last:border-b-0">
+            <div
+              key={holding.symbol}
+              className="flex items-center justify-between py-2 border-b last:border-b-0"
+            >
               <div>
                 <div className="font-medium">{holding.symbol}</div>
                 <div className="text-sm text-muted-foreground">
-                  {holding.totalAmount.toLocaleString('es-ES', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 8 
+                  {holding.totalAmount.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 8,
                   })}
                 </div>
               </div>
               <div className="text-right">
                 <div className="font-mono">
-                  €{holding.totalInvested.toLocaleString('es-ES', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
+                  €
+                  {holding.totalInvested.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Avg: €{holding.averagePrice.toLocaleString('es-ES', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
+                  Avg: €
+                  {holding.averagePrice.toLocaleString('es-ES', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
                   })}
                 </div>
               </div>
@@ -82,5 +90,5 @@ export function CryptoHoldingsCard({ holdings, loading }: CryptoHoldingsCardProp
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

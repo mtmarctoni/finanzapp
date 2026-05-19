@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 /**
  * Server-action facade for the crypto domain.
@@ -18,13 +18,13 @@
  * keep working.
  */
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath } from 'next/cache';
 import type {
   CryptoHoldingsSummary,
   CryptoTransaction,
   CryptoTransactionFormData,
   CryptoWallet,
-} from "@/types/finance";
+} from '@/types/finance';
 import {
   type CryptoTransactionFilter,
   type PaginatedCryptoTransactions,
@@ -34,22 +34,19 @@ import {
   insertTransaction,
   listTransactions,
   updateTransactionById,
-} from "@/lib/crypto/transactions";
+} from '@/lib/crypto/transactions';
 import {
   insertWallet,
   listUsedWallets,
   listWallets,
-} from "@/lib/crypto/wallets";
-import {
-  aggregateHoldings,
-  listUserSymbols,
-} from "@/lib/crypto/holdings";
+} from '@/lib/crypto/wallets';
+import { aggregateHoldings, listUserSymbols } from '@/lib/crypto/holdings';
 
 // Re-export the filter type so existing API routes can keep importing
 // it from "@/lib/cryptoActions".
 export type { CryptoTransactionFilter, PaginatedCryptoTransactions };
 
-const CRYPTO_REVALIDATE_PATH = "/investment/crypto";
+const CRYPTO_REVALIDATE_PATH = '/investment/crypto';
 
 // ============================================
 // CRYPTO TRANSACTIONS
@@ -57,21 +54,21 @@ const CRYPTO_REVALIDATE_PATH = "/investment/crypto";
 
 export async function getCryptoTransactions(
   filters: CryptoTransactionFilter,
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<PaginatedCryptoTransactions> {
   return listTransactions(filters, session.user.id);
 }
 
 export async function getCryptoTransactionById(
   id: string,
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<CryptoTransaction | null> {
   return findTransactionById(id, session.user.id);
 }
 
 export async function createCryptoTransaction(
   formData: CryptoTransactionFormData,
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<CryptoTransaction> {
   const result = await insertTransaction(formData, session.user.id);
   revalidatePath(CRYPTO_REVALIDATE_PATH);
@@ -81,7 +78,7 @@ export async function createCryptoTransaction(
 export async function updateCryptoTransaction(
   id: string,
   formData: Partial<CryptoTransactionFormData>,
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<CryptoTransaction | null> {
   const result = await updateTransactionById(id, formData, session.user.id);
   revalidatePath(CRYPTO_REVALIDATE_PATH);
@@ -90,7 +87,7 @@ export async function updateCryptoTransaction(
 
 export async function deleteCryptoTransaction(
   id: string,
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<boolean> {
   const ok = await deleteTransactionById(id, session.user.id);
   revalidatePath(CRYPTO_REVALIDATE_PATH);
@@ -99,7 +96,7 @@ export async function deleteCryptoTransaction(
 
 export async function duplicateCryptoTransaction(
   id: string,
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<CryptoTransaction | null> {
   const result = await duplicateTransactionById(id, session.user.id);
   revalidatePath(CRYPTO_REVALIDATE_PATH);
@@ -118,7 +115,7 @@ export async function getCryptoWallets(session: {
 
 export async function createCryptoWallet(
   data: { name: string; walletType: string; address?: string; notes?: string },
-  session: { user: { id: string } }
+  session: { user: { id: string } },
 ): Promise<CryptoWallet> {
   const result = await insertWallet(data, session.user.id);
   revalidatePath(CRYPTO_REVALIDATE_PATH);

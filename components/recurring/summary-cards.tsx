@@ -1,12 +1,12 @@
-import { CircleDollarSign, Clock3, Repeat, Sparkles } from 'lucide-react'
+import { CircleDollarSign, Clock3, Repeat, Sparkles } from 'lucide-react';
 
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils';
 
 interface SummaryCardsProps {
-  totalRecords: number
-  activeRecords: number
-  inactiveRecords: number
-  monthlyEstimate: number
+  totalRecords: number;
+  activeRecords: number;
+  inactiveRecords: number;
+  monthlyEstimate: number;
 }
 
 export function SummaryCards({
@@ -43,8 +43,10 @@ export function SummaryCards({
           <CircleDollarSign className="h-4 w-4" />
           Estimado mensual
         </div>
-        <p className="mt-2 text-2xl font-semibold">{formatCurrency(monthlyEstimate)}</p>
+        <p className="mt-2 text-2xl font-semibold">
+          {formatCurrency(monthlyEstimate)}
+        </p>
       </div>
     </div>
-  )
+  );
 }

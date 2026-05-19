@@ -1,14 +1,14 @@
-"use client"
+'use client';
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { PlusCircle } from "lucide-react"
-import { Button } from "./ui/button"
-import { NAV_ITEMS, isActivePath } from "@/config"
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { PlusCircle } from 'lucide-react';
+import { Button } from './ui/button';
+import { NAV_ITEMS, isActivePath } from '@/config';
 
 export function Sidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <div className="hidden border-r bg-muted/40 lg:block w-64 flex-shrink-0">
@@ -21,21 +21,21 @@ export function Sidebar() {
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
             {NAV_ITEMS.map((item) => {
-              const isActive = isActivePath(pathname, item.href)
+              const isActive = isActivePath(pathname, item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  aria-current={isActive ? "page" : undefined}
+                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                    isActive && "bg-muted text-primary"
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                    isActive && 'bg-muted text-primary',
                   )}
                 >
                   <item.icon className="h-4 w-4" />
                   {item.name}
                 </Link>
-              )
+              );
             })}
             <div className="mt-4">
               <Link href="/new">
@@ -49,5 +49,5 @@ export function Sidebar() {
         </div>
       </div>
     </div>
-  )
+  );
 }

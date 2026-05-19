@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
-import { Button } from "@/components/ui/button";
-import { MessageSquare, X, Send, Loader2, DollarSign } from "lucide-react";
-import { ChatMessage } from "./ChatMessage";
-import { PaidFallbackDialog } from "./PaidFallbackDialog";
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, X, Send, Loader2, DollarSign } from 'lucide-react';
+import { ChatMessage } from './ChatMessage';
+import { PaidFallbackDialog } from './PaidFallbackDialog';
 
 interface FallbackError {
   requiresConfirmation: boolean;
@@ -21,7 +21,7 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [fallbackError, setFallbackError] = useState<FallbackError | null>(
-    null
+    null,
   );
   const [paidSessionActive, setPaidSessionActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -30,31 +30,23 @@ export function ChatWidget() {
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
-        api: "/api/ai/chat",
-        headers: paidSessionActive
-          ? { "X-Confirm-Paid": "true" }
-          : undefined,
+        api: '/api/ai/chat',
+        headers: paidSessionActive ? { 'X-Confirm-Paid': 'true' } : undefined,
       }),
-    [paidSessionActive]
+    [paidSessionActive],
   );
 
-  const {
-    messages,
-    status,
-    error,
-    sendMessage,
-    setMessages,
-    clearError,
-  } = useChat({
-    transport,
-  });
+  const { messages, status, error, sendMessage, setMessages, clearError } =
+    useChat({
+      transport,
+    });
 
-  const isLoading = status === "streaming" || status === "submitted";
-  const hasError = status === "error" || !!error;
+  const isLoading = status === 'streaming' || status === 'submitted';
+  const hasError = status === 'error' || !!error;
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   // Focus input when chat opens
@@ -68,7 +60,7 @@ export function ChatWidget() {
   useEffect(() => {
     const checkConfirmation = async () => {
       try {
-        const response = await fetch("/api/ai/confirm-paid");
+        const response = await fetch('/api/ai/confirm-paid');
         if (response.ok) {
           const data = await response.json();
           if (data.confirmed) {
@@ -76,7 +68,7 @@ export function ChatWidget() {
           }
         }
       } catch (error) {
-        console.error("Error checking confirmation status:", error);
+        console.error('Error checking confirmation status:', error);
       }
     };
 
@@ -91,24 +83,34 @@ export function ChatWidget() {
       // Try to parse the error message as JSON safely
       try {
         // Check if error message looks like JSON before parsing
-        if (error.message && (error.message.trim().startsWith('{') || error.message.trim().startsWith('['))) {
+        if (
+          error.message &&
+          (error.message.trim().startsWith('{') ||
+            error.message.trim().startsWith('['))
+        ) {
           const errorData = JSON.parse(error.message);
           // Validate that it has the expected fallback error structure
-          if (errorData && typeof errorData === 'object' && errorData.requiresConfirmation === true) {
+          if (
+            errorData &&
+            typeof errorData === 'object' &&
+            errorData.requiresConfirmation === true
+          ) {
             // Use microtask to avoid setting state synchronously in effect
             queueMicrotask(() => {
               setFallbackError({
                 requiresConfirmation: true,
-                fallbackModel: errorData.fallbackModel || "Kimi K2.5",
-                estimatedCost: errorData.estimatedCost || "$0.001 - $0.005",
-                freeProviderErrors: Array.isArray(errorData.freeProviderErrors) ? errorData.freeProviderErrors : [],
+                fallbackModel: errorData.fallbackModel || 'Kimi K2.5',
+                estimatedCost: errorData.estimatedCost || '$0.001 - $0.005',
+                freeProviderErrors: Array.isArray(errorData.freeProviderErrors)
+                  ? errorData.freeProviderErrors
+                  : [],
               });
             });
           }
         }
       } catch {
         // Not a JSON error or not a valid fallback error - ignore
-        console.log("Regular error:", error.message);
+        console.log('Regular error:', error.message);
       }
     }
   }, [error]);
@@ -121,10 +123,10 @@ export function ChatWidget() {
       try {
         await sendMessage({ text });
       } catch (err) {
-        console.error("Send message error:", err);
+        console.error('Send message error:', err);
       }
     },
-    [sendMessage]
+    [sendMessage],
   );
 
   // Handle paid fallback confirmation
@@ -139,7 +141,7 @@ export function ChatWidget() {
     try {
       await sendMessage({ text: pendingMessage });
     } catch (err) {
-      console.error("Retry error:", err);
+      console.error('Retry error:', err);
     }
 
     setPendingMessage(null);
@@ -156,9 +158,12 @@ export function ChatWidget() {
   useEffect(() => {
     if (!paidSessionActive) return;
 
-    const timeout = setTimeout(() => {
-      setPaidSessionActive(false);
-    }, 10 * 60 * 1000); // 10 minutes
+    const timeout = setTimeout(
+      () => {
+        setPaidSessionActive(false);
+      },
+      10 * 60 * 1000,
+    ); // 10 minutes
 
     return () => clearTimeout(timeout);
   }, [paidSessionActive]);
@@ -173,7 +178,7 @@ export function ChatWidget() {
     const text = input.value.trim();
     if (!text || isLoading) return;
 
-    input.value = "";
+    input.value = '';
     await handleSendMessage(text);
   };
 
@@ -190,8 +195,8 @@ export function ChatWidget() {
         onClose={handleDeclinePaidFallback}
         onConfirm={handleConfirmPaidFallback}
         onDecline={handleDeclinePaidFallback}
-        estimatedCost={fallbackError?.estimatedCost || "$0.001 - $0.005"}
-        modelName={fallbackError?.fallbackModel || "Kimi K2.5"}
+        estimatedCost={fallbackError?.estimatedCost || '$0.001 - $0.005'}
+        modelName={fallbackError?.fallbackModel || 'Kimi K2.5'}
       />
 
       {/* Floating trigger button */}
@@ -268,7 +273,7 @@ export function ChatWidget() {
 
             {hasError && !fallbackError && (
               <div className="mb-3 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
-                <span>Error: {error?.message ?? "Algo salió mal"}</span>
+                <span>Error: {error?.message ?? 'Algo salió mal'}</span>
                 <button
                   onClick={clearError}
                   className="ml-2 text-xs underline hover:no-underline"

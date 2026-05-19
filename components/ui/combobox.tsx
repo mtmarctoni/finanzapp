@@ -1,10 +1,10 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import * as React from 'react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandEmpty,
@@ -12,43 +12,43 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from '@/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Skeleton } from "@/components/ui/skeleton"
+} from '@/components/ui/popover';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ComboboxProps {
-  options: string[]
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  allowCreate?: boolean
-  loading?: boolean
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  allowCreate?: boolean;
+  loading?: boolean;
 }
 
 export function Combobox({
   options,
   value,
   onChange,
-  placeholder = "Seleccionar...",
+  placeholder = 'Seleccionar...',
   allowCreate = true,
   loading = false,
 }: ComboboxProps) {
-  const [open, setOpen] = React.useState(false)
-  const [inputValue, setInputValue] = React.useState("")
+  const [open, setOpen] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState('');
 
   const filteredOptions = options.filter((option) =>
-    option.toLowerCase().includes(inputValue.toLowerCase())
-  )
+    option.toLowerCase().includes(inputValue.toLowerCase()),
+  );
 
   const exactMatch = options.find(
-    (option) => option.toLowerCase() === inputValue.toLowerCase()
-  )
+    (option) => option.toLowerCase() === inputValue.toLowerCase(),
+  );
 
-  const showCreateOption = allowCreate && inputValue && !exactMatch
+  const showCreateOption = allowCreate && inputValue && !exactMatch;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -88,15 +88,15 @@ export function Combobox({
                       key={option}
                       value={option}
                       onSelect={() => {
-                        onChange(option)
-                        setInputValue("")
-                        setOpen(false)
+                        onChange(option);
+                        setInputValue('');
+                        setOpen(false);
                       }}
                     >
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4",
-                          value === option ? "opacity-100" : "opacity-0"
+                          'mr-2 h-4 w-4',
+                          value === option ? 'opacity-100' : 'opacity-0',
                         )}
                       />
                       {option}
@@ -106,13 +106,13 @@ export function Combobox({
                     <CommandItem
                       value={inputValue}
                       onSelect={() => {
-                        onChange(inputValue)
-                        setInputValue("")
-                        setOpen(false)
+                        onChange(inputValue);
+                        setInputValue('');
+                        setOpen(false);
                       }}
                     >
                       <Plus className="mr-2 h-4 w-4" />
-                        {`Crear "${inputValue}"`}
+                      {`Crear "${inputValue}"`}
                     </CommandItem>
                   )}
                 </>
@@ -122,5 +122,5 @@ export function Combobox({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

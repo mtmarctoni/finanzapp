@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { format } from "date-fns";
+import { useCallback, useEffect, useState } from 'react';
+import { format } from 'date-fns';
 
-import { useToast } from "@/hooks/use-toast";
-import { RecurringRecord } from "@/types/finance";
-import { GenerateError, RecurringFormData } from "@/components/recurring/types";
+import { useToast } from '@/hooks/use-toast';
+import { RecurringRecord } from '@/types/finance';
+import { GenerateError, RecurringFormData } from '@/components/recurring/types';
 
 interface UseRecurringRecordsResult {
   recurringRecords: RecurringRecord[];
@@ -38,16 +38,16 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
 
   const fetchRecurringRecords = useCallback(async () => {
     try {
-      const response = await fetch("/api/recurring");
-      if (!response.ok) throw new Error("Failed to fetch recurring records");
+      const response = await fetch('/api/recurring');
+      if (!response.ok) throw new Error('Failed to fetch recurring records');
       const data = (await response.json()) as RecurringRecord[];
       setRecurringRecords(data);
     } catch (error: unknown) {
-      console.error("Error fetching recurring records:", error);
+      console.error('Error fetching recurring records:', error);
       toast({
-        title: "Error",
-        description: "Error al cargar los registros recurrentes",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Error al cargar los registros recurrentes',
+        variant: 'destructive',
       });
     }
   }, [toast]);
@@ -60,26 +60,26 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
     async (record: RecurringFormData) => {
       try {
         setLoading(true);
-        const response = await fetch("/api/recurring", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/recurring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(buildPayload(record)),
         });
 
-        if (!response.ok) throw new Error("Failed to add recurring record");
+        if (!response.ok) throw new Error('Failed to add recurring record');
 
         await fetchRecurringRecords();
         toast({
-          title: "Éxito",
-          description: "Registro recurrente añadido correctamente",
+          title: 'Éxito',
+          description: 'Registro recurrente añadido correctamente',
         });
         return true;
       } catch (error: unknown) {
-        console.error("Error adding recurring record:", error);
+        console.error('Error adding recurring record:', error);
         toast({
-          title: "Error",
-          description: "Error al añadir el registro recurrente",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Error al añadir el registro recurrente',
+          variant: 'destructive',
         });
         return false;
       } finally {
@@ -93,26 +93,26 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
     async (id: string, record: RecurringFormData) => {
       try {
         setLoading(true);
-        const response = await fetch("/api/recurring", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/recurring', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, ...buildPayload(record) }),
         });
 
-        if (!response.ok) throw new Error("Failed to update recurring record");
+        if (!response.ok) throw new Error('Failed to update recurring record');
 
         await fetchRecurringRecords();
         toast({
-          title: "Éxito",
-          description: "Registro recurrente actualizado correctamente",
+          title: 'Éxito',
+          description: 'Registro recurrente actualizado correctamente',
         });
         return true;
       } catch (error: unknown) {
-        console.error("Error updating recurring record:", error);
+        console.error('Error updating recurring record:', error);
         toast({
-          title: "Error",
-          description: "Error al actualizar el registro recurrente",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Error al actualizar el registro recurrente',
+          variant: 'destructive',
         });
         return false;
       } finally {
@@ -124,31 +124,31 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
 
   const deleteRecord = useCallback(
     async (id: string) => {
-      if (!confirm("¿Seguro que deseas eliminar este registro recurrente?"))
+      if (!confirm('¿Seguro que deseas eliminar este registro recurrente?'))
         return false;
 
       try {
         setLoading(true);
-        const response = await fetch("/api/recurring", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/recurring', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),
         });
 
-        if (!response.ok) throw new Error("Failed to delete recurring record");
+        if (!response.ok) throw new Error('Failed to delete recurring record');
 
         await fetchRecurringRecords();
         toast({
-          title: "Éxito",
-          description: "Registro recurrente eliminado correctamente",
+          title: 'Éxito',
+          description: 'Registro recurrente eliminado correctamente',
         });
         return true;
       } catch (error: unknown) {
-        console.error("Error deleting recurring record:", error);
+        console.error('Error deleting recurring record:', error);
         toast({
-          title: "Error",
-          description: "Error al eliminar el registro recurrente",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Error al eliminar el registro recurrente',
+          variant: 'destructive',
         });
         return false;
       } finally {
@@ -162,41 +162,41 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
     async (date: Date) => {
       if (
         !confirm(
-          "¿Generar ahora los registros recurrentes para la fecha seleccionada?",
+          '¿Generar ahora los registros recurrentes para la fecha seleccionada?',
         )
       )
         return false;
 
       try {
         setLoading(true);
-        const response = await fetch("/api/recurring/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/recurring/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            date: format(date, "yyyy-MM-dd"),
+            date: format(date, 'yyyy-MM-dd'),
           }),
         });
 
         if (!response.ok) {
           const errorData = (await response.json()) as GenerateError;
           throw new Error(
-            errorData.details || "Failed to generate recurring records",
+            errorData.details || 'Failed to generate recurring records',
           );
         }
 
         const result = (await response.json()) as { generated: number };
         toast({
-          title: "Éxito",
+          title: 'Éxito',
           description: `Generados ${result.generated} registros`,
         });
         await fetchRecurringRecords();
         return true;
       } catch (error: unknown) {
-        console.error("Error generating recurring records:", error);
+        console.error('Error generating recurring records:', error);
         toast({
-          title: "Error",
-          description: "Error al generar los registros recurrentes",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Error al generar los registros recurrentes',
+          variant: 'destructive',
         });
         return false;
       } finally {

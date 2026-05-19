@@ -1,43 +1,43 @@
-import { Suspense } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { PlusCircle, FileDown } from "lucide-react"
-import FinanceTable from "@/components/finance-table"
-import { TableSkeleton } from "@/components/table-skeleton"
-import { SearchFilter } from "@/components/search-filter"
-import { QuickEntryBar } from "@/components/ai/QuickEntryBar"
-import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from "@/config"
+import { Suspense } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, FileDown } from 'lucide-react';
+import FinanceTable from '@/components/finance-table';
+import { TableSkeleton } from '@/components/table-skeleton';
+import { SearchFilter } from '@/components/search-filter';
+import { QuickEntryBar } from '@/components/ai/QuickEntryBar';
+import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from '@/config';
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic';
 
 export default async function RecordsPage({
   searchParams,
 }: {
   searchParams?: Promise<{
-    search?: string
-    accion?: string
-    from?: string
-    to?: string
-    page?: string
-    itemsPerPage?: string
-  }>
+    search?: string;
+    accion?: string;
+    from?: string;
+    to?: string;
+    page?: string;
+    itemsPerPage?: string;
+  }>;
 }) {
   const {
-    search = "",
+    search = '',
     accion = DEFAULT_ACCION_FILTER,
-    from = "",
-    to = "",
-    page = "1",
+    from = '',
+    to = '',
+    page = '1',
     itemsPerPage = String(ITEMS_PER_PAGE),
-  } = await searchParams ?? {}
+  } = (await searchParams) ?? {};
 
-  const filterParams = { search, accion, from, to, page, itemsPerPage }
+  const filterParams = { search, accion, from, to, page, itemsPerPage };
 
-  const exportParams = new URLSearchParams()
-  if (search) exportParams.set("search", search)
-  if (from) exportParams.set("from", from)
-  if (to) exportParams.set("to", to)
-  if (accion && accion !== "todos") exportParams.set("tipo", accion)
+  const exportParams = new URLSearchParams();
+  if (search) exportParams.set('search', search);
+  if (from) exportParams.set('from', from);
+  if (to) exportParams.set('to', to);
+  if (accion && accion !== 'todos') exportParams.set('tipo', accion);
 
   return (
     <main className="container mx-auto py-10 space-y-6">
@@ -65,7 +65,9 @@ export default async function RecordsPage({
       {/* Search/Filter Section - Clear visual separation */}
       <div className="border-t pt-6">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-muted-foreground">Buscar y Filtrar</h2>
+          <h2 className="text-lg font-semibold text-muted-foreground">
+            Buscar y Filtrar
+          </h2>
         </div>
         <SearchFilter />
       </div>
@@ -74,5 +76,5 @@ export default async function RecordsPage({
         <FinanceTable searchParams={filterParams} />
       </Suspense>
     </main>
-  )
+  );
 }

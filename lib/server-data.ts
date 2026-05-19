@@ -1,6 +1,6 @@
-import { createPool } from "@vercel/postgres";
-import type { Entry } from "./definitions";
-import { Session } from "next-auth";
+import { createPool } from '@vercel/postgres';
+import type { Entry } from './definitions';
+import { Session } from 'next-auth';
 
 /**
  * Server-side function to get summary statistics
@@ -15,18 +15,18 @@ import { Session } from "next-auth";
 export async function getSummaryStats(
   month?: string,
   session: Session | null = null,
-  request?: Request
+  request?: Request,
 ) {
   if (!session?.user?.id) {
     // Authentication is enforced at the API route layer, but we add a
     // defensive guard here so this server-side helper can never produce
     // cross-user totals if it's invoked without a session by mistake.
-    throw new Error("Not authenticated");
+    throw new Error('Not authenticated');
   }
 
   const userId = session.user.id;
   const showAll = request
-    ? new URL(request.url).searchParams.get("showAll") === "true"
+    ? new URL(request.url).searchParams.get('showAll') === 'true'
     : false;
   const breakdownLimit = showAll ? 1000 : 5;
 
@@ -48,7 +48,7 @@ export async function getSummaryStats(
          FROM finance_entries
          ${whereSql}
           AND accion = 'Ingreso'`,
-      baseParams
+      baseParams,
     );
 
     const expenseResult = await pool.query(
@@ -56,7 +56,7 @@ export async function getSummaryStats(
          FROM finance_entries
          ${whereSql}
           AND accion = 'Gasto'`,
-      baseParams
+      baseParams,
     );
 
     const investmentResult = await pool.query(
@@ -64,7 +64,7 @@ export async function getSummaryStats(
          FROM finance_entries
          ${whereSql}
           AND accion = 'Inversión'`,
-      baseParams
+      baseParams,
     );
 
     const trendsResult = await pool.query(
@@ -78,11 +78,11 @@ export async function getSummaryStats(
         GROUP BY date_trunc('month', fecha)
         ORDER BY month DESC
         LIMIT 6`,
-      [userId]
+      [userId],
     );
 
     const monthlyTrends = trendsResult.rows.map((row) => ({
-      month: row.month.toISOString().split("T")[0],
+      month: row.month.toISOString().split('T')[0],
       income: Number(row.income),
       expenses: Number(row.expenses),
       investments: Number(row.investments),
@@ -96,7 +96,7 @@ export async function getSummaryStats(
         GROUP BY que
         ORDER BY total DESC
         LIMIT $3`,
-      [...baseParams, breakdownLimit]
+      [...baseParams, breakdownLimit],
     );
 
     const incomeCategories = await pool.query(
@@ -107,7 +107,7 @@ export async function getSummaryStats(
         GROUP BY que
         ORDER BY total DESC
         LIMIT $3`,
-      [...baseParams, breakdownLimit]
+      [...baseParams, breakdownLimit],
     );
 
     const investmentPerformance = await pool.query(
@@ -118,15 +118,13 @@ export async function getSummaryStats(
         GROUP BY que
         ORDER BY total DESC
         LIMIT 5`,
-      baseParams
+      baseParams,
     );
 
     const totalIncome = Number(incomeResult.rows[0].total);
     const totalExpenses = Number(expenseResult.rows[0].total);
     const savingsRate =
-      totalIncome > 0
-        ? ((totalIncome - totalExpenses) / totalIncome) * 100
-        : 0;
+      totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
     return {
       totalIncome,
@@ -166,7 +164,7 @@ export async function getSummaryStats(
       },
     };
   } catch (error) {
-    console.error("Database Error:", error);
+    console.error('Database Error:', error);
     return {
       totalIncome: 0,
       incomeCount: 0,
@@ -199,16 +197,16 @@ export async function getSummaryStats(
  */
 export async function getEntryById(
   id: string,
-  session: Session | null = null
+  session: Session | null = null,
 ): Promise<Entry | null> {
   const pool = createPool();
 
   try {
     const params: string[] = [id];
-    let userScope = "";
+    let userScope = '';
     if (session?.user?.id) {
       params.push(session.user.id);
-      userScope = " AND user_id = $2";
+      userScope = ' AND user_id = $2';
     }
 
     const result = await pool.query(
@@ -217,7 +215,7 @@ export async function getEntryById(
          FROM finance_entries
         WHERE id = $1${userScope}
         LIMIT 1`,
-      params
+      params,
     );
 
     if (result.rows.length === 0) {
@@ -226,8 +224,8 @@ export async function getEntryById(
 
     return result.rows[0] as Entry;
   } catch (error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to fetch entry.");
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch entry.');
   } finally {
     await pool.end();
   }
@@ -239,7 +237,7 @@ export async function getEntryById(
  */
 export async function getFormOptions(session: Session | null = null) {
   if (!session?.user?.id) {
-    throw new Error("Not authenticated");
+    throw new Error('Not authenticated');
   }
 
   const pool = createPool();
@@ -253,7 +251,7 @@ export async function getFormOptions(session: Session | null = null) {
             WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
             GROUP BY tipo
             ORDER BY count DESC, tipo ASC`,
-          [session.user.id]
+          [session.user.id],
         ),
         pool.query(
           `SELECT que AS value, COUNT(*) AS count
@@ -261,7 +259,7 @@ export async function getFormOptions(session: Session | null = null) {
             WHERE user_id = $1 AND que IS NOT NULL AND que != ''
             GROUP BY que
             ORDER BY count DESC, que ASC`,
-          [session.user.id]
+          [session.user.id],
         ),
         pool.query(
           `SELECT plataforma_pago AS value, COUNT(*) AS count
@@ -271,7 +269,7 @@ export async function getFormOptions(session: Session | null = null) {
               AND plataforma_pago != ''
             GROUP BY plataforma_pago
             ORDER BY count DESC, plataforma_pago ASC`,
-          [session.user.id]
+          [session.user.id],
         ),
         pool.query(
           `SELECT quien AS value, COUNT(*) AS count
@@ -279,21 +277,19 @@ export async function getFormOptions(session: Session | null = null) {
             WHERE user_id = $1 AND quien IS NOT NULL AND quien != ''
             GROUP BY quien
             ORDER BY count DESC, quien ASC`,
-          [session.user.id]
+          [session.user.id],
         ),
       ]);
 
     return {
       tipo: tipoResult.rows.map((row) => row.value as string),
       que: queResult.rows.map((row) => row.value as string),
-      plataforma_pago: plataformaResult.rows.map(
-        (row) => row.value as string
-      ),
+      plataforma_pago: plataformaResult.rows.map((row) => row.value as string),
       quien: quienResult.rows.map((row) => row.value as string),
     };
   } catch (error) {
-    console.error("Database Error:", error);
-    throw new Error("Failed to fetch form options.");
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch form options.');
   } finally {
     await pool.end();
   }

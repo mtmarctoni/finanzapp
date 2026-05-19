@@ -11,7 +11,7 @@ updates:
     groups:
       production:
         patterns:
-          - "*"
+          - '*'
         update-types:
           - patch
           - minor
@@ -21,6 +21,6 @@ updates:
           - patch
           - minor
     ignore:
-      - dependency-name: "*"
+      - dependency-name: '*'
         update-types:
           - version-update:semver-major

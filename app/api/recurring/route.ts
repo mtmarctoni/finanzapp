@@ -1,29 +1,29 @@
-"use server";
+'use server';
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import {
   getRecurringRecords,
   createRecurringRecord,
   updateRecurringRecord,
   deleteRecurringRecord,
-} from "@/lib/recurringActions";
+} from '@/lib/recurringActions';
 
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
     const result = await getRecurringRecords(userId);
 
     return Response.json(result);
   } catch (error) {
-    console.error("Error fetching recurring records:", error);
+    console.error('Error fetching recurring records:', error);
     return Response.json(
-      { error: "Failed to fetch recurring records" },
-      { status: 500 }
+      { error: 'Failed to fetch recurring records' },
+      { status: 500 },
     );
   }
 }
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
     const {
@@ -41,11 +41,11 @@ export async function POST(request: Request) {
       tipo,
       detalle1,
       detalle2,
-      quien = "Yo",
+      quien = 'Yo',
       amount,
       frequency,
       active = true,
-      plataforma_pago = "any",
+      plataforma_pago = 'any',
       dia = 1,
     } = await request.json();
 
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       !plataforma_pago ||
       !accion
     ) {
-      throw new Error("Todos los campos son requeridos");
+      throw new Error('Todos los campos son requeridos');
     }
     const data = {
       name,
@@ -82,10 +82,10 @@ export async function POST(request: Request) {
     // `
     return Response.json(result);
   } catch (error) {
-    console.error("Error adding recurring record:", error);
+    console.error('Error adding recurring record:', error);
     return Response.json(
-      { error: "Failed to add recurring record" },
-      { status: 500 }
+      { error: 'Failed to add recurring record' },
+      { status: 500 },
     );
   }
 }
@@ -94,7 +94,7 @@ export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
     const {
@@ -121,7 +121,7 @@ export async function PUT(request: Request) {
       !plataforma_pago ||
       !accion
     ) {
-      throw new Error("Todos los campos son requeridos");
+      throw new Error('Todos los campos son requeridos');
     }
 
     await updateRecurringRecord(
@@ -139,7 +139,7 @@ export async function PUT(request: Request) {
         plataforma_pago,
         dia,
       },
-      userId
+      userId,
     );
 
     // const result = await sql`
@@ -161,10 +161,10 @@ export async function PUT(request: Request) {
 
     return Response.json({ id });
   } catch (error) {
-    console.error("Error updating recurring record:", error);
+    console.error('Error updating recurring record:', error);
     return Response.json(
-      { error: "Failed to update recurring record" },
-      { status: 500 }
+      { error: 'Failed to update recurring record' },
+      { status: 500 },
     );
   }
 }
@@ -173,7 +173,7 @@ export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
 
@@ -196,10 +196,10 @@ export async function DELETE(request: Request) {
 
     return Response.json(result);
   } catch (error) {
-    console.error("Error deleting recurring record:", error);
+    console.error('Error deleting recurring record:', error);
     return Response.json(
-      { error: "Failed to delete recurring record" },
-      { status: 500 }
+      { error: 'Failed to delete recurring record' },
+      { status: 500 },
     );
   }
 }

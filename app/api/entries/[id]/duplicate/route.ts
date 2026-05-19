@@ -1,17 +1,17 @@
-import { createClient } from "@vercel/postgres";
-import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { createClient } from '@vercel/postgres';
+import { NextRequest, NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { id } = await params;
@@ -30,8 +30,8 @@ export async function POST(
 
       if (rows.length === 0) {
         return NextResponse.json(
-          { error: "Entry not found or access denied" },
-          { status: 404 }
+          { error: 'Entry not found or access denied' },
+          { status: 404 },
         );
       }
 
@@ -78,10 +78,10 @@ export async function POST(
       await client.end();
     }
   } catch (error) {
-    console.error("Database Error:", error);
+    console.error('Database Error:', error);
     return NextResponse.json(
-      { error: "Failed to duplicate entry" },
-      { status: 500 }
+      { error: 'Failed to duplicate entry' },
+      { status: 500 },
     );
   }
 }

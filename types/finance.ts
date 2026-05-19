@@ -43,7 +43,7 @@ export type MonthlyData = {
 /**
  * Transaction types
  */
-export type TransactionType = "Ingreso" | "Gasto" | "Inversión" | "todos";
+export type TransactionType = 'Ingreso' | 'Gasto' | 'Inversión' | 'todos';
 
 /**
  * Recurring record type
@@ -60,7 +60,7 @@ export type RecurringRecord = {
   /**
    * Type of transaction (Ingreso, Gasto, Inversión)
    */
-  accion: "Ingreso" | "Gasto" | "Inversión";
+  accion: 'Ingreso' | 'Gasto' | 'Inversión';
   /**
    * Type of transaction (e.g. 'Ingreso', 'Gasto', 'Inversión')
    */
@@ -84,7 +84,7 @@ export type RecurringRecord = {
   /**
    * Frequency of the recurring record (monthly, weekly, biweekly, or yearly)
    */
-  frequency: "monthly" | "weekly" | "biweekly" | "yearly";
+  frequency: 'monthly' | 'weekly' | 'biweekly' | 'yearly';
   /**
    * Whether the recurring record is active or not
    */
@@ -115,19 +115,19 @@ export type RecurringRecord = {
  * Crypto transaction types
  */
 export type CryptoTransactionType =
-  | "deposit" // Buying crypto (linked to finance_entries with tipo="Cripto D")
-  | "withdrawal" // Selling crypto (linked to finance_entries with tipo="Cripto W")
-  | "wallet_transfer" // Moving crypto between wallets
-  | "exchange" // Trading one crypto for another
-  | "staking" // Staking rewards
-  | "airdrop" // Received airdrop
-  | "fee" // Network/transaction fees
-  | "genesis"; // Initial acquisition (not linked to finance_entries)
+  | 'deposit' // Buying crypto (linked to finance_entries with tipo="Cripto D")
+  | 'withdrawal' // Selling crypto (linked to finance_entries with tipo="Cripto W")
+  | 'wallet_transfer' // Moving crypto between wallets
+  | 'exchange' // Trading one crypto for another
+  | 'staking' // Staking rewards
+  | 'airdrop' // Received airdrop
+  | 'fee' // Network/transaction fees
+  | 'genesis'; // Initial acquisition (not linked to finance_entries)
 
 /**
  * Crypto wallet types
  */
-export type CryptoWalletType = "exchange" | "hardware" | "software" | "paper";
+export type CryptoWalletType = 'exchange' | 'hardware' | 'software' | 'paper';
 
 /**
  * Crypto transaction record

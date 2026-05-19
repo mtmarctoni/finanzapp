@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Bar } from 'react-chartjs-2';
 import { ChartData, ChartOptions } from 'chart.js';
 import {
@@ -12,7 +18,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { CategoryPlatformDatum } from "@/lib/analytics-charts";
+import { CategoryPlatformDatum } from '@/lib/analytics-charts';
 
 ChartJS.register(
   CategoryScale,
@@ -20,13 +26,23 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 interface CategoryDeepDiveProps {
-  categoryData: Array<{ category: string; total: number; count?: number; action?: string | null }>;
+  categoryData: Array<{
+    category: string;
+    total: number;
+    count?: number;
+    action?: string | null;
+  }>;
   categoryPlatformData: CategoryPlatformDatum[];
-  getChartData: (data: CategoryPlatformDatum[], category: string) => ChartData<'bar', number[], string> & { details?: Array<{ platform: string; total: number; count: number }> };
+  getChartData: (
+    data: CategoryPlatformDatum[],
+    category: string,
+  ) => ChartData<'bar', number[], string> & {
+    details?: Array<{ platform: string; total: number; count: number }>;
+  };
   getChartOptions: () => ChartOptions<'bar'>;
   loading: boolean;
 }
@@ -40,13 +56,13 @@ export function CategoryDeepDive({
 }: CategoryDeepDiveProps) {
   // Get expense categories only, sorted by total spend
   const expenseCategories = categoryData
-    .filter((item) => item.action === "Gasto" || !item.action)
+    .filter((item) => item.action === 'Gasto' || !item.action)
     .sort((a, b) => Math.abs(Number(b.total)) - Math.abs(Number(a.total)))
     .map((item) => item.category);
 
   const uniqueCategories = Array.from(new Set(expenseCategories));
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    uniqueCategories[0] || "Comida"
+    uniqueCategories[0] || 'Comida',
   );
 
   const chartData = getChartData(categoryPlatformData, selectedCategory);
@@ -62,8 +78,11 @@ export function CategoryDeepDive({
         <div>
           <CardTitle>Análisis por Categoría</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Total en <span className="font-semibold">{selectedCategory}</span>:{" "}
-            {categoryTotal.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+            Total en <span className="font-semibold">{selectedCategory}</span>:{' '}
+            {categoryTotal.toLocaleString('es-ES', {
+              style: 'currency',
+              currency: 'EUR',
+            })}
           </p>
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -105,14 +124,23 @@ export function CategoryDeepDive({
             ) : chartData.details && chartData.details.length > 0 ? (
               <div className="space-y-2 max-h-72 overflow-y-auto">
                 {chartData.details.map((item) => {
-                  const pct = categoryTotal > 0 ? (item.total / categoryTotal) * 100 : 0;
+                  const pct =
+                    categoryTotal > 0 ? (item.total / categoryTotal) * 100 : 0;
                   return (
-                    <div key={item.platform} className="flex items-center justify-between text-sm">
+                    <div
+                      key={item.platform}
+                      className="flex items-center justify-between text-sm"
+                    >
                       <div className="flex-1 min-w-0 mr-3">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium truncate">{item.platform}</span>
+                          <span className="font-medium truncate">
+                            {item.platform}
+                          </span>
                           <span className="text-muted-foreground ml-2 shrink-0">
-                            {item.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                            {item.total.toLocaleString('es-ES', {
+                              style: 'currency',
+                              currency: 'EUR',
+                            })}
                           </span>
                         </div>
                         <div className="w-full bg-muted rounded-full h-2">
@@ -122,8 +150,12 @@ export function CategoryDeepDive({
                           />
                         </div>
                         <div className="flex justify-between mt-0.5">
-                          <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
-                          <span className="text-xs text-muted-foreground">{item.count} mov.</span>
+                          <span className="text-xs text-muted-foreground">
+                            {pct.toFixed(1)}%
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {item.count} mov.
+                          </span>
                         </div>
                       </div>
                     </div>

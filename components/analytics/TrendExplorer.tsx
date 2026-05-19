@@ -1,6 +1,12 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Line } from 'react-chartjs-2';
 import { ChartData, ChartOptions } from 'chart.js';
 import {
@@ -13,8 +19,12 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { CategoryTemporalDatum, TypeTemporalDatum, TipoQueDatum } from "@/lib/analytics-charts";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import {
+  CategoryTemporalDatum,
+  TypeTemporalDatum,
+  TipoQueDatum,
+} from '@/lib/analytics-charts';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -23,7 +33,7 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 interface TrendExplorerProps {
@@ -31,18 +41,24 @@ interface TrendExplorerProps {
   typeTemporalData: TypeTemporalDatum[];
   tipoQueData: TipoQueDatum[];
   types: string[];
-  groupBy: "month" | "year";
+  groupBy: 'month' | 'year';
   loading: boolean;
   getCategoryTrendData: (
     data: CategoryTemporalDatum[],
     category: string,
-    groupBy: "month" | "year",
-  ) => ChartData<'line', number[], string> & { counts?: number[]; trendSlope?: number };
+    groupBy: 'month' | 'year',
+  ) => ChartData<'line', number[], string> & {
+    counts?: number[];
+    trendSlope?: number;
+  };
   getTipoTrendData: (
     data: TypeTemporalDatum[],
     type: string,
-    groupBy: "month" | "year",
-  ) => ChartData<'line', number[], string> & { counts?: number[]; trendSlope?: number };
+    groupBy: 'month' | 'year',
+  ) => ChartData<'line', number[], string> & {
+    counts?: number[];
+    trendSlope?: number;
+  };
   getLineChartOptions: () => ChartOptions<'line'>;
 }
 
@@ -57,8 +73,8 @@ export function TrendExplorer({
   getTipoTrendData,
   getLineChartOptions,
 }: TrendExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>("");
-  const [selectedQue, setSelectedQue] = useState<string>("__all__");
+  const [selectedTipo, setSelectedTipo] = useState<string>('');
+  const [selectedQue, setSelectedQue] = useState<string>('__all__');
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -71,30 +87,31 @@ export function TrendExplorer({
   }, [tipoQueData]);
 
   // Available que options based on selected tipo
-  const availableQue = selectedTipo && tipoToQueMap.has(selectedTipo)
-    ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
-    : [];
+  const availableQue =
+    selectedTipo && tipoToQueMap.has(selectedTipo)
+      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      : [];
 
   const handleTipoChange = (tipo: string) => {
     setSelectedTipo(tipo);
-    setSelectedQue("__all__");
+    setSelectedQue('__all__');
   };
 
   // Determine what chart data to show
-  const isTipoOnly = selectedTipo && selectedQue === "__all__";
-  const isQue = selectedTipo && selectedQue !== "__all__";
+  const isTipoOnly = selectedTipo && selectedQue === '__all__';
+  const isQue = selectedTipo && selectedQue !== '__all__';
 
   const chartData = isTipoOnly
     ? getTipoTrendData(typeTemporalData, selectedTipo, groupBy)
     : isQue
-    ? getCategoryTrendData(categoryTemporalData, selectedQue, groupBy)
-    : null;
+      ? getCategoryTrendData(categoryTemporalData, selectedQue, groupBy)
+      : null;
 
   const chartOptions = getLineChartOptions();
 
   const trendSlope = chartData?.trendSlope || 0;
   const trendDirection =
-    trendSlope > 0.5 ? "up" : trendSlope < -0.5 ? "down" : "flat";
+    trendSlope > 0.5 ? 'up' : trendSlope < -0.5 ? 'down' : 'flat';
 
   // Compute stats
   let totalSpend = 0;
@@ -103,14 +120,17 @@ export function TrendExplorer({
 
   if (isTipoOnly) {
     const tipoData = typeTemporalData.filter(
-      (d) => d.type === selectedTipo && d.action === "Gasto",
+      (d) => d.type === selectedTipo && d.action === 'Gasto',
     );
-    totalSpend = tipoData.reduce((sum, d) => sum + Math.abs(Number(d.total)), 0);
+    totalSpend = tipoData.reduce(
+      (sum, d) => sum + Math.abs(Number(d.total)),
+      0,
+    );
     dataPoints = tipoData.length;
     avgPerPeriod = dataPoints > 0 ? totalSpend / dataPoints : 0;
   } else if (isQue) {
     const queData = categoryTemporalData.filter(
-      (d) => d.category === selectedQue && d.action === "Gasto",
+      (d) => d.category === selectedQue && d.action === 'Gasto',
     );
     totalSpend = queData.reduce((sum, d) => sum + Math.abs(Number(d.total)), 0);
     dataPoints = queData.length;
@@ -138,7 +158,8 @@ export function TrendExplorer({
         <div>
           <CardTitle>Tendencias</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Evolución temporal de {selectedQue || selectedTipo || "todas las categorías"}
+            Evolución temporal de{' '}
+            {selectedQue || selectedTipo || 'todas las categorías'}
           </p>
         </div>
         <div className="flex gap-2">
@@ -154,9 +175,19 @@ export function TrendExplorer({
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedQue} onValueChange={setSelectedQue} disabled={!selectedTipo}>
+          <Select
+            value={selectedQue}
+            onValueChange={setSelectedQue}
+            disabled={!selectedTipo}
+          >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={selectedTipo ? "Categoría (específica)" : "Selecciona tipo primero"} />
+              <SelectValue
+                placeholder={
+                  selectedTipo
+                    ? 'Categoría (específica)'
+                    : 'Selecciona tipo primero'
+                }
+              />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
               <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
@@ -186,49 +217,68 @@ export function TrendExplorer({
           </div>
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">Tendencia</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                Tendencia
+              </div>
               <div className="flex items-center gap-2">
-                {trendDirection === "up" ? (
+                {trendDirection === 'up' ? (
                   <>
                     <TrendingUp className="h-5 w-5 text-red-500" />
-                    <span className="text-lg font-bold text-red-500">Subiendo</span>
+                    <span className="text-lg font-bold text-red-500">
+                      Subiendo
+                    </span>
                   </>
-                ) : trendDirection === "down" ? (
+                ) : trendDirection === 'down' ? (
                   <>
                     <TrendingDown className="h-5 w-5 text-green-500" />
-                    <span className="text-lg font-bold text-green-500">Bajando</span>
+                    <span className="text-lg font-bold text-green-500">
+                      Bajando
+                    </span>
                   </>
                 ) : (
                   <>
                     <Minus className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-lg font-bold text-muted-foreground">Estable</span>
+                    <span className="text-lg font-bold text-muted-foreground">
+                      Estable
+                    </span>
                   </>
                 )}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {trendSlope > 0 ? "+" : ""}
-                {trendSlope.toFixed(0)} €/{groupBy === "year" ? "año" : "mes"} de media
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">Total gastado</div>
-              <div className="text-xl font-bold">
-                {totalSpend.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                {trendSlope > 0 ? '+' : ''}
+                {trendSlope.toFixed(0)} €/{groupBy === 'year' ? 'año' : 'mes'}{' '}
+                de media
               </div>
             </div>
 
             <div className="p-4 rounded-lg bg-muted/50">
               <div className="text-sm text-muted-foreground mb-1">
-                Media por {groupBy === "year" ? "año" : "mes"}
+                Total gastado
               </div>
               <div className="text-xl font-bold">
-                {avgPerPeriod.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                {totalSpend.toLocaleString('es-ES', {
+                  style: 'currency',
+                  currency: 'EUR',
+                })}
               </div>
             </div>
 
             <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">Periodos con datos</div>
+              <div className="text-sm text-muted-foreground mb-1">
+                Media por {groupBy === 'year' ? 'año' : 'mes'}
+              </div>
+              <div className="text-xl font-bold">
+                {avgPerPeriod.toLocaleString('es-ES', {
+                  style: 'currency',
+                  currency: 'EUR',
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 rounded-lg bg-muted/50">
+              <div className="text-sm text-muted-foreground mb-1">
+                Periodos con datos
+              </div>
               <div className="text-xl font-bold">{dataPoints}</div>
             </div>
           </div>
@@ -243,29 +293,43 @@ export function TrendExplorer({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {queBreakdown.map((item) => {
                 const pct = tipoTotal > 0 ? (item.total / tipoTotal) * 100 : 0;
-                const isExpense = item.action === "Gasto" || item.action === "Inversión";
+                const isExpense =
+                  item.action === 'Gasto' || item.action === 'Inversión';
                 return (
                   <div key={item.category} className="p-3 rounded-lg border">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">{item.category}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                        isExpense ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
-                      }`}>
+                      <span className="font-medium text-sm">
+                        {item.category}
+                      </span>
+                      <span
+                        className={`text-xs px-1.5 py-0.5 rounded-full ${
+                          isExpense
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-green-100 text-green-700'
+                        }`}
+                      >
                         {item.action}
                       </span>
                     </div>
                     <div className="text-lg font-bold">
-                      {item.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                      {item.total.toLocaleString('es-ES', {
+                        style: 'currency',
+                        currency: 'EUR',
+                      })}
                     </div>
                     <div className="w-full bg-muted rounded-full h-2 mt-2">
                       <div
-                        className={`h-2 rounded-full ${isExpense ? "bg-red-400" : "bg-green-400"}`}
+                        className={`h-2 rounded-full ${isExpense ? 'bg-red-400' : 'bg-green-400'}`}
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
                     <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground">{pct.toFixed(1)}%</span>
-                      <span className="text-xs text-muted-foreground">{item.count} mov.</span>
+                      <span className="text-xs text-muted-foreground">
+                        {pct.toFixed(1)}%
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {item.count} mov.
+                      </span>
                     </div>
                   </div>
                 );

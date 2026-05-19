@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export default function Error() {
   const router = useRouter();
@@ -15,10 +15,7 @@ export default function Error() {
             Hubo un error al iniciar sesión. Por favor, inténtalo de nuevo.
           </p>
         </div>
-        <Button 
-          onClick={() => router.push("/auth/signin")}
-          className="mt-4"
-        >
+        <Button onClick={() => router.push('/auth/signin')} className="mt-4">
           Volver a intentar
         </Button>
       </div>

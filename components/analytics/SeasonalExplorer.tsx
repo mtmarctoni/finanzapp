@@ -1,6 +1,12 @@
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Bar } from 'react-chartjs-2';
 import { ChartData, ChartOptions } from 'chart.js';
 import {
@@ -12,8 +18,8 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { CategoryTemporalDatum, SeasonalItem } from "@/lib/analytics-charts";
-import { Sun, Snowflake, Leaf, Flower2 } from "lucide-react";
+import { CategoryTemporalDatum, SeasonalItem } from '@/lib/analytics-charts';
+import { Sun, Snowflake, Leaf, Flower2 } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -21,7 +27,7 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
 interface SeasonalExplorerProps {
@@ -39,8 +45,8 @@ export function SeasonalExplorer({
   getChartOptions,
   loading,
 }: SeasonalExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>("");
-  const [selectedQue, setSelectedQue] = useState<string>("__all__");
+  const [selectedTipo, setSelectedTipo] = useState<string>('');
+  const [selectedQue, setSelectedQue] = useState<string>('__all__');
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -52,29 +58,45 @@ export function SeasonalExplorer({
     return map;
   }, [categoryTemporalData]);
 
-  const availableQue = selectedTipo && tipoToQueMap.has(selectedTipo)
-    ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
-    : [];
+  const availableQue =
+    selectedTipo && tipoToQueMap.has(selectedTipo)
+      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      : [];
 
   const handleTipoChange = (tipo: string) => {
     setSelectedTipo(tipo);
-    setSelectedQue("__all__");
+    setSelectedQue('__all__');
   };
 
   // Compute seasonal data
   const seasonalData = useMemo(() => {
     const monthNames = [
-      "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-      "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
     ];
 
     const filtered = categoryTemporalData.filter((item) => {
-      if (selectedQue) return item.category === selectedQue && item.action === "Gasto";
-      if (selectedTipo) return item.type === selectedTipo && item.action === "Gasto";
+      if (selectedQue)
+        return item.category === selectedQue && item.action === 'Gasto';
+      if (selectedTipo)
+        return item.type === selectedTipo && item.action === 'Gasto';
       return false;
     });
 
-    const byMonth = new Map<number, { total: number; count: number; yearCount: number }>();
+    const byMonth = new Map<
+      number,
+      { total: number; count: number; yearCount: number }
+    >();
     for (let i = 0; i < 12; i++) {
       byMonth.set(i, { total: 0, count: 0, yearCount: 0 });
     }
@@ -104,10 +126,34 @@ export function SeasonalExplorer({
   const lowMonth = sorted[sorted.length - 1];
 
   const seasons = [
-    { name: "Invierno", months: [11, 0, 1], icon: Snowflake, color: "text-blue-500", bg: "bg-blue-50" },
-    { name: "Primavera", months: [2, 3, 4], icon: Flower2, color: "text-green-500", bg: "bg-green-50" },
-    { name: "Verano", months: [5, 6, 7], icon: Sun, color: "text-amber-500", bg: "bg-amber-50" },
-    { name: "Otoño", months: [8, 9, 10], icon: Leaf, color: "text-orange-500", bg: "bg-orange-50" },
+    {
+      name: 'Invierno',
+      months: [11, 0, 1],
+      icon: Snowflake,
+      color: 'text-blue-500',
+      bg: 'bg-blue-50',
+    },
+    {
+      name: 'Primavera',
+      months: [2, 3, 4],
+      icon: Flower2,
+      color: 'text-green-500',
+      bg: 'bg-green-50',
+    },
+    {
+      name: 'Verano',
+      months: [5, 6, 7],
+      icon: Sun,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50',
+    },
+    {
+      name: 'Otoño',
+      months: [8, 9, 10],
+      icon: Leaf,
+      color: 'text-orange-500',
+      bg: 'bg-orange-50',
+    },
   ];
 
   const seasonTotals = seasons.map((season) => {
@@ -139,9 +185,19 @@ export function SeasonalExplorer({
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedQue} onValueChange={setSelectedQue} disabled={!selectedTipo}>
+          <Select
+            value={selectedQue}
+            onValueChange={setSelectedQue}
+            disabled={!selectedTipo}
+          >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={selectedTipo ? "Categoría (específica)" : "Selecciona tipo primero"} />
+              <SelectValue
+                placeholder={
+                  selectedTipo
+                    ? 'Categoría (específica)'
+                    : 'Selecciona tipo primero'
+                }
+              />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
               <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
@@ -173,17 +229,31 @@ export function SeasonalExplorer({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                  <div className="text-xs text-red-600 font-medium mb-1">Pico</div>
-                  <div className="text-lg font-bold text-red-700">{peakMonth?.monthName}</div>
+                  <div className="text-xs text-red-600 font-medium mb-1">
+                    Pico
+                  </div>
+                  <div className="text-lg font-bold text-red-700">
+                    {peakMonth?.monthName}
+                  </div>
                   <div className="text-xs text-red-600">
-                    {peakMonth?.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                    {peakMonth?.total.toLocaleString('es-ES', {
+                      style: 'currency',
+                      currency: 'EUR',
+                    })}
                   </div>
                 </div>
                 <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-                  <div className="text-xs text-green-600 font-medium mb-1">Valle</div>
-                  <div className="text-lg font-bold text-green-700">{lowMonth?.monthName}</div>
+                  <div className="text-xs text-green-600 font-medium mb-1">
+                    Valle
+                  </div>
+                  <div className="text-lg font-bold text-green-700">
+                    {lowMonth?.monthName}
+                  </div>
                   <div className="text-xs text-green-600">
-                    {lowMonth?.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                    {lowMonth?.total.toLocaleString('es-ES', {
+                      style: 'currency',
+                      currency: 'EUR',
+                    })}
                   </div>
                 </div>
               </div>
@@ -194,13 +264,21 @@ export function SeasonalExplorer({
                 {seasonTotals.map((season) => {
                   const Icon = season.icon;
                   return (
-                    <div key={season.name} className={`flex items-center justify-between p-2 rounded-lg ${season.bg}`}>
+                    <div
+                      key={season.name}
+                      className={`flex items-center justify-between p-2 rounded-lg ${season.bg}`}
+                    >
                       <div className="flex items-center gap-2">
                         <Icon className={`h-4 w-4 ${season.color}`} />
-                        <span className="text-sm font-medium">{season.name}</span>
+                        <span className="text-sm font-medium">
+                          {season.name}
+                        </span>
                       </div>
                       <span className={`text-sm font-bold ${season.color}`}>
-                        {season.total.toLocaleString("es-ES", { style: "currency", currency: "EUR" })}
+                        {season.total.toLocaleString('es-ES', {
+                          style: 'currency',
+                          currency: 'EUR',
+                        })}
                       </span>
                     </div>
                   );

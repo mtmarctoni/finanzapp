@@ -8,10 +8,10 @@ export default function CryptoLoading() {
         </div>
         <div className="h-10 w-40 bg-muted animate-pulse rounded" />
       </div>
-      
+
       <div className="h-20 w-full bg-muted animate-pulse rounded" />
-      
+
       <div className="h-96 w-full bg-muted animate-pulse rounded" />
     </div>
-  )
+  );
 }

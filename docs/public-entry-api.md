@@ -282,32 +282,32 @@ curl -X POST http://localhost:3000/api/v1/entries \
 ## JavaScript Example
 
 ```js
-const response = await fetch("http://localhost:3000/api/v1/entries", {
-  method: "POST",
+const response = await fetch('http://localhost:3000/api/v1/entries', {
+  method: 'POST',
   headers: {
-    "Content-Type": "application/json",
-    "X-API-Key": process.env.FINANZAPP_API_KEY,
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.FINANZAPP_API_KEY,
   },
   body: JSON.stringify({
     fecha: new Date().toISOString(),
-    tipo: "Salario",
-    accion: "Ingreso",
-    que: "Trabajo",
-    plataforma_pago: "Transferencia",
+    tipo: 'Salario',
+    accion: 'Ingreso',
+    que: 'Trabajo',
+    plataforma_pago: 'Transferencia',
     cantidad: 2500.5,
-    detalle1: "webhook-run-001",
-    detalle2: "n8n",
-    quien: "Yo",
+    detalle1: 'webhook-run-001',
+    detalle2: 'n8n',
+    quien: 'Yo',
   }),
-})
+});
 
-const data = await response.json()
+const data = await response.json();
 
 if (!response.ok) {
-  throw new Error(JSON.stringify(data))
+  throw new Error(JSON.stringify(data));
 }
 
-console.log(data)
+console.log(data);
 ```
 
 ## Verified Behavior

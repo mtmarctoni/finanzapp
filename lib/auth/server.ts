@@ -1,6 +1,6 @@
-import { getServerSession, type Session } from "next-auth";
-import { NextResponse } from "next/server";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession, type Session } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export interface AuthorizedSession {
   session: Session;
@@ -23,9 +23,9 @@ export async function requireSession(): Promise<AuthorizedSession> {
 }
 
 export class UnauthorizedError extends Error {
-  constructor(message = "Unauthorized") {
+  constructor(message = 'Unauthorized') {
     super(message);
-    this.name = "UnauthorizedError";
+    this.name = 'UnauthorizedError';
   }
 }
 
@@ -44,10 +44,7 @@ export async function requireSessionOrUnauthorized(): Promise<
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return {
-      response: NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      ),
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     };
   }
   return { session, userId: session.user.id };

@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
-import { withClient } from "@/lib/db";
+import { v4 as uuidv4 } from 'uuid';
+import { withClient } from '@/lib/db';
 
 export interface UserRecord {
   id: string;
@@ -27,7 +27,9 @@ export async function insertUser(formData: {
   return id;
 }
 
-export async function findUserByEmail(email: string): Promise<UserRecord | null> {
+export async function findUserByEmail(
+  email: string,
+): Promise<UserRecord | null> {
   return withClient(async (client) => {
     const result = await client.sql`
       SELECT id, name, email

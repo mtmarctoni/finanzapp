@@ -35,7 +35,10 @@ jest.mock('next/navigation', () => ({
 
 // Mock next-auth
 jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(() => ({ data: { user: { id: 'test-user' } }, status: 'authenticated' })),
+  useSession: jest.fn(() => ({
+    data: { user: { id: 'test-user' } },
+    status: 'authenticated',
+  })),
   SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
@@ -126,7 +129,11 @@ describe('FinanceTable', () => {
     });
 
     // Check that the empty message is rendered
-    expect(screen.getByText('No hay entradas. Añade una nueva entrada para comenzar.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No hay entradas. Añade una nueva entrada para comenzar.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('applies search params when provided', async () => {

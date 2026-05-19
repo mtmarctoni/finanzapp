@@ -1,6 +1,6 @@
-import { v4 as uuidv4 } from "uuid";
-import { withClient, withPool } from "@/lib/db";
-import { escapeLikePattern } from "@/lib/utils";
+import { v4 as uuidv4 } from 'uuid';
+import { withClient, withPool } from '@/lib/db';
+import { escapeLikePattern } from '@/lib/utils';
 
 /**
  * Database access for the `finance_entries` table.
@@ -63,23 +63,25 @@ export interface EntryInput {
 }
 
 const ALLOWED_SORT_FIELDS = new Set([
-  "fecha",
-  "accion",
-  "que",
-  "tipo",
-  "plataforma_pago",
-  "cantidad",
-  "quien",
+  'fecha',
+  'accion',
+  'que',
+  'tipo',
+  'plataforma_pago',
+  'cantidad',
+  'quien',
 ]);
 
 function resolveSort(
   sortBy: string | undefined,
-  sortOrder: string | undefined
-): { sortField: string; sortDirection: "ASC" | "DESC" } {
+  sortOrder: string | undefined,
+): { sortField: string; sortDirection: 'ASC' | 'DESC' } {
   const sortField =
-    sortBy && ALLOWED_SORT_FIELDS.has(String(sortBy)) ? String(sortBy) : "fecha";
+    sortBy && ALLOWED_SORT_FIELDS.has(String(sortBy))
+      ? String(sortBy)
+      : 'fecha';
   const sortDirection =
-    String(sortOrder ?? "").toLowerCase() === "asc" ? "ASC" : "DESC";
+    String(sortOrder ?? '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   return { sortField, sortDirection };
 }
 
@@ -94,8 +96,8 @@ interface FilterCompilation {
  * forget the per-user scope.
  */
 function compileFilter(
-  filter: Omit<EntryFilter, "page" | "itemsPerPage" | "sortBy" | "sortOrder">,
-  userId: string
+  filter: Omit<EntryFilter, 'page' | 'itemsPerPage' | 'sortBy' | 'sortOrder'>,
+  userId: string,
 ): FilterCompilation {
   const whereClauses: string[] = [];
   const params: (string | number)[] = [];
@@ -111,19 +113,19 @@ function compileFilter(
         detalle1 ILIKE $${paramIndex} OR
         detalle2 ILIKE $${paramIndex} OR
         quien ILIKE $${paramIndex}
-      )`
+      )`,
     );
     params.push(`%${escapeLikePattern(filter.search)}%`);
     paramIndex++;
   }
 
-  if (filter.accion && filter.accion !== "todos") {
+  if (filter.accion && filter.accion !== 'todos') {
     whereClauses.push(`accion = $${paramIndex}`);
     params.push(filter.accion);
     paramIndex++;
   }
 
-  if (filter.tipo && filter.tipo !== "todos") {
+  if (filter.tipo && filter.tipo !== 'todos') {
     whereClauses.push(`tipo = $${paramIndex}`);
     params.push(filter.tipo);
     paramIndex++;
@@ -131,7 +133,7 @@ function compileFilter(
 
   if (filter.from) {
     whereClauses.push(
-      `fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`
+      `fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`,
     );
     params.push(filter.from);
     paramIndex++;
@@ -139,7 +141,7 @@ function compileFilter(
 
   if (filter.to) {
     whereClauses.push(
-      `fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`
+      `fecha <= ($${paramIndex} || 'T23:59:59.999')::timestamptz`,
     );
     params.push(filter.to);
     paramIndex++;
@@ -150,20 +152,29 @@ function compileFilter(
 
   return {
     whereStatement:
-      whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "",
+      whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '',
     params,
   };
 }
 
 export async function findEntries(
   filters: EntryFilter,
-  userId: string
+  userId: string,
 ): Promise<PaginatedEntries> {
-  const { search, accion, tipo, from, to, page, itemsPerPage, sortBy, sortOrder } =
-    filters;
+  const {
+    search,
+    accion,
+    tipo,
+    from,
+    to,
+    page,
+    itemsPerPage,
+    sortBy,
+    sortOrder,
+  } = filters;
   const { whereStatement, params } = compileFilter(
     { search, accion, tipo, from, to },
-    userId
+    userId,
   );
   const { sortField, sortDirection } = resolveSort(sortBy, sortOrder);
   const offset = (page - 1) * itemsPerPage;
@@ -171,7 +182,7 @@ export async function findEntries(
   return withPool(async (pool) => {
     const countResult = await pool.query(
       `SELECT COUNT(*)::int AS count FROM finance_entries ${whereStatement}`,
-      params
+      params,
     );
     const total: number = countResult.rows[0]?.count ?? 0;
 
@@ -183,7 +194,7 @@ export async function findEntries(
          ORDER BY ${sortField} ${sortDirection}
          LIMIT $${params.length + 1}
          OFFSET $${params.length + 2}`,
-      [...params, itemsPerPage, offset]
+      [...params, itemsPerPage, offset],
     );
 
     return {
@@ -196,16 +207,16 @@ export async function findEntries(
 
 export async function exportEntries(
   filter: { search?: string; tipo?: string; from?: string; to?: string },
-  userId: string
+  userId: string,
 ): Promise<Entry[]> {
   const { whereStatement, params } = compileFilter(
     {
-      search: filter.search ?? "",
-      tipo: filter.tipo ?? "",
-      from: filter.from ?? "",
-      to: filter.to ?? "",
+      search: filter.search ?? '',
+      tipo: filter.tipo ?? '',
+      from: filter.from ?? '',
+      to: filter.to ?? '',
     },
-    userId
+    userId,
   );
 
   return withClient(async (client) => {
@@ -213,7 +224,7 @@ export async function exportEntries(
       `SELECT * FROM finance_entries
          ${whereStatement}
          ORDER BY fecha DESC`,
-      params
+      params,
     );
     return result.rows as Entry[];
   });
@@ -221,7 +232,7 @@ export async function exportEntries(
 
 export async function insertEntry(
   data: EntryInput,
-  userId: string
+  userId: string,
 ): Promise<string> {
   const entryId = uuidv4();
   await withClient(async (client) => {
@@ -239,7 +250,7 @@ export async function insertEntry(
         ${data.cantidad},
         ${data.detalle1 || null},
         ${data.detalle2 || null},
-        ${data.quien || "Yo"},
+        ${data.quien || 'Yo'},
         ${userId}
       )
     `;
@@ -250,7 +261,7 @@ export async function insertEntry(
 export async function updateEntryById(
   entryId: string,
   data: EntryInput,
-  userId: string
+  userId: string,
 ): Promise<void> {
   await withClient(async (client) => {
     await client.sql`
@@ -263,7 +274,7 @@ export async function updateEntryById(
              cantidad        = ${data.cantidad},
              detalle1        = ${data.detalle1 || null},
              detalle2        = ${data.detalle2 || null},
-             quien           = ${data.quien || "Yo"},
+             quien           = ${data.quien || 'Yo'},
              updated_at      = NOW()
        WHERE id = ${entryId}
          AND user_id = ${userId}
@@ -273,7 +284,7 @@ export async function updateEntryById(
 
 export async function deleteEntryById(
   entryId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
   await withClient(async (client) => {
     await client.sql`
@@ -286,7 +297,7 @@ export async function deleteEntryById(
 
 export async function deleteEntriesByIds(
   ids: string[],
-  userId: string
+  userId: string,
 ): Promise<void> {
   if (ids.length === 0) return;
   await withClient(async (client) => {
@@ -294,7 +305,7 @@ export async function deleteEntriesByIds(
       `DELETE FROM finance_entries
         WHERE user_id = $1
           AND id = ANY($2::uuid[])`,
-      [userId, ids]
+      [userId, ids],
     );
   });
 }

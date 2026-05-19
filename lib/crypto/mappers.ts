@@ -1,4 +1,4 @@
-import type { CryptoTransaction, CryptoWallet } from "@/types/finance";
+import type { CryptoTransaction, CryptoWallet } from '@/types/finance';
 
 /**
  * Convert a snake_case row from `crypto_transactions` into the
@@ -9,13 +9,13 @@ import type { CryptoTransaction, CryptoWallet } from "@/types/finance";
  * duplicating mapping logic.
  */
 export function mapDbRowToTransaction(
-  row: Record<string, unknown>
+  row: Record<string, unknown>,
 ): CryptoTransaction {
   return {
     id: row.id as string,
     recordId: row.record_id as string | null,
     transactionType:
-      row.transaction_type as CryptoTransaction["transactionType"],
+      row.transaction_type as CryptoTransaction['transactionType'],
     cryptoSymbol: row.crypto_symbol as string,
     amount: parseFloat(row.amount as string),
     priceAtTransaction: row.price_at_transaction
@@ -25,7 +25,7 @@ export function mapDbRowToTransaction(
     toAmount: row.to_amount ? parseFloat(row.to_amount as string) : null,
     fromWallet: row.from_wallet as string | null,
     toWallet: row.to_wallet as string | null,
-    fee: parseFloat((row.fee as string) || "0"),
+    fee: parseFloat((row.fee as string) || '0'),
     feeCrypto: row.fee_crypto as string | null,
     notes: row.notes as string | null,
     transactionDate: (row.transaction_date as Date).toISOString(),
@@ -41,7 +41,7 @@ export function mapDbRowToWallet(row: Record<string, unknown>): CryptoWallet {
     id: row.id as string,
     userId: row.user_id as string,
     name: row.name as string,
-    walletType: row.wallet_type as CryptoWallet["walletType"],
+    walletType: row.wallet_type as CryptoWallet['walletType'],
     address: row.address as string | null,
     notes: row.notes as string | null,
     active: row.active as boolean,

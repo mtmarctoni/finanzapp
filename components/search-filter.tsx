@@ -1,51 +1,70 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, SearchIcon, X } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
-import { es } from "date-fns/locale"
+import { useState } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CalendarIcon, SearchIcon, X } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface SearchFilterProps {
   defaultValues?: {
-    search?: string
-    accion?: string
-    fromDate?: Date
-    toDate?: Date
-  }
+    search?: string;
+    accion?: string;
+    fromDate?: Date;
+    toDate?: Date;
+  };
   onSearch?: (filters: {
-    search: string
-    accion: string
-    from?: Date
-    to?: Date
-  }) => void
-  showActionFilter?: boolean
-  className?: string
+    search: string;
+    accion: string;
+    from?: Date;
+    to?: Date;
+  }) => void;
+  showActionFilter?: boolean;
+  className?: string;
 }
 
 export function SearchFilter({
   defaultValues,
   onSearch,
   showActionFilter = true,
-  className = ""
+  className = '',
 }: SearchFilterProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // Use a single state object for all filters
   const [filters, setFilters] = useState(() => ({
-    search: defaultValues?.search || searchParams.get("search") || "",
-    accion: defaultValues?.accion !== undefined
-      ? defaultValues.accion
-      : searchParams.get("accion") || "todos",
-    fromDate: defaultValues?.fromDate || (searchParams.get("from") ? new Date(searchParams.get("from") as string) : undefined),
-    toDate: defaultValues?.toDate || (searchParams.get("to") ? new Date(searchParams.get("to") as string) : undefined),
+    search: defaultValues?.search || searchParams.get('search') || '',
+    accion:
+      defaultValues?.accion !== undefined
+        ? defaultValues.accion
+        : searchParams.get('accion') || 'todos',
+    fromDate:
+      defaultValues?.fromDate ||
+      (searchParams.get('from')
+        ? new Date(searchParams.get('from') as string)
+        : undefined),
+    toDate:
+      defaultValues?.toDate ||
+      (searchParams.get('to')
+        ? new Date(searchParams.get('to') as string)
+        : undefined),
   }));
 
   const handleSearch = () => {
@@ -54,52 +73,59 @@ export function SearchFilter({
       search,
       accion,
       from: fromDate,
-      to: toDate
+      to: toDate,
     };
     if (onSearch) {
       // Use callback if provided
-      onSearch(filterObj)
+      onSearch(filterObj);
     } else {
       // Default behavior: update URL
       const current = new URLSearchParams(Array.from(searchParams.entries()));
       const params = new URLSearchParams(current);
       // apply filters
-      if (search) params.set("search", search); else params.delete("search");
-      if (accion && accion !== 'todos') params.set("accion", accion); else params.delete("accion");
+      if (search) params.set('search', search);
+      else params.delete('search');
+      if (accion && accion !== 'todos') params.set('accion', accion);
+      else params.delete('accion');
       if (fromDate) {
         const year = fromDate.getFullYear();
         const month = String(fromDate.getMonth() + 1).padStart(2, '0');
         const day = String(fromDate.getDate()).padStart(2, '0');
-        params.set("from", `${year}-${month}-${day}`);
+        params.set('from', `${year}-${month}-${day}`);
       } else {
-        params.delete("from");
+        params.delete('from');
       }
       if (toDate) {
         const year = toDate.getFullYear();
         const month = String(toDate.getMonth() + 1).padStart(2, '0');
         const day = String(toDate.getDate()).padStart(2, '0');
-        params.set("to", `${year}-${month}-${day}`);
+        params.set('to', `${year}-${month}-${day}`);
       } else {
-        params.delete("to");
+        params.delete('to');
       }
       // reset pagination when applying filters
-      params.set("page", "1");
+      params.set('page', '1');
       router.push(`${pathname}?${params.toString()}`);
     }
   };
 
   const handleReset = () => {
-    setFilters({ search: "", accion: "todos", fromDate: undefined, toDate: undefined });
+    setFilters({
+      search: '',
+      accion: 'todos',
+      fromDate: undefined,
+      toDate: undefined,
+    });
     if (onSearch) {
-      onSearch({ search: "", accion: "todos" });
+      onSearch({ search: '', accion: 'todos' });
     } else {
       const current = new URLSearchParams(Array.from(searchParams.entries()));
       const params = new URLSearchParams(current);
-      params.delete("search");
-      params.delete("accion");
-      params.delete("from");
-      params.delete("to");
-      params.set("page", "1");
+      params.delete('search');
+      params.delete('accion');
+      params.delete('from');
+      params.delete('to');
+      params.set('page', '1');
       router.push(`${pathname}?${params.toString()}`);
     }
   };
@@ -111,15 +137,22 @@ export function SearchFilter({
           <Input
             placeholder="Buscar por descripción o plataforma..."
             value={filters.search}
-            onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, search: e.target.value }))
+            }
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             className="w-full"
           />
         </div>
 
         {showActionFilter && (
           <div className="w-full md:w-[180px]">
-            <Select value={filters.accion} onValueChange={value => setFilters(prev => ({ ...prev, accion: value }))}>
+            <Select
+              value={filters.accion}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, accion: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Todas las acciones" />
               </SelectTrigger>
@@ -138,15 +171,20 @@ export function SearchFilter({
         <div className="flex flex-wrap gap-2 items-center">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+              <Button
+                variant="outline"
+                className="w-[180px] justify-start text-left font-normal"
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filters.fromDate ? format(filters.fromDate, "dd/MM/yyyy") : "Fecha desde"}
+                {filters.fromDate
+                  ? format(filters.fromDate, 'dd/MM/yyyy')
+                  : 'Fecha desde'}
                 {filters.fromDate && (
                   <X
                     className="ml-auto h-4 w-4 opacity-50 hover:opacity-100"
-                    onClick={e => {
-                      e.stopPropagation()
-                      setFilters(prev => ({ ...prev, fromDate: undefined }))
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilters((prev) => ({ ...prev, fromDate: undefined }));
                     }}
                   />
                 )}
@@ -156,7 +194,9 @@ export function SearchFilter({
               <Calendar
                 mode="single"
                 selected={filters.fromDate}
-                onSelect={date => setFilters(prev => ({ ...prev, fromDate: date }))}
+                onSelect={(date) =>
+                  setFilters((prev) => ({ ...prev, fromDate: date }))
+                }
                 autoFocus
                 captionLayout="dropdown"
                 locale={es}
@@ -166,15 +206,20 @@ export function SearchFilter({
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[180px] justify-start text-left font-normal">
+              <Button
+                variant="outline"
+                className="w-[180px] justify-start text-left font-normal"
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filters.toDate ? format(filters.toDate, "dd/MM/yyyy") : "Fecha hasta"}
+                {filters.toDate
+                  ? format(filters.toDate, 'dd/MM/yyyy')
+                  : 'Fecha hasta'}
                 {filters.toDate && (
                   <X
                     className="ml-auto h-4 w-4 opacity-50 hover:opacity-100"
-                    onClick={e => {
-                      e.stopPropagation()
-                      setFilters(prev => ({ ...prev, toDate: undefined }))
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilters((prev) => ({ ...prev, toDate: undefined }));
                     }}
                   />
                 )}
@@ -184,27 +229,71 @@ export function SearchFilter({
               <Calendar
                 mode="single"
                 selected={filters.toDate}
-                onSelect={date => setFilters(prev => ({ ...prev, toDate: date }))}
+                onSelect={(date) =>
+                  setFilters((prev) => ({ ...prev, toDate: date }))
+                }
                 autoFocus
                 locale={es}
                 captionLayout="dropdown"
-                disabled={date => filters.fromDate ? date < filters.fromDate : false}
+                disabled={(date) =>
+                  filters.fromDate ? date < filters.fromDate : false
+                }
               />
             </PopoverContent>
           </Popover>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFilters(prev => ({ ...prev, fromDate: startOfMonth(subMonths(new Date(), 0)), toDate: endOfMonth(new Date()) }))}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                fromDate: startOfMonth(subMonths(new Date(), 0)),
+                toDate: endOfMonth(new Date()),
+              }))
+            }
+          >
             Este mes
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setFilters(prev => ({ ...prev, fromDate: startOfMonth(subMonths(new Date(), 2)), toDate: endOfMonth(new Date()) }))}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                fromDate: startOfMonth(subMonths(new Date(), 2)),
+                toDate: endOfMonth(new Date()),
+              }))
+            }
+          >
             3 meses
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setFilters(prev => ({ ...prev, fromDate: startOfMonth(subMonths(new Date(), 5)), toDate: endOfMonth(new Date()) }))}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                fromDate: startOfMonth(subMonths(new Date(), 5)),
+                toDate: endOfMonth(new Date()),
+              }))
+            }
+          >
             6 meses
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setFilters(prev => ({ ...prev, fromDate: startOfMonth(subMonths(new Date(), 11)), toDate: endOfMonth(new Date()) }))}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                fromDate: startOfMonth(subMonths(new Date(), 11)),
+                toDate: endOfMonth(new Date()),
+              }))
+            }
+          >
             1 año
           </Button>
         </div>
@@ -221,5 +310,5 @@ export function SearchFilter({
         </div>
       </div>
     </div>
-  )
+  );
 }
