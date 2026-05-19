@@ -3,6 +3,7 @@ import { createPool } from "@vercel/postgres";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { escapeLikePattern } from "@/lib/utils";
 
 interface TemporalRow {
   period: Date;
@@ -56,9 +57,7 @@ export async function GET(request: NextRequest) {
       if (search) {
         // Escape SQL LIKE wildcards in the user input so `%` and `_`
         // can't be used to widen the match or force expensive scans.
-        const escaped = search
-          .toLowerCase()
-          .replace(/[\\%_]/g, (ch) => `\\${ch}`);
+        const escaped = escapeLikePattern(search.toLowerCase());
         const searchTerm = `%${escaped}%`;
         whereClauses.push(`(
           LOWER(tipo) LIKE $${paramIndex} OR 
