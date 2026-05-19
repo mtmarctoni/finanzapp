@@ -83,8 +83,7 @@ export function generateApiKey(): { plaintext: string; hash: string } {
 }
 
 function stripKeyHash(key: ApiKey): SafeApiKey {
-  const safeKey = { ...key };
-  delete (safeKey as Partial<ApiKey>).key_hash;
+  const { key_hash, ...safeKey } = key;
   return safeKey;
 }
 
@@ -248,7 +247,7 @@ export async function revokeApiKey(
 }
 
 /**
- * Delete an API key permanently.
+ * Delete a API key permanently.
  */
 export async function deleteApiKey(
   keyId: string,

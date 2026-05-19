@@ -54,19 +54,9 @@ function Calendar({
   }, [selected]);
   // Determine mode-specific props for DayPicker
   const dayPickerMode: "single" | "multiple" | "range" = props.mode ?? "single";
-  let dayPickerSelected: unknown = selected;
-  let dayPickerOnSelect: unknown = onSelect;
-
-  if (dayPickerMode === "single") {
-    dayPickerSelected = selected as Date | undefined;
-    dayPickerOnSelect = handleSelect;
-  } else if (dayPickerMode === "multiple") {
-    dayPickerSelected = selected as Date[] | undefined;
-    dayPickerOnSelect = onSelect as ((date: Date[] | undefined) => void) | undefined;
-  } else if (dayPickerMode === "range") {
-    dayPickerSelected = selected as { from: Date; to?: Date } | undefined;
-    dayPickerOnSelect = onSelect as ((range: { from: Date; to?: Date } | undefined) => void) | undefined;
-  }
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const dayPickerSelected: any = selected;
+  const dayPickerOnSelect: any = dayPickerMode === "single" ? handleSelect : onSelect;
 
   return (
     <DayPicker

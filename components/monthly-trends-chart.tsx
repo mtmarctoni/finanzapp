@@ -87,7 +87,7 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
     }
   }
 
-  const chartData: ChartData<'bar'> = {
+  const chartData = {
     labels: monthlyData.map(d => d.month),
     datasets: [
       {
@@ -114,7 +114,7 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
       {
         label: 'Flujo neto',
         data: monthlyData.map(d => d.netFlow),
-        type: 'line',
+        type: 'line' as const,
         borderColor: 'rgb(168, 85, 247)',
         backgroundColor: 'rgba(168, 85, 247, 0.20)',
         pointRadius: 3,
@@ -129,7 +129,7 @@ export default function MonthlyTrendsChart({ monthlyTrends }: { monthlyTrends: M
     <div className="h-80 w-full">
       <Bar 
         options={chartOptions} 
-        data={chartData}
+        data={chartData as ChartData<'bar'>}
       />
     </div>
   )

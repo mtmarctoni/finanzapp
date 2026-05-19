@@ -39,8 +39,8 @@ export interface AnalyticsData {
 }
 
 export interface Filters {
-  search: string;
-  accion: string;
+  search?: string;
+  accion?: string;
   from?: Date;
   to?: Date;
   actions?: string[];

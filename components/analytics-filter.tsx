@@ -8,6 +8,7 @@ import { format, startOfYear, endOfYear, subMonths, startOfMonth, endOfMonth } f
 
 export interface AnalyticsFilterValue {
   search?: string;
+  accion?: string;
   actions?: string | string[];
   categories?: string | string[];
   platforms?: string | string[];
