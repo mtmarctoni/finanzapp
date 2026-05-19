@@ -1,7 +1,7 @@
 // app/analytics/page.tsx
 'use client';
 
-
+import { useMemo } from "react";
 import { AnalyticsFilter } from "@/components/analytics-filter";
 import { useAnalyticsData } from "@/hooks/use-analytics-data";
 import {
@@ -10,18 +10,53 @@ import {
   getTemporalChartOptions,
   getLineChartOptions,
   getDoughnutChartOptions,
+  getPlatformChartData,
+  getPlatformChartOptions,
+  getTypeChartData,
+  getTypeChartOptions,
+  getCategoryPlatformBreakdown,
+  getCategoryPlatformChartOptions,
+  getCategoryTrendData,
+  computeSpendingVelocity,
+  computeTipoSpendingVelocity,
+  getSeasonalChartData,
+  getSeasonalChartOptions,
+  getTipoExplorerData,
+  getTipoExplorerChartOptions,
+  getTipoTrendData,
 } from "@/lib/analytics-charts";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { PerActionCards } from "@/components/analytics/PerActionCards";
 import { TemporalChart } from "@/components/analytics/TemporalChart";
 import { NetTrendChart } from "@/components/analytics/NetTrendChart";
 import { CategoryChart } from "@/components/analytics/CategoryChart";
-
+import { PlatformChart } from "@/components/analytics/PlatformChart";
+import { TypeChart } from "@/components/analytics/TypeChart";
+import { CategoryDeepDive } from "@/components/analytics/CategoryDeepDive";
+import { TopTransactionsTable } from "@/components/analytics/TopTransactionsTable";
+import { SavingsRateCard } from "@/components/analytics/SavingsRateCard";
+import { TipoExplorer } from "@/components/analytics/TipoExplorer";
+import { TrendExplorer } from "@/components/analytics/TrendExplorer";
+import { SpendingVelocity } from "@/components/analytics/SpendingVelocity";
+import { IntelligenceExplorer } from "@/components/analytics/IntelligenceExplorer";
+import { SeasonalExplorer } from "@/components/analytics/SeasonalExplorer";
 
 export default function AnalyticsPage() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
   const temporalChartData = getTemporalChartData(data, data.metrics?.groupBy || 'month');
   const categoryChartData = getCategoryChartData(data);
+  const platformChartData = getPlatformChartData(data.platformData);
+  const typeChartData = getTypeChartData(data.typeData);
+
+  // Build tipo → que mapping for cascading filters
+  const tipoToQueMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const item of data.tipoQueData) {
+      if (!map.has(item.type)) map.set(item.type, new Set());
+      map.get(item.type)!.add(item.category);
+    }
+    return map;
+  }, [data.tipoQueData]);
 
   // Compute income - expenses (excluding investments) per period ("balance")
   const netIncomeExpenseLabels = Array.from(new Set(data.temporalData.map(item => item.period))).sort();
@@ -60,6 +95,15 @@ export default function AnalyticsPage() {
   })();
   const yearsInRange = monthsInRange / 12;
 
+  // Compute velocities
+  const queVelocities = computeSpendingVelocity(data.categoryTemporalData, "Gasto");
+  const tipoVelocities = computeTipoSpendingVelocity(data.typeTemporalData, "Gasto");
+
+  // Types with temporal data
+  const typesWithTemporal = Array.from(
+    new Set(data.typeTemporalData.map((d) => d.type)),
+  ).sort();
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Analíticas Financieras</h1>
@@ -71,15 +115,21 @@ export default function AnalyticsPage() {
           categories={[...new Set(data.categoryData.map(d => d.category))]}
           platforms={[...new Set([
             ...data.temporalData.map(d => d.platform).filter(Boolean),
-            ...data.categoryData.map(d => d.platform).filter(Boolean)
+            ...data.categoryData.map(d => d.platform).filter(Boolean),
+            ...data.platformData.map(d => d.platform).filter(Boolean),
           ])]}
           types={[...new Set([
             ...data.temporalData.map(d => d.type).filter(Boolean),
-            ...data.categoryData.map(d => d.type).filter(Boolean)
+            ...data.categoryData.map(d => d.type).filter(Boolean),
+            ...data.typeData.map(d => d.type).filter(Boolean),
+            ...data.tipoQueData.map(d => d.type).filter(Boolean),
+            ...data.typeTemporalData.map(d => d.type).filter(Boolean),
           ])]}
           years={[2025, 2024, 2023]}
+          tipoToQueMap={tipoToQueMap}
         />
       </div>
+
       <SummaryCards
         sums={data.sums}
         metrics={data.metrics as Parameters<typeof SummaryCards>[0]['metrics']}
@@ -87,7 +137,15 @@ export default function AnalyticsPage() {
         yearsInRange={yearsInRange}
       />
       <PerActionCards metrics={data.metrics as Parameters<typeof PerActionCards>[0]['metrics']} />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="mb-6 max-w-sm">
+        <SavingsRateCard
+          income={data.sums.ingresos}
+          expenses={data.sums.gastos}
+        />
+      </div>
+
+      {/* ─── OVERVIEW CHARTS ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <TemporalChart data={temporalChartData} options={getTemporalChartOptions(data.temporalData)} loading={loading} />
         <NetTrendChart
           data={{
@@ -126,6 +184,86 @@ export default function AnalyticsPage() {
         <CategoryChart
           data={categoryChartData}
           options={getDoughnutChartOptions(categoryChartData.total, data.categoryData)}
+          loading={loading}
+        />
+        <PlatformChart
+          data={platformChartData}
+          options={getPlatformChartOptions()}
+          loading={loading}
+        />
+      </div>
+
+      {/* ─── BREAKDOWN CHARTS ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <TypeChart
+          data={typeChartData}
+          options={getTypeChartOptions()}
+          loading={loading}
+        />
+        <CategoryDeepDive
+          categoryData={data.categoryData}
+          categoryPlatformData={data.categoryPlatformData}
+          getChartData={getCategoryPlatformBreakdown}
+          getChartOptions={getCategoryPlatformChartOptions}
+          loading={loading}
+        />
+      </div>
+
+      {/* ─── TIPO EXPLORER ─── */}
+      <div className="mb-6">
+        <TipoExplorer
+          tipoQueData={data.tipoQueData}
+          types={typesWithTemporal}
+          getChartData={getTipoExplorerData}
+          getChartOptions={getTipoExplorerChartOptions}
+          loading={loading}
+        />
+      </div>
+
+      {/* ─── DEEP INSIGHTS ─── */}
+      <div className="grid grid-cols-1 gap-6 mb-6">
+        <TrendExplorer
+          categoryTemporalData={data.categoryTemporalData}
+          typeTemporalData={data.typeTemporalData}
+          tipoQueData={data.tipoQueData}
+          types={typesWithTemporal}
+          groupBy={data.metrics?.groupBy || 'month'}
+          loading={loading}
+          getCategoryTrendData={getCategoryTrendData}
+          getTipoTrendData={getTipoTrendData}
+          getLineChartOptions={getLineChartOptions}
+        />
+        <SpendingVelocity
+          velocities={queVelocities}
+          loading={loading}
+          title="Velocidad por Categoría"
+        />
+        <SpendingVelocity
+          velocities={tipoVelocities}
+          loading={loading}
+          title="Velocidad por Tipo"
+        />
+        <IntelligenceExplorer
+          categoryStats={data.categoryStats}
+          categoryPlatformData={data.categoryPlatformData}
+          categoryData={data.categoryData}
+          temporalData={data.temporalData}
+          types={typesWithTemporal}
+          loading={loading}
+        />
+        <SeasonalExplorer
+          categoryTemporalData={data.categoryTemporalData}
+          types={typesWithTemporal}
+          getChartData={getSeasonalChartData}
+          getChartOptions={getSeasonalChartOptions}
+          loading={loading}
+        />
+      </div>
+
+      {/* ─── TOP TRANSACTIONS ─── */}
+      <div className="grid grid-cols-1 gap-6">
+        <TopTransactionsTable
+          transactions={data.topTransactions}
           loading={loading}
         />
       </div>

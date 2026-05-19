@@ -60,6 +60,29 @@ export async function POST(request: NextRequest) {
         status: 400,
       });
     }
+
+    // Cap message count and total text size to prevent prompt-bombing
+    // (DoS / token-cost) attacks. UIMessage has a `parts` array of typed
+    // content blocks; we only inspect text-like fields defensively.
+    const MAX_MESSAGES = 50;
+    const MAX_TOTAL_TEXT = 32_000;
+    if (messages.length > MAX_MESSAGES) {
+      return new Response("Demasiados mensajes en la conversación.", {
+        status: 413,
+      });
+    }
+    let totalChars = 0;
+    for (const m of messages) {
+      const parts = (m as { parts?: Array<{ text?: unknown }> }).parts ?? [];
+      for (const p of parts) {
+        if (typeof p.text === "string") totalChars += p.text.length;
+        if (totalChars > MAX_TOTAL_TEXT) {
+          return new Response("La conversación es demasiado larga.", {
+            status: 413,
+          });
+        }
+      }
+    }
     
     const tools = {
       createFinanceEntry: createFinanceEntryTool(userId),

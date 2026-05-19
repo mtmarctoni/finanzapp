@@ -108,8 +108,26 @@ export async function POST(request: NextRequest) {
     if (!text || typeof text !== "string") {
       return NextResponse.json(
         { error: "Se requiere un campo 'text' con el mensaje." },
-        { 
+        {
           status: 400,
+          headers: getRateLimitHeaders(rateLimitResult),
+        }
+      );
+    }
+
+    // Hard cap on user-supplied prompt size. Without this, callers can
+    // hand the AI an arbitrarily large payload — wastes provider tokens,
+    // costs money on the paid fallback, and is an easy DoS vector. 4 KB
+    // is comfortably above any reasonable transaction description.
+    const MAX_TEXT_LENGTH = 4_000;
+    if (text.length > MAX_TEXT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: "El texto es demasiado largo.",
+          message: `Máximo ${MAX_TEXT_LENGTH} caracteres.`,
+        },
+        {
+          status: 413,
           headers: getRateLimitHeaders(rateLimitResult),
         }
       );

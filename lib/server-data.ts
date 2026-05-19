@@ -4,176 +4,167 @@ import { Session } from "next-auth";
 
 /**
  * Server-side function to get summary statistics
- * This is used by server components
+ * This is used by server components.
+ *
+ * SECURITY: this function previously interpolated `month` and
+ * `session.user.id` directly into SQL strings, which was a classic
+ * SQL-injection vector. All user-controlled values are now bound through
+ * parameterized queries, and the `showAll` flag is reduced to a numeric
+ * LIMIT bound as a parameter.
  */
 export async function getSummaryStats(
   month?: string,
   session: Session | null = null,
   request?: Request
 ) {
+  if (!session?.user?.id) {
+    // Authentication is enforced at the API route layer, but we add a
+    // defensive guard here so this server-side helper can never produce
+    // cross-user totals if it's invoked without a session by mistake.
+    throw new Error("Not authenticated");
+  }
+
+  const userId = session.user.id;
+  const showAll = request
+    ? new URL(request.url).searchParams.get("showAll") === "true"
+    : false;
+  const breakdownLimit = showAll ? 1000 : 5;
+
+  const pool = createPool();
+
   try {
-    const pool = createPool();
+    // Build a reusable parameterized WHERE clause. $1 = user_id, $2 = month
+    // (nullable). When month is omitted, the date predicate is no-op.
+    const whereSql = `
+      WHERE user_id = $1
+        AND ($2::text IS NULL
+             OR date_trunc('month', fecha) =
+                date_trunc('month', $2::date))
+    `;
+    const baseParams = [userId, month ?? null];
 
-    try {
-      // Build WHERE clause for month filtering
-      let whereClause = "";
-      if (month) {
-        whereClause = `WHERE date_trunc('month', fecha) = date_trunc('month', '${month}'::date)`;
-      }
+    const incomeResult = await pool.query(
+      `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+         FROM finance_entries
+         ${whereSql}
+          AND accion = 'Ingreso'`,
+      baseParams
+    );
 
-      // Add user_id filter if session exists
-      if (session?.user?.id) {
-        whereClause += whereClause ? " AND " : "WHERE ";
-        whereClause += `user_id = '${session.user.id}'`;
-      }
+    const expenseResult = await pool.query(
+      `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+         FROM finance_entries
+         ${whereSql}
+          AND accion = 'Gasto'`,
+      baseParams
+    );
 
-      // Get income stats
-      const incomeResult = await pool.query(`
-        SELECT 
-          COALESCE(SUM(cantidad), 0) as total,
-          COUNT(*) as count
-        FROM finance_entries 
-        ${whereClause}
-        AND accion = 'Ingreso'
-      `);
+    const investmentResult = await pool.query(
+      `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+         FROM finance_entries
+         ${whereSql}
+          AND accion = 'Inversión'`,
+      baseParams
+    );
 
-      // Get expense stats
-      const expenseResult = await pool.query(`
-        SELECT 
-          COALESCE(SUM(cantidad), 0) as total,
-          COUNT(*) as count
-        FROM finance_entries 
-        ${whereClause}
-        AND accion = 'Gasto'
-      `);
-
-      // Get investment stats
-      const investmentResult = await pool.query(`
-        SELECT 
-          COALESCE(SUM(cantidad), 0) as total,
-          COUNT(*) as count
-        FROM finance_entries 
-        ${whereClause}
-        AND accion = 'Inversión'
-      `);
-
-      // Get monthly trends (last 6 months)
-      const trendsResult = await pool.query(
-        `
-        SELECT 
-          date_trunc('month', fecha) as month,
-          SUM(CASE WHEN accion = 'Ingreso' THEN cantidad ELSE 0 END) as income,
-          SUM(CASE WHEN accion = 'Gasto' THEN cantidad ELSE 0 END) as expenses,
-          SUM(CASE WHEN accion = 'Inversión' THEN cantidad ELSE 0 END) as investments
-        FROM finance_entries
-        WHERE fecha >= NOW() - INTERVAL '6 months' AND user_id = $1
+    const trendsResult = await pool.query(
+      `SELECT date_trunc('month', fecha) AS month,
+              SUM(CASE WHEN accion = 'Ingreso' THEN cantidad ELSE 0 END) AS income,
+              SUM(CASE WHEN accion = 'Gasto'   THEN cantidad ELSE 0 END) AS expenses,
+              SUM(CASE WHEN accion = 'Inversión' THEN cantidad ELSE 0 END) AS investments
+         FROM finance_entries
+        WHERE fecha >= NOW() - INTERVAL '6 months'
+          AND user_id = $1
         GROUP BY date_trunc('month', fecha)
         ORDER BY month DESC
-        LIMIT 6
-      `,
-        [session?.user?.id]
-      );
+        LIMIT 6`,
+      [userId]
+    );
 
-      const monthlyTrends = trendsResult.rows.map((row) => ({
-        month: row.month.toISOString().split("T")[0],
-        income: Number(row.income),
-        expenses: Number(row.expenses),
-        investments: Number(row.investments),
-      }));
+    const monthlyTrends = trendsResult.rows.map((row) => ({
+      month: row.month.toISOString().split("T")[0],
+      income: Number(row.income),
+      expenses: Number(row.expenses),
+      investments: Number(row.investments),
+    }));
 
-      // Get expense categories (with limit based on showAll parameter)
-      const url = request ? new URL(request.url) : null;
-      const showAll = url ? url.searchParams.get("showAll") === "true" : false;
-      const expenseCategories = await pool.query(`
-        SELECT 
-          que as category,
-          SUM(cantidad) as total
-        FROM finance_entries
-        ${whereClause}
-        AND accion = 'Gasto'
+    const expenseCategories = await pool.query(
+      `SELECT que AS category, SUM(cantidad) AS total
+         FROM finance_entries
+         ${whereSql}
+          AND accion = 'Gasto'
         GROUP BY que
         ORDER BY total DESC
-        ${showAll ? "" : "LIMIT 5"}
-      `);
+        LIMIT $3`,
+      [...baseParams, breakdownLimit]
+    );
 
-      // Get income categories (with limit based on showAll parameter)
-      const incomeCategories = await pool.query(`
-        SELECT 
-          que as category,
-          SUM(cantidad) as total
-        FROM finance_entries
-        ${whereClause}
-        AND accion = 'Ingreso'
+    const incomeCategories = await pool.query(
+      `SELECT que AS category, SUM(cantidad) AS total
+         FROM finance_entries
+         ${whereSql}
+          AND accion = 'Ingreso'
         GROUP BY que
         ORDER BY total DESC
-        ${showAll ? "" : "LIMIT 5"}
-      `);
+        LIMIT $3`,
+      [...baseParams, breakdownLimit]
+    );
 
-      // Get investment performance
-      const investmentPerformance = await pool.query(`
-        SELECT 
-          que as investment,
-          SUM(cantidad) as total
-        FROM finance_entries
-        ${whereClause}
-        AND accion = 'Inversión'
+    const investmentPerformance = await pool.query(
+      `SELECT que AS investment, SUM(cantidad) AS total
+         FROM finance_entries
+         ${whereSql}
+          AND accion = 'Inversión'
         GROUP BY que
         ORDER BY total DESC
-        LIMIT 5
-      `);
+        LIMIT 5`,
+      baseParams
+    );
 
-      // Calculate savings rate
-      const totalIncome = Number(incomeResult.rows[0].total);
-      const totalExpenses = Number(expenseResult.rows[0].total);
-      const savingsRate =
-        totalIncome > 0
-          ? ((totalIncome - totalExpenses) / totalIncome) * 100
-          : 0;
+    const totalIncome = Number(incomeResult.rows[0].total);
+    const totalExpenses = Number(expenseResult.rows[0].total);
+    const savingsRate =
+      totalIncome > 0
+        ? ((totalIncome - totalExpenses) / totalIncome) * 100
+        : 0;
 
-      return {
-        totalIncome,
-        incomeCount: Number(incomeResult.rows[0].count),
-        totalExpense: totalExpenses,
-        expenseCount: Number(expenseResult.rows[0].count),
-        totalInvestment: Number(investmentResult.rows[0].total),
-        investmentCount: Number(investmentResult.rows[0].count),
-        balance: totalIncome - totalExpenses,
-        monthlyTrends,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        topCategories: expenseCategories.rows.map((row: any) => ({
-          category: row.category,
+    return {
+      totalIncome,
+      incomeCount: Number(incomeResult.rows[0].count),
+      totalExpense: totalExpenses,
+      expenseCount: Number(expenseResult.rows[0].count),
+      totalInvestment: Number(investmentResult.rows[0].total),
+      investmentCount: Number(investmentResult.rows[0].count),
+      balance: totalIncome - totalExpenses,
+      monthlyTrends,
+      topCategories: expenseCategories.rows.map((row) => ({
+        category: row.category as string,
+        total: Number(row.total),
+      })),
+      investmentPerformance: investmentPerformance.rows.map((row) => ({
+        investment: row.investment as string,
+        total: Number(row.total),
+      })),
+      savingsRate,
+      expenseBreakdown: {
+        total: totalExpenses,
+        categories: expenseCategories.rows.map((row) => ({
+          category: row.category as string,
           total: Number(row.total),
         })),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        investmentPerformance: investmentPerformance.rows.map((row: any) => ({
-          investment: row.investment,
+        averageMonthly: totalExpenses / 12,
+        hasMore: !showAll && expenseCategories.rows.length >= 5,
+      },
+      incomeBreakdown: {
+        total: totalIncome,
+        categories: incomeCategories.rows.map((row) => ({
+          category: row.category as string,
           total: Number(row.total),
         })),
-        savingsRate: savingsRate,
-        expenseBreakdown: {
-          total: totalExpenses,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          categories: expenseCategories.rows.map((row: any) => ({
-            category: row.category,
-            total: Number(row.total),
-          })),
-          averageMonthly: totalExpenses / 12,
-          hasMore: !showAll && expenseCategories.rows.length >= 5,
-        },
-        incomeBreakdown: {
-          total: totalIncome,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          categories: incomeCategories.rows.map((row: any) => ({
-            category: row.category,
-            total: Number(row.total),
-          })),
-          averageMonthly: totalIncome / 12,
-          hasMore: !showAll && incomeCategories.rows.length >= 5,
-        },
-      };
-    } finally {
-      await pool.end();
-    }
+        averageMonthly: totalIncome / 12,
+        hasMore: !showAll && incomeCategories.rows.length >= 5,
+      },
+    };
   } catch (error) {
     console.error("Database Error:", error);
     return {
@@ -194,128 +185,116 @@ export async function getSummaryStats(
         averageMonthly: 0,
       },
     };
+  } finally {
+    await pool.end();
   }
 }
 
 /**
- * Server-side function to get a single entry by ID
+ * Server-side function to get a single entry by ID.
+ *
+ * SECURITY: previously concatenated `session.user.id` into the query
+ * string, which would have allowed SQL injection if the session id were
+ * ever attacker-controlled. Both id and user id are now bound parameters.
  */
 export async function getEntryById(
   id: string,
   session: Session | null = null
 ): Promise<Entry | null> {
+  const pool = createPool();
+
   try {
-    const pool = createPool();
-
-    try {
-      const result = await pool.query(
-        `
-        SELECT 
-          id, 
-          fecha, 
-          accion,
-          tipo,
-          que,
-          plataforma_pago,
-          cantidad,
-          detalle1,
-          detalle2,
-          quien
-        FROM finance_entries
-        WHERE id = $1
-        ${session?.user?.id ? " AND user_id = '" + session.user.id + "'" : ""}
-      `,
-        [id]
-      );
-
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return result.rows[0] as Entry;
-    } finally {
-      await pool.end();
+    const params: string[] = [id];
+    let userScope = "";
+    if (session?.user?.id) {
+      params.push(session.user.id);
+      userScope = " AND user_id = $2";
     }
+
+    const result = await pool.query(
+      `SELECT id, fecha, accion, tipo, que, plataforma_pago, cantidad,
+              detalle1, detalle2, quien
+         FROM finance_entries
+        WHERE id = $1${userScope}
+        LIMIT 1`,
+      params
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0] as Entry;
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch entry.");
+  } finally {
+    await pool.end();
   }
 }
 
 /**
- * Server-side function to get distinct options for form dropdowns
- * Returns options ordered by frequency of use for each field
+ * Server-side function to get distinct options for form dropdowns.
+ * Returns options ordered by frequency of use for each field.
  */
 export async function getFormOptions(session: Session | null = null) {
   if (!session?.user?.id) {
     throw new Error("Not authenticated");
   }
 
-  try {
-    const pool = createPool();
+  const pool = createPool();
 
-    try {
-      // Get distinct values for each field, ordered by frequency of use
-      const [tipoResult, queResult, plataformaResult, quienResult] = await Promise.all([
+  try {
+    const [tipoResult, queResult, plataformaResult, quienResult] =
+      await Promise.all([
         pool.query(
-          `
-          SELECT tipo as value, COUNT(*) as count
-          FROM finance_entries
-          WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
-          GROUP BY tipo
-          ORDER BY count DESC, tipo ASC
-        `,
+          `SELECT tipo AS value, COUNT(*) AS count
+             FROM finance_entries
+            WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
+            GROUP BY tipo
+            ORDER BY count DESC, tipo ASC`,
           [session.user.id]
         ),
         pool.query(
-          `
-          SELECT que as value, COUNT(*) as count
-          FROM finance_entries
-          WHERE user_id = $1 AND que IS NOT NULL AND que != ''
-          GROUP BY que
-          ORDER BY count DESC, que ASC
-        `,
+          `SELECT que AS value, COUNT(*) AS count
+             FROM finance_entries
+            WHERE user_id = $1 AND que IS NOT NULL AND que != ''
+            GROUP BY que
+            ORDER BY count DESC, que ASC`,
           [session.user.id]
         ),
         pool.query(
-          `
-          SELECT plataforma_pago as value, COUNT(*) as count
-          FROM finance_entries
-          WHERE user_id = $1 AND plataforma_pago IS NOT NULL AND plataforma_pago != ''
-          GROUP BY plataforma_pago
-          ORDER BY count DESC, plataforma_pago ASC
-        `,
+          `SELECT plataforma_pago AS value, COUNT(*) AS count
+             FROM finance_entries
+            WHERE user_id = $1
+              AND plataforma_pago IS NOT NULL
+              AND plataforma_pago != ''
+            GROUP BY plataforma_pago
+            ORDER BY count DESC, plataforma_pago ASC`,
           [session.user.id]
         ),
         pool.query(
-          `
-          SELECT quien as value, COUNT(*) as count
-          FROM finance_entries
-          WHERE user_id = $1 AND quien IS NOT NULL AND quien != ''
-          GROUP BY quien
-          ORDER BY count DESC, quien ASC
-        `,
+          `SELECT quien AS value, COUNT(*) AS count
+             FROM finance_entries
+            WHERE user_id = $1 AND quien IS NOT NULL AND quien != ''
+            GROUP BY quien
+            ORDER BY count DESC, quien ASC`,
           [session.user.id]
         ),
       ]);
 
-      // Extract just the values, ordered by frequency
-      const tipo = tipoResult.rows.map((row) => row.value);
-      const que = queResult.rows.map((row) => row.value);
-      const plataforma_pago = plataformaResult.rows.map((row) => row.value);
-      const quien = quienResult.rows.map((row) => row.value);
-
-      return {
-        tipo,
-        que,
-        plataforma_pago,
-        quien,
-      };
-    } finally {
-      await pool.end();
-    }
+    return {
+      tipo: tipoResult.rows.map((row) => row.value as string),
+      que: queResult.rows.map((row) => row.value as string),
+      plataforma_pago: plataformaResult.rows.map(
+        (row) => row.value as string
+      ),
+      quien: quienResult.rows.map((row) => row.value as string),
+    };
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch form options.");
+  } finally {
+    await pool.end();
   }
 }
