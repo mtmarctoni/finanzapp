@@ -3,4 +3,6 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - npm-run-all2@9.0.0
 trustPolicy: strict
