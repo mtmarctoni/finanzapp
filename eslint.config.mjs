@@ -6,5 +6,9 @@ import prettier from 'eslint-config-prettier';
 export default defineConfig([
   {
     extends: [...nextCoreWebVitals, ...nextTypescript, prettier],
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/incompatible-library': 'warn',
+    },
   },
 ]);
