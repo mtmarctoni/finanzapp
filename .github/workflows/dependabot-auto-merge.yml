@@ -1,18 +1,16 @@
-name: Dependabot Auto-Merge
+name: Dependabot Review Labels
 
 on:
   pull_request_target:
     types:
       - opened
       - synchronize
-      - labeled
 
 permissions:
   pull-requests: write
-  contents: write
 
 jobs:
-  auto-merge:
+  label:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
@@ -22,19 +20,18 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-merge patch and minor updates with green CI
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+      - name: Label major updates as breaking
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
         run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --squash --auto "$PR_URL"
+          gh pr edit "$PR_URL" --add-label "breaking-change"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Label major updates for manual review
-        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+      - name: Check for security advisories
+        if: steps.metadata.outputs.cvss != '0'
         run: |
-          gh pr edit "$PR_URL" --add-label "needs-review"
+          gh pr edit "$PR_URL" --add-label "security"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
