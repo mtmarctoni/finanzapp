@@ -12,6 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Secret scanning with trufflehog
+        run: |
+          npx --yes trufflehog git file://. --since-commit HEAD~1 --fail --no-update
+
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
