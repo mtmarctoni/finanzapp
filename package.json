@@ -24,7 +24,8 @@
     "seed:dev": "tsx scripts/seed-db.ts",
     "reset:test": "tsx scripts/reset-test-user-data.ts",
     "setup:hooks": "git config core.hooksPath .githooks",
-    "audit": "pnpm audit --audit-level=high",
+    "audit": "pnpm audit --audit-level=critical",
+    "audit:high": "pnpm audit --audit-level=high",
     "audit:all": "pnpm audit",
     "postinstall": "git config core.hooksPath .githooks"
   },
