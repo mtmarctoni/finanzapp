@@ -1,0 +1,111 @@
+name: Dependabot Age Retry
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Manually retry a specific Dependabot PR by number'
+        required: false
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find and retry aged Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MANUAL_PR: ${{ inputs.pr_number }}
+        run: |
+          # Ensure label exists
+          gh label create retry-24h \
+            --description "Waiting for packages to age past pnpm minimumReleaseAge policy" \
+            --color fbca04 \
+            --repo "$REPO" 2>/dev/null || true
+
+          if [ -n "$MANUAL_PR" ]; then
+            PRS=$(gh pr view "$MANUAL_PR" --repo "$REPO" --json number,headRefName,author --jq '. | [.]\n')
+          else
+            PRS=$(gh pr list --repo "$REPO" --state open --json number,headRefName,author --jq '.[] | select(.author.login | test("dependabot"))')
+          fi
+
+          if [ -z "$PRS" ]; then
+            echo "No Dependabot PRs found"
+            exit 0
+          fi
+
+          echo "$PRS" | while IFS= read -r line; do
+            PR_NUMBER=$(echo "$line" | jq -r '.number')
+            HEAD_REF=$(echo "$line" | jq -r '.headRefName')
+
+            echo "=== Processing PR #$PR_NUMBER (branch: $HEAD_REF) ==="
+
+            # Get the latest failed run for this branch
+            FAILED_RUNS=$(gh run list --repo "$REPO" --branch "$HEAD_REF" --status failure --limit 3 --json databaseId,workflowName,conclusion 2>/dev/null || echo "[]")
+            
+            if [ "$FAILED_RUNS" = "[]" ] || [ -z "$FAILED_RUNS" ]; then
+              echo "No failed runs found for PR #$PR_NUMBER"
+              # CI might have passed -- check and remove label if so
+              gh pr edit "$PR_NUMBER" --remove-label retry-24h --repo "$REPO" 2>/dev/null || true
+              continue
+            fi
+
+            # Check if any failed run has minimumReleaseAge violation
+            IS_AGE_VIOLATION=false
+            for run_id in $(echo "$FAILED_RUNS" | jq -r '.[].databaseId'); do
+              FAILED_JOBS=$(gh api "/repos/$REPO/actions/runs/$run_id/jobs?status=failure" --jq '.jobs[].id' 2>/dev/null || true)
+              for job_id in $FAILED_JOBS; do
+                echo "Checking job $job_id for age violation..."
+                LOGS=$(gh api "/repos/$REPO/actions/jobs/$job_id/logs" 2>/dev/null || echo "")
+                if echo "$LOGS" | grep -q "ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION"; then
+                  IS_AGE_VIOLATION=true
+                  echo "Found minimumReleaseAge violation in job $job_id"
+                  break 2
+                fi
+              done
+            done
+
+            if [ "$IS_AGE_VIOLATION" = "false" ]; then
+              echo "PR #$PR_NUMBER failed for non-age reasons, skipping"
+              continue
+            fi
+
+            # Add label
+            gh pr edit "$PR_NUMBER" --add-label retry-24h --repo "$REPO" 2>/dev/null || true
+
+            # Comment if not already commented
+            EXISTING_COMMENT=$(gh pr view "$PR_NUMBER" --repo "$REPO" --comments --json comments --jq '.comments[] | select(.author.login == "github-actions[bot]") | .body' 2>/dev/null || echo "")
+            if ! echo "$EXISTING_COMMENT" | grep -q "minimumReleaseAge violation"; then
+              gh pr comment "$PR_NUMBER" --repo "$REPO" --body "### Supply Chain Protection Active
+
+CI failed due to pnpm's \`minimumReleaseAge\` policy (\`trustPolicy: strict\` in \`pnpm-workspace.yaml\`).
+Some dependency updates were published less than 24 hours ago.
+
+This PR will be automatically retried every ~6 hours.
+Once the packages age past the 24-hour window, CI should pass.
+
+> This protection guards against supply-chain attacks from freshly published malicious packages."
+            fi
+
+            # Push empty commit to retry CI
+            git fetch origin "$HEAD_REF"
+            git checkout "$HEAD_REF"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "chore: retry CI after minimumReleaseAge wait"
+            git push origin "$HEAD_REF"
+            echo "Pushed empty commit to retry CI for PR #$PR_NUMBER"
+
+            git checkout main 2>/dev/null || git checkout - 2>/dev/null || true
+          done
