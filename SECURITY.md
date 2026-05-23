@@ -14,7 +14,7 @@ This is a personal finance application. If you discover a security vulnerability
 
 ### How to report
 
-1. **Email**: mtmarctoni+security@gmail.com
+1. **Email**: marctonimas@protonmail.com
 2. **GitHub Private Vulnerability Reporting**: Go to https://github.com/mtmarctoni/finanzapp/security/advisories and click "Report a vulnerability"
 
 ### What to include
