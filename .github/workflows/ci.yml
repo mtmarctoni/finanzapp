@@ -28,12 +28,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit for vulnerabilities
-        # NOTE: Using --audit-level=critical instead of --audit-level=high because
-        # the `xlsx` package (0.18.5) has 2 known high-severity vulnerabilities
-        # (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) with no public patched version.
-        # The maintainers moved to a commercial distribution model (SheetJS).
-        # Switch to --audit-level=high once xlsx is replaced or a fix is available.
-        run: pnpm audit --audit-level=critical
+        run: pnpm audit --audit-level=high
 
       - name: Lint
         run: pnpm lint
