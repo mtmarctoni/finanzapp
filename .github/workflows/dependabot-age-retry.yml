@@ -1,0 +1,187 @@
+name: Dependabot Age Retry
+
+on:
+  workflow_run:
+    workflows: ["CI", "CodeQL"]
+    types: [completed]
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  detect:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect minimum release age violation on Dependabot PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            const headBranch = run.head_branch;
+            
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo, state: 'open',
+              head: `${owner}:${headBranch}`
+            });
+            
+            if (prs.length === 0) {
+              console.log(`No open PR found for branch ${headBranch}`);
+              return;
+            }
+            
+            const pr = prs[0];
+            
+            const { data: fullPr } = await github.rest.pulls.get({
+              owner, repo, pull_number: pr.number
+            });
+            
+            if (!fullPr.user.login.includes('dependabot')) {
+              console.log(`PR #${pr.number} is not from Dependabot (author: ${fullPr.user.login})`);
+              return;
+            }
+            
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner, repo, run_id: run.id, status: 'failure'
+            });
+            
+            let isAgeViolation = false;
+            
+            for (const job of jobs.jobs) {
+              try {
+                const response = await fetch(
+                  `https://api.github.com/repos/${owner}/${repo}/actions/jobs/${job.id}/logs`,
+                  { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } }
+                );
+                const logs = await response.text();
+                if (logs.includes('ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION')) {
+                  isAgeViolation = true;
+                  break;
+                }
+              } catch (e) {
+                console.log(`Could not download logs for job ${job.id}: ${e.message}`);
+              }
+            }
+            
+            if (!isAgeViolation) {
+              console.log('Failure is not due to minimumReleaseAge violation');
+              return;
+            }
+            
+            try {
+              await github.rest.issues.createLabel({
+                owner, repo,
+                name: 'retry-24h',
+                color: 'fbca04',
+                description: 'Waiting for packages to age past pnpm minimumReleaseAge policy'
+              });
+            } catch (e) {
+              if (!e.message.includes('already_exists')) throw e;
+            }
+            
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number: pr.number,
+              labels: ['retry-24h']
+            });
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: pr.number
+            });
+            
+            const alreadyCommented = comments.some(c =>
+              c.user.login === 'github-actions[bot]' &&
+              c.body.includes('minimumReleaseAge violation')
+            );
+            
+            if (!alreadyCommented) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: pr.number,
+                body: [
+                  '### Supply Chain Protection Active',
+                  '',
+                  'CI failed due to pnpm\'s `minimumReleaseAge` policy (`trustPolicy: strict` in `pnpm-workspace.yaml`).',
+                  'Some dependency updates were published less than 24 hours ago.',
+                  '',
+                  'This PR will be automatically retried every ~6 hours.',
+                  'Once the packages age past the 24-hour window, CI should pass.',
+                  '',
+                  '> This protection guards against supply-chain attacks from freshly published malicious packages.'
+                ].join('\n')
+              });
+            }
+            
+            console.log(`Added retry-24h label to PR #${pr.number}`);
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  retry:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Retry aged Dependabot PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Create label if it doesn't exist
+          gh label create retry-24h \
+            --description "Waiting for packages to age past pnpm minimumReleaseAge policy" \
+            --color fbca04 \
+            --repo "$REPO" 2>/dev/null || true
+          
+          # Find PRs with retry-24h label
+          PRS=$(gh pr list --repo "$REPO" --state open --label retry-24h --json number,headRefName 2>/dev/null || echo "[]")
+          
+          if [ "$PRS" = "[]" ] || [ -z "$PRS" ]; then
+            echo "No PRs with retry-24h label found"
+            exit 0
+          fi
+          
+          echo "$PRS" | jq -c '.[]' | while read -r pr; do
+            PR_NUMBER=$(echo "$pr" | jq -r '.number')
+            HEAD_REF=$(echo "$pr" | jq -r '.headRefName')
+            
+            echo "Processing PR #$PR_NUMBER (branch: $HEAD_REF)"
+            
+            # Check if CI has already passed (remove label if so)
+            CONCLUSION=$(gh pr checks "$PR_NUMBER" --repo "$REPO" --json state --jq '.[0].state' 2>/dev/null || echo "unknown")
+            
+            # Check for any failed workflow runs on this branch
+            FAILED=$(gh run list --repo "$REPO" --branch "$HEAD_REF" --status failure --json databaseId --jq '. | length' 2>/dev/null || echo "0")
+            
+            if [ "$FAILED" = "0" ]; then
+              echo "No failed runs for PR #$PR_NUMBER. Removing label."
+              gh pr edit "$PR_NUMBER" --remove-label retry-24h --repo "$REPO" 2>/dev/null || true
+              gh pr comment "$PR_NUMBER" --repo "$REPO" --body "CI has passed. Removing the retry-24h label." 2>/dev/null || true
+              continue
+            fi
+            
+            # Fetch and checkout the Dependabot branch
+            git fetch origin "$HEAD_REF"
+            git checkout "$HEAD_REF"
+            
+            # Configure git user
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            
+            # Push an empty commit to retry all checks (CI, CodeQL, Vercel)
+            git commit --allow-empty -m "chore: retry CI after minimumReleaseAge wait"
+            git push origin "$HEAD_REF"
+            
+            echo "Pushed empty commit to retry CI for PR #$PR_NUMBER"
+            
+            # Switch back to default branch
+            git checkout main 2>/dev/null || git checkout - 2>/dev/null || true
+          done
