@@ -22,8 +22,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-approve and merge security advisories only
-        if: steps.metadata.outputs.cvss > 0
+      - name: Auto-merge patch and minor updates with green CI
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
         run: |
           gh pr review --approve "$PR_URL"
           gh pr merge --squash --auto "$PR_URL"
@@ -31,8 +31,8 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Label non-security updates for manual review
-        if: steps.metadata.outputs.cvss == '0'
+      - name: Label major updates for manual review
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
         run: |
           gh pr edit "$PR_URL" --add-label "needs-review"
         env:
