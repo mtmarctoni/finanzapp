@@ -24,6 +24,8 @@
     "seed:dev": "tsx scripts/seed-db.ts",
     "reset:test": "tsx scripts/reset-test-user-data.ts",
     "setup:hooks": "git config core.hooksPath .githooks",
+    "audit": "pnpm audit --audit-level=high",
+    "audit:all": "pnpm audit",
     "postinstall": "git config core.hooksPath .githooks"
   },
   "lint-staged": {
