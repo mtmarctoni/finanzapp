@@ -9,48 +9,19 @@ import {
 import type { CreateEntryInput } from '@/lib/api-validation';
 import { ZodError } from 'zod';
 
-function sanitizeLogString(value: string): string {
-  return value.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
-}
-
-function sanitizeLogValue(
-  value: unknown,
-  seen: WeakSet<object> = new WeakSet(),
-): unknown {
-  if (typeof value === 'string') {
-    return sanitizeLogString(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeLogValue(item, seen));
-  }
-
-  if (value && typeof value === 'object') {
-    if (seen.has(value)) {
-      return '[Circular]';
-    }
-    seen.add(value);
-
-    const sanitizedObject: Record<string, unknown> = {};
-    for (const [key, nestedValue] of Object.entries(
-      value as Record<string, unknown>,
-    )) {
-      sanitizedObject[sanitizeLogString(key)] = sanitizeLogValue(
-        nestedValue,
-        seen,
-      );
-    }
-
-    return sanitizedObject;
-  }
-
-  return value;
-}
-
 function devLog(...args: Parameters<typeof console.log>) {
   if (process.env.NODE_ENV !== 'production') {
-    const sanitizedArgs = args.map((arg) => sanitizeLogValue(arg));
-    console.log(...sanitizedArgs);
+    const sanitized = args.map((arg) => {
+      if (typeof arg === 'string') {
+        return arg.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+      }
+      try {
+        return JSON.stringify(arg, null, 2);
+      } catch {
+        return String(arg);
+      }
+    });
+    console.log(...sanitized);
   }
 }
 
