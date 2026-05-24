@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       POSTGRES_URL: ${{ secrets.CI_POSTGRES_URL }}
-      POSTGRES_URL_NON_POOLING: ${{ secrets.CI_POSTGRES_URL }}
+      POSTGRES_URL_NON_POOLING: ${{ secrets.CI_POSTGRES_URL_NON_POOLING }}
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: ci-test-secret-do-not-use-in-production
       DEV_CREDENTIALS: '[{"id":"f7a8b9c0-1e2f-3d45-6a7b-1234567890cd","email":"test@example.com","password":"password123","name":"Test User"}]'
@@ -75,7 +75,7 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
 
       - name: Initialize database schema
-        run: psql "$POSTGRES_URL" -f db/init.sql
+        run: psql "$POSTGRES_URL_NON_POOLING" -f db/init.sql
 
       - name: Seed test data
         run: pnpm tsx scripts/reset-test-user-data.ts
