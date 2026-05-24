@@ -19,7 +19,7 @@ importers:
         version: 3.0.186(react@19.2.1)(zod@4.4.3)
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.2.2(react-hook-form@7.76.0(react@19.2.1))
+        version: 5.4.0(react-hook-form@7.76.1(react@19.2.1))
       '@openrouter/ai-sdk-provider':
         specifier: ^2.3.3
         version: 2.9.0(ai@6.0.184(zod@4.4.3))(zod@4.4.3)
@@ -157,7 +157,7 @@ importers:
         version: 19.2.1(react@19.2.1)
       react-hook-form:
         specifier: ^7.76.0
-        version: 7.76.0(react@19.2.1)
+        version: 7.76.1(react@19.2.1)
       react-resizable-panels:
         specifier: ^2.1.7
         version: 2.1.9(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -4162,6 +4162,7 @@ packages:
   recharts@2.15.0:
     resolution: {integrity: sha512-cIvMxDfpAmqAmVgc4yb7pgm/O1tmmkl/CjrvXuW+62/+7jj/iF9Ykm+hb/UJt42TREHMyd3gb+pkgoa2MxgDIw==}
     engines: {node: '>=14'}
+    deprecated: 1.x and 2.x branches are no longer active. Bump to Recharts v3 to receive latest features and bugfixes. See https://github.com/recharts/recharts/wiki/3.0-migration-guide
     peerDependencies:
       react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
