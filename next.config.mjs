@@ -15,7 +15,7 @@ const nextConfig = {
     // and need to be fixed so this flag can flip to false. Until then,
     // CI must still run `pnpm exec tsc --noEmit` so the errors don't
     // grow silently — see the verification step in CONTRIBUTING.
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     unoptimized: true,
