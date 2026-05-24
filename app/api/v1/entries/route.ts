@@ -9,6 +9,12 @@ import {
 import type { CreateEntryInput } from '@/lib/api-validation';
 import { ZodError } from 'zod';
 
+function devLog(...args: Parameters<typeof console.log>) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(...args);
+  }
+}
+
 function jsonWithHeaders(body: unknown, init: ResponseInit = {}) {
   const response = NextResponse.json(body, init);
 
@@ -50,11 +56,11 @@ export async function POST(request: NextRequest) {
   const requestId = Math.random().toString(36).substring(7);
   const timestamp = new Date().toISOString();
 
-  // Log incoming request details
-  console.log(`\n[${timestamp}] 🔵 API Request #${requestId}`);
-  console.log(`  Method: ${request.method}`);
-  console.log(`  URL: ${request.url}`);
-  console.log(`  Headers:`);
+  // Log incoming request details (development only)
+  devLog(`\n[${timestamp}] 🔵 API Request #${requestId}`);
+  devLog(`  Method: ${request.method}`);
+  devLog(`  URL: ${request.url}`);
+  devLog(`  Headers:`);
   request.headers.forEach((value, key) => {
     // Mask API key for security
     if (
@@ -65,16 +71,16 @@ export async function POST(request: NextRequest) {
         value.length > 10
           ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
           : '***';
-      console.log(`    ${key}: ${masked}`);
+      devLog(`    ${key}: ${masked}`);
     } else {
-      console.log(`    ${key}: ${value}`);
+      devLog(`    ${key}: ${value}`);
     }
   });
 
   const { auth, rateLimitHeaders, rateLimitResponse } =
     await authenticateAndRateLimitApiRequest(request);
 
-  console.log(`[${timestamp}] 🔑 Auth Result #${requestId}:`, {
+  devLog(`[${timestamp}] 🔑 Auth Result #${requestId}:`, {
     authenticated: !!auth,
     userId: auth?.userId || 'none',
     rateLimitHeaders: rateLimitHeaders ? rateLimitHeaders : {},
@@ -99,7 +105,7 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
-    console.log(
+    devLog(
       `[${timestamp}] 📦 Body #${requestId}:`,
       JSON.stringify(body, null, 2),
     );
@@ -123,7 +129,7 @@ export async function POST(request: NextRequest) {
       let entriesData: unknown = rawEntries;
 
       if (typeof rawEntries === 'string') {
-        console.log(
+        devLog(
           `[${timestamp}] 🔧 Detected string entries, attempting to parse #${requestId}`,
         );
         // Try to extract JSON from markdown code blocks
@@ -132,7 +138,7 @@ export async function POST(request: NextRequest) {
         );
         if (markdownMatch) {
           entriesData = markdownMatch[1].trim();
-          console.log(
+          devLog(
             `[${timestamp}] 📝 Extracted from markdown #${requestId}:`,
             (entriesData as string).substring(0, 100),
           );
@@ -167,7 +173,7 @@ export async function POST(request: NextRequest) {
 
       const parsed = BatchCreateEntrySchema.parse({ entries: entriesData });
       entriesToCreate = parsed.entries;
-      console.log(`[${timestamp}] ✅ Batch validated #${requestId}:`, {
+      devLog(`[${timestamp}] ✅ Batch validated #${requestId}:`, {
         count: entriesToCreate.length,
         entries: entriesToCreate.map((e) => ({
           tipo: e.tipo,
@@ -179,7 +185,7 @@ export async function POST(request: NextRequest) {
     } else {
       const parsed = CreateEntrySchema.parse(body);
       entriesToCreate = [parsed];
-      console.log(`[${timestamp}] ✅ Single validated #${requestId}:`, {
+      devLog(`[${timestamp}] ✅ Single validated #${requestId}:`, {
         tipo: parsed.tipo,
         accion: parsed.accion,
         que: parsed.que,
@@ -211,11 +217,11 @@ export async function POST(request: NextRequest) {
   const client = createClient();
   await client.connect();
 
-  console.log(`[${timestamp}] 💾 DB Connection #${requestId}: connected`);
+  devLog(`[${timestamp}] 💾 DB Connection #${requestId}: connected`);
 
   try {
     await client.query('BEGIN');
-    console.log(`[${timestamp}] 🔃 Transaction #${requestId}: BEGIN`);
+    devLog(`[${timestamp}] 🔃 Transaction #${requestId}: BEGIN`);
 
     const createdEntries: Array<{
       id: string;
@@ -232,7 +238,7 @@ export async function POST(request: NextRequest) {
 
     for (const [index, entry] of entriesToCreate.entries()) {
       const id = uuidv4();
-      console.log(`[${timestamp}] 📝 Insert #${requestId} [${index}]:`, {
+      devLog(`[${timestamp}] 📝 Insert #${requestId} [${index}]:`, {
         id,
         tipo: entry.tipo,
         accion: entry.accion,
@@ -263,11 +269,11 @@ export async function POST(request: NextRequest) {
     }
 
     await client.query('COMMIT');
-    console.log(
+    devLog(
       `[${timestamp}] ✅ Transaction #${requestId}: COMMIT - ${createdEntries.length} entries created`,
     );
 
-    console.log(`[${timestamp}] 🎉 Response #${requestId}: 201 Created`, {
+    devLog(`[${timestamp}] 🎉 Response #${requestId}: 201 Created`, {
       success: true,
       count: createdEntries.length,
     });
@@ -292,6 +298,6 @@ export async function POST(request: NextRequest) {
     );
   } finally {
     await client.end();
-    console.log(`[${timestamp}] 🔚 Request #${requestId}: completed\n`);
+    devLog(`[${timestamp}] 🔚 Request #${requestId}: completed\n`);
   }
 }
