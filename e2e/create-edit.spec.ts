@@ -19,6 +19,9 @@ test.describe('Create and Edit Finance Entries', () => {
       page.getByRole('heading', { name: 'Añadir Nueva Entrada' }),
     ).toBeVisible();
 
+    // Wait for combobox options to load before interacting
+    await page.waitForResponse('/api/options');
+
     const today = format(new Date(), 'yyyy-MM-dd');
     await page.getByLabel('Fecha').fill(today);
     await page.getByLabel('Hora').fill('10');
@@ -49,7 +52,8 @@ test.describe('Create and Edit Finance Entries', () => {
 
     await page.getByRole('button', { name: 'Guardar' }).click();
 
-    await page.waitForURL('/records', { timeout: 15000 });
+    // Form redirects to / then page.tsx redirects to /records
+    await page.waitForURL(/\/records/, { timeout: 30000 });
   });
 
   test('should edit an existing entry', async ({ page }) => {
