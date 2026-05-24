@@ -12,14 +12,17 @@ import { ZodError } from 'zod';
 function devLog(...args: Parameters<typeof console.log>) {
   if (process.env.NODE_ENV !== 'production') {
     const sanitized = args.map((arg) => {
+      let asString: string;
       if (typeof arg === 'string') {
-        return arg.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
+        asString = arg;
+      } else {
+        try {
+          asString = JSON.stringify(arg);
+        } catch {
+          asString = String(arg);
+        }
       }
-      try {
-        return JSON.stringify(arg, null, 2);
-      } catch {
-        return String(arg);
-      }
+      return asString.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
     });
     console.log(...sanitized);
   }
