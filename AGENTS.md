@@ -60,20 +60,25 @@ To add a new agent:
 When a feature, fix, or chore is complete and ready to be integrated into the `main` branch, you must follow this exact workflow to maintain a professional, linear Git history.
 
 ### 1. Verify Build Status
+
 - Ensure the automated CI/CD pipeline checks are passing on your feature branch.
 - Do not attempt to merge code if there are failing tests or linting errors.
 
 ### 2. Create the Pull Request
+
 - Open a Pull Request from your feature branch into `main`.
 - Fill out the `.github/PULL_REQUEST_TEMPLATE.md` thoroughly, ensuring the "Financial & Data Integrity Impacts" section is accurate.
 - Title the PR using the Conventional Commits standard (e.g., `feat(ledger): implement double-entry balancing logic`).
 
 ### 3. Execute the Squash Merge
+
 - Always use the **Squash and Merge** strategy. Never create a standard merge commit or a raw rebase.
 - Because the repository is configured to use the "Pull request title and description" for squash commits, the PR title will become the commit title, and your markdown PR body will become the commit body. No manual string concatenation is required.
 
 #### Command Execution (GitHub CLI)
+
 If you are managing Git via the terminal, use the GitHub CLI to merge and automatically clean up the branch:
+
 ```bash
 gh pr merge --squash --delete-branch
 ```
