@@ -99,27 +99,31 @@ export default function FinanceTable({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
     (searchParams?.sortOrder as 'asc' | 'desc') || DEFAULT_SORT_ORDER,
   );
-  console.log('FinanceTable received params:', {
-    search,
-    accion,
-    from,
-    to,
-    currentPage,
-    itemsPerPage,
-  });
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('FinanceTable received params:', {
+      search,
+      accion,
+      from,
+      to,
+      currentPage,
+      itemsPerPage,
+    });
+  }
 
   useEffect(() => {
     const getEntries = async () => {
-      console.log('Fetching entries with params:', {
-        search,
-        accion,
-        from,
-        to,
-        page: currentPage,
-        itemsPerPage,
-        sortBy,
-        sortOrder,
-      });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Fetching entries with params:', {
+          search,
+          accion,
+          from,
+          to,
+          page: currentPage,
+          itemsPerPage,
+          sortBy,
+          sortOrder,
+        });
+      }
       const result = (await getFinanceEntries({
         search,
         accion,
@@ -130,7 +134,9 @@ export default function FinanceTable({
         sortBy,
         sortOrder,
       })) as PaginatedEntriesResponse;
-      console.log('Received entries:', result);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Received entries:', result);
+      }
       setEntries({
         data: result.data ?? [],
         totalItems: (result.totalItems ??

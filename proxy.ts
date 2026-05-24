@@ -1,36 +1,29 @@
-// import { withAuth } from "next-auth/middleware";
+import { withAuth } from 'next-auth/middleware';
+import { NextResponse } from 'next/server';
 
-// export default withAuth(
-//     {
-//   callbacks: {
-//     authorized: ({ token }) => !!token,
-//   },
-// }, {
-//   callbacks: {
-//     async authorized() {
-//       return true;
-//     },
-//   },
-// }
-// );
+export default withAuth(
+  function middleware(_req) {
+    const response = NextResponse.next();
 
-export { default as proxy } from 'next-auth/middleware';
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set(
+      'Strict-Transport-Security',
+      'max-age=63072000; includeSubDomains; preload',
+    );
+
+    return response;
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
+  },
+);
 
 export const config = {
   matcher: [
-    '/',
-    '/edit/:path',
-    '/new',
-    '/recurring',
-    '/api/ai/:path*',
-    '/api/analytics',
-    '/api/api-keys/:path*',
-    '/api/crypto/:path*',
-    '/api/entries/:path*',
-    '/api/export',
-    '/api/options',
-    '/api/recurring/:path*',
-    '/api/stats',
-    '/api/summary',
+    '/((?!login|api/v1/|api/auth/|_next/static|_next/image|favicon.ico).*)',
   ],
 };
