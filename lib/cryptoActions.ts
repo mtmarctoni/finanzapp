@@ -42,9 +42,9 @@ import {
 } from '@/lib/crypto/wallets';
 import { aggregateHoldings, listUserSymbols } from '@/lib/crypto/holdings';
 
-// Re-export the filter type so existing API routes can keep importing
-// it from "@/lib/cryptoActions".
-export type { CryptoTransactionFilter, PaginatedCryptoTransactions };
+// Types are used internally but not re-exported from this 'use server'
+// boundary to avoid Turbopack strict-mode issues in Next.js 16.2+.
+// Consumers should import types directly from '@/lib/crypto/transactions'.
 
 const CRYPTO_REVALIDATE_PATH = '/investment/crypto';
 
