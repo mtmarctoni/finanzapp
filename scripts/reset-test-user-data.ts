@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { sql } from '@vercel/postgres';
 import { v4 as uuidv4 } from 'uuid';
 

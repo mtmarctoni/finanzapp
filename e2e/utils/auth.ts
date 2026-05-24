@@ -1,24 +1,19 @@
-import { expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
 
 const TEST_EMAIL = 'test@example.com';
 const TEST_PASSWORD = 'password123';
 
 export async function signInAsTestUser(page: Page) {
-  await page.goto('/auth/signin');
+  const csrfResponse = await page.request.get('/api/auth/csrf');
+  const { csrfToken } = await csrfResponse.json();
 
-  if (!page.url().includes('/auth/signin')) {
-    return;
-  }
-
-  await page.getByLabel('Correo electrónico').fill(TEST_EMAIL);
-  await page.getByLabel('Contraseña').fill(TEST_PASSWORD);
-  await page
-    .locator('form')
-    .getByRole('button', { name: 'Iniciar sesión' })
-    .click();
-
-  await expect(page).not.toHaveURL(/\/auth\/signin/);
-  await expect(
-    page.getByRole('button', { name: 'Cerrar sesión' }),
-  ).toBeVisible();
+  await page.request.post('/api/auth/callback/credentials', {
+    form: {
+      csrfToken,
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+      callbackUrl: '/',
+      json: 'true',
+    },
+  });
 }

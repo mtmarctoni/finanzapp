@@ -27,6 +27,9 @@ interface ComboboxProps {
   placeholder?: string;
   allowCreate?: boolean;
   loading?: boolean;
+  id?: string;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
 }
 
 export function Combobox({
@@ -36,6 +39,9 @@ export function Combobox({
   placeholder = 'Seleccionar...',
   allowCreate = true,
   loading = false,
+  id,
+  'aria-invalid': ariaInvalid,
+  'aria-describedby': ariaDescribedBy,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState('');
@@ -54,9 +60,12 @@ export function Combobox({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           className="w-full justify-between"
         >
           {value || placeholder}

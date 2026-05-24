@@ -17,9 +17,3 @@ if (typeof TextDecoder === 'undefined') {
   global.TextDecoder = require('util').TextDecoder;
 }
 
-// Polyfill for Request/Response (needed for Next.js 15+ with Jest)
-if (typeof Request === 'undefined') {
-  const { Request, Response } = require('node-fetch');
-  global.Request = Request;
-  global.Response = Response;
-}
