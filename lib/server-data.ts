@@ -1,4 +1,4 @@
-import { createPool } from '@vercel/postgres';
+import { getPool } from '@/lib/db';
 import type { Entry } from './definitions';
 import { Session } from 'next-auth';
 
@@ -30,7 +30,7 @@ export async function getSummaryStats(
     : false;
   const breakdownLimit = showAll ? 1000 : 5;
 
-  const pool = createPool();
+  const pool = getPool();
 
   try {
     // Build a reusable parameterized WHERE clause. $1 = user_id, $2 = month
@@ -43,83 +43,87 @@ export async function getSummaryStats(
     `;
     const baseParams = [userId, month ?? null];
 
-    const incomeResult = await pool.query(
-      `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
-         FROM finance_entries
-         ${whereSql}
-          AND accion = 'Ingreso'`,
-      baseParams,
-    );
-
-    const expenseResult = await pool.query(
-      `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
-         FROM finance_entries
-         ${whereSql}
-          AND accion = 'Gasto'`,
-      baseParams,
-    );
-
-    const investmentResult = await pool.query(
-      `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
-         FROM finance_entries
-         ${whereSql}
-          AND accion = 'Inversión'`,
-      baseParams,
-    );
-
-    const trendsResult = await pool.query(
-      `SELECT date_trunc('month', fecha) AS month,
-              SUM(CASE WHEN accion = 'Ingreso' THEN cantidad ELSE 0 END) AS income,
-              SUM(CASE WHEN accion = 'Gasto'   THEN cantidad ELSE 0 END) AS expenses,
-              SUM(CASE WHEN accion = 'Inversión' THEN cantidad ELSE 0 END) AS investments
-         FROM finance_entries
-        WHERE fecha >= NOW() - INTERVAL '6 months'
-          AND user_id = $1
-        GROUP BY date_trunc('month', fecha)
-        ORDER BY month DESC
-        LIMIT 6`,
-      [userId],
-    );
+    const [
+      incomeResult,
+      expenseResult,
+      investmentResult,
+      trendsResult,
+      expenseCategories,
+      incomeCategories,
+      investmentPerformance,
+    ] = await Promise.all([
+      pool.query(
+        `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+           FROM finance_entries
+           ${whereSql}
+            AND accion = 'Ingreso'`,
+        baseParams,
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+           FROM finance_entries
+           ${whereSql}
+            AND accion = 'Gasto'`,
+        baseParams,
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(cantidad), 0) AS total, COUNT(*) AS count
+           FROM finance_entries
+           ${whereSql}
+            AND accion = 'Inversión'`,
+        baseParams,
+      ),
+      pool.query(
+        `SELECT date_trunc('month', fecha) AS month,
+                SUM(CASE WHEN accion = 'Ingreso' THEN cantidad ELSE 0 END) AS income,
+                SUM(CASE WHEN accion = 'Gasto'   THEN cantidad ELSE 0 END) AS expenses,
+                SUM(CASE WHEN accion = 'Inversión' THEN cantidad ELSE 0 END) AS investments
+           FROM finance_entries
+          WHERE fecha >= NOW() - INTERVAL '6 months'
+            AND user_id = $1
+          GROUP BY date_trunc('month', fecha)
+          ORDER BY month DESC
+          LIMIT 6`,
+        [userId],
+      ),
+      pool.query(
+        `SELECT que AS category, SUM(cantidad) AS total
+           FROM finance_entries
+           ${whereSql}
+            AND accion = 'Gasto'
+          GROUP BY que
+          ORDER BY total DESC
+          LIMIT $3`,
+        [...baseParams, breakdownLimit],
+      ),
+      pool.query(
+        `SELECT que AS category, SUM(cantidad) AS total
+           FROM finance_entries
+           ${whereSql}
+            AND accion = 'Ingreso'
+          GROUP BY que
+          ORDER BY total DESC
+          LIMIT $3`,
+        [...baseParams, breakdownLimit],
+      ),
+      pool.query(
+        `SELECT que AS investment, SUM(cantidad) AS total
+           FROM finance_entries
+           ${whereSql}
+            AND accion = 'Inversión'
+          GROUP BY que
+          ORDER BY total DESC
+          LIMIT 5`,
+        baseParams,
+      ),
+    ]);
 
     const monthlyTrends = trendsResult.rows.map((row) => ({
-      month: row.month.toISOString().split('T')[0],
+      month: (row.month as Date).toISOString().split('T')[0],
       income: Number(row.income),
       expenses: Number(row.expenses),
       investments: Number(row.investments),
     }));
-
-    const expenseCategories = await pool.query(
-      `SELECT que AS category, SUM(cantidad) AS total
-         FROM finance_entries
-         ${whereSql}
-          AND accion = 'Gasto'
-        GROUP BY que
-        ORDER BY total DESC
-        LIMIT $3`,
-      [...baseParams, breakdownLimit],
-    );
-
-    const incomeCategories = await pool.query(
-      `SELECT que AS category, SUM(cantidad) AS total
-         FROM finance_entries
-         ${whereSql}
-          AND accion = 'Ingreso'
-        GROUP BY que
-        ORDER BY total DESC
-        LIMIT $3`,
-      [...baseParams, breakdownLimit],
-    );
-
-    const investmentPerformance = await pool.query(
-      `SELECT que AS investment, SUM(cantidad) AS total
-         FROM finance_entries
-         ${whereSql}
-          AND accion = 'Inversión'
-        GROUP BY que
-        ORDER BY total DESC
-        LIMIT 5`,
-      baseParams,
-    );
 
     const totalIncome = Number(incomeResult.rows[0].total);
     const totalExpenses = Number(expenseResult.rows[0].total);
@@ -183,8 +187,6 @@ export async function getSummaryStats(
         averageMonthly: 0,
       },
     };
-  } finally {
-    await pool.end();
   }
 }
 
@@ -199,7 +201,7 @@ export async function getEntryById(
   id: string,
   session: Session | null = null,
 ): Promise<Entry | null> {
-  const pool = createPool();
+  const pool = getPool();
 
   try {
     const params: string[] = [id];
@@ -226,8 +228,6 @@ export async function getEntryById(
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch entry.');
-  } finally {
-    await pool.end();
   }
 }
 
@@ -240,7 +240,7 @@ export async function getFormOptions(session: Session | null = null) {
     throw new Error('Not authenticated');
   }
 
-  const pool = createPool();
+  const pool = getPool();
 
   try {
     const [tipoResult, queResult, plataformaResult, quienResult] =
@@ -290,7 +290,5 @@ export async function getFormOptions(session: Session | null = null) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch form options.');
-  } finally {
-    await pool.end();
   }
 }

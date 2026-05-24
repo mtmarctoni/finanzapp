@@ -5,6 +5,20 @@ import {
   type VercelPool,
 } from '@vercel/postgres';
 
+let pool: VercelPool | null = null;
+
+/**
+ * Return the application's singleton connection pool, creating it on
+ * first call. The pool lives for the lifetime of the process so
+ * connections are reused across requests.
+ */
+export function getPool(): VercelPool {
+  if (!pool) {
+    pool = createPool();
+  }
+  return pool;
+}
+
 /**
  * Run `fn` with a connected `@vercel/postgres` client and guarantee the
  * client is closed afterwards. Existing call sites repeated the
@@ -13,8 +27,8 @@ import {
  *
  * Use this for short, transactional sequences (single INSERT / UPDATE /
  * DELETE, or 2–3 chained statements). For pure SELECT-style reads
- * prefer `withPool` — pooled connections survive between requests and
- * avoid the connect/handshake roundtrip.
+ * prefer the singleton pool via `getPool()` — pooled connections
+ * survive between requests and avoid the connect/handshake roundtrip.
  */
 export async function withClient<T>(
   fn: (client: VercelClient) => Promise<T>,
@@ -34,20 +48,12 @@ export async function withClient<T>(
 }
 
 /**
- * Run `fn` with a `@vercel/postgres` pool and tear it down at the end.
- * Mirrors `withClient` but for read-mostly handlers.
+ * Run `fn` with the application's singleton connection pool.
+ * Connections are reused across requests, avoiding the overhead of
+ * creating and destroying a pool on every invocation.
  */
 export async function withPool<T>(
   fn: (pool: VercelPool) => Promise<T>,
 ): Promise<T> {
-  const pool = createPool();
-  try {
-    return await fn(pool);
-  } finally {
-    try {
-      await pool.end();
-    } catch (err) {
-      console.error('[db] error closing pool:', err);
-    }
-  }
+  return await fn(getPool());
 }

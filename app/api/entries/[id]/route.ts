@@ -1,4 +1,4 @@
-import { createPool } from '@vercel/postgres';
+import { getPool } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -19,7 +19,7 @@ export async function GET(
   const { id } = await params;
   const userId = session.user.id;
 
-  const pool = createPool();
+  const pool = getPool();
 
   try {
     const { rows } = await pool.query(
@@ -42,7 +42,5 @@ export async function GET(
       { error: 'Failed to fetch entry' },
       { status: 500 },
     );
-  } finally {
-    await pool.end();
   }
 }
