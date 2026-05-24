@@ -7,6 +7,7 @@ import { TableSkeleton } from '@/components/table-skeleton';
 import { SearchFilter } from '@/components/search-filter';
 import { QuickEntryBar } from '@/components/ai/QuickEntryBar';
 import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from '@/config';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,17 +60,19 @@ export default async function RecordsPage({
         </div>
       </div>
 
-      {/* AI Quick Entry - Prominent placement with card styling */}
-      <QuickEntryBar />
+      <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
+        <QuickEntryBar />
+      </Suspense>
 
-      {/* Search/Filter Section - Clear visual separation */}
       <div className="border-t pt-6">
         <div className="flex items-center gap-2 mb-4">
           <h2 className="text-lg font-semibold text-muted-foreground">
             Buscar y Filtrar
           </h2>
         </div>
-        <SearchFilter />
+        <Suspense fallback={<Skeleton className="h-10 w-full" />}>
+          <SearchFilter />
+        </Suspense>
       </div>
 
       <Suspense fallback={<TableSkeleton />}>
