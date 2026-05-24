@@ -42,13 +42,15 @@ test.describe('Home Page', () => {
   test('should filter entries by search term', async ({ page }) => {
     await page.goto('/records');
 
-    await page
-      .getByPlaceholder('Buscar por descripción o plataforma...')
-      .fill('test search');
+    const searchInput = page.getByPlaceholder(
+      'Buscar por descripción o plataforma...',
+    );
+    await searchInput.fill('test search');
+    await searchInput.press('Enter');
 
-    await page.getByRole('button', { name: 'Aplicar filtros' }).click();
-
-    await expect(page).toHaveURL(/.*search=test(\+|%20)search.*/);
+    await expect(page).toHaveURL(/.*search=test(\+|%20)search.*/, {
+      timeout: 15000,
+    });
     await page.waitForLoadState('networkidle');
   });
 

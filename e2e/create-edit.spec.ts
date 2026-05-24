@@ -19,6 +19,9 @@ test.describe('Create and Edit Finance Entries', () => {
       page.getByRole('heading', { name: 'Añadir Nueva Entrada' }),
     ).toBeVisible();
 
+    // Wait for combobox options to load before interacting
+    await page.waitForResponse('/api/options');
+
     const today = format(new Date(), 'yyyy-MM-dd');
     await page.getByLabel('Fecha').fill(today);
     await page.getByLabel('Hora').fill('10');
@@ -42,38 +45,35 @@ test.describe('Create and Edit Finance Entries', () => {
     await page.getByLabel('Cantidad').fill('1500');
     await page.getByLabel('Detalle 1').fill('Test detalle 1');
     await page.getByLabel('Detalle 2').fill('Test detalle 2');
-    await page.getByLabel('Quién').fill('Yo');
+
+    await page.getByLabel('Quién').click();
+    await page.getByPlaceholder('Buscar...').last().fill('Yo');
+    await page.keyboard.press('Enter');
 
     await page.getByRole('button', { name: 'Guardar' }).click();
 
-    await expect(page).toHaveURL('/records');
+    // Form redirects to / then page.tsx redirects to /records
+    await page.waitForURL(/\/records/, { timeout: 30000 });
   });
 
   test('should edit an existing entry', async ({ page }) => {
     await page.goto('/records');
 
-    await page.waitForSelector('table');
-
-    const editButtonsCount = await page
+    const editButton = page
       .getByRole('button', { name: /Editar entrada/ })
-      .count();
-    if (editButtonsCount > 0) {
-      await page
-        .getByRole('button', { name: /Editar entrada/ })
-        .first()
-        .click();
+      .first();
+    await editButton.waitFor({ state: 'attached', timeout: 10000 });
 
-      await expect(page.url()).toContain('/edit/');
+    await editButton.click();
 
-      await page.waitForSelector('form');
+    await page.waitForURL(/\/edit\//);
 
-      await page.getByLabel('Cantidad').fill('2000');
+    await page.waitForSelector('form');
 
-      await page.getByRole('button', { name: 'Actualizar' }).click();
+    await page.getByLabel('Cantidad').fill('2000');
 
-      await expect(page).toHaveURL('/records');
-    } else {
-      test.skip(true, 'No entries available to edit');
-    }
+    await page.getByRole('button', { name: 'Actualizar' }).click();
+
+    await page.waitForURL('/records', { timeout: 15000 });
   });
 });

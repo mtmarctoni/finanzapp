@@ -53,16 +53,13 @@ export default function SignIn() {
 
     try {
       const result = await signIn('credentials', {
-        // redirect: false,
+        redirect: true,
         email,
         password,
-        // callbackUrl,
       });
 
       if (result?.error) {
         setError('Credenciales inválidas');
-      } else {
-        router.push(callbackUrl);
       }
     } catch (error) {
       console.error('Sign in error:', error);

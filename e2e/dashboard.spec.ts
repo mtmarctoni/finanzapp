@@ -39,7 +39,7 @@ test.describe('Dashboard Page', () => {
   test('should navigate to records page', async ({ page }) => {
     await page.goto('/dashboard');
 
-    await page.getByRole('link', { name: 'Registros' }).click();
+    await page.getByRole('link', { name: 'Registros' }).first().click();
 
     await expect(page).toHaveURL('/records');
   });

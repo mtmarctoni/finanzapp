@@ -45,3 +45,40 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_URL: ${{ secrets.CI_POSTGRES_URL }}
+      POSTGRES_URL_NON_POOLING: ${{ secrets.CI_POSTGRES_URL_NON_POOLING }}
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ci-test-secret-do-not-use-in-production
+      DEV_CREDENTIALS: '[{"id":"f7a8b9c0-1e2f-3d45-6a7b-1234567890cd","email":"test@example.com","password":"password123","name":"Test User"}]'
+      ALLOWED_USERS: Test User
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Initialize database schema
+        run: psql "$POSTGRES_URL_NON_POOLING" -f db/init.sql
+
+      - name: Seed test data
+        run: pnpm tsx scripts/reset-test-user-data.ts
+
+      - name: Run e2e tests
+        run: pnpm test:e2e
