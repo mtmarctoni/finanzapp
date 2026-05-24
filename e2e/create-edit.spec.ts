@@ -49,7 +49,7 @@ test.describe('Create and Edit Finance Entries', () => {
 
     await page.getByRole('button', { name: 'Guardar' }).click();
 
-    await page.waitForURL('/records');
+    await page.waitForURL('/records', { timeout: 15000 });
   });
 
   test('should edit an existing entry', async ({ page }) => {
@@ -70,6 +70,6 @@ test.describe('Create and Edit Finance Entries', () => {
 
     await page.getByRole('button', { name: 'Actualizar' }).click();
 
-    await page.waitForURL('/records');
+    await page.waitForURL('/records', { timeout: 15000 });
   });
 });

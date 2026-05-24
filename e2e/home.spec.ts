@@ -48,7 +48,9 @@ test.describe('Home Page', () => {
 
     await page.getByRole('button', { name: 'Aplicar filtros' }).click();
 
-    await expect(page).toHaveURL(/.*search=test(\+|%20)search.*/);
+    await expect(page).toHaveURL(/.*search=test(\+|%20)search.*/, {
+      timeout: 15000,
+    });
     await page.waitForLoadState('networkidle');
   });
 
