@@ -28,13 +28,19 @@ const ratelimitInstances = new Map<string, Ratelimit>();
 
 function getUpstash(): Redis | null {
   if (!upstashClient) {
-    const url = process.env.UPSTASH_REDIS_URL;
-    const token = process.env.UPSTASH_REDIS_TOKEN;
+    const url =
+      process.env.UPSTASH_REDIS_URL || process.env.KV_REST_API_URL || undefined;
+    const token =
+      process.env.UPSTASH_REDIS_TOKEN ||
+      process.env.KV_REST_API_TOKEN ||
+      undefined;
 
     if (url && token) {
       upstashClient = new Redis({ url, token });
     } else if (url || token) {
-      const missing = url ? 'UPSTASH_REDIS_TOKEN' : 'UPSTASH_REDIS_URL';
+      const missing = !url
+        ? 'UPSTASH_REDIS_URL / KV_REST_API_URL'
+        : 'UPSTASH_REDIS_TOKEN / KV_REST_API_TOKEN';
       console.warn(
         `[rate-limit] ${missing} is not set. Upstash Redis rate limiting is disabled. Falling back to in-memory rate limiting.`,
       );
