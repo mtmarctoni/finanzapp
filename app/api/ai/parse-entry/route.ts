@@ -79,7 +79,10 @@ export async function POST(request: NextRequest) {
   const userId = session.user.id;
 
   // Rate limiting check
-  const rateLimitResult = checkRateLimit(`parse:${userId}`, RATE_LIMIT_CONFIG);
+  const rateLimitResult = await checkRateLimit(
+    `parse:${userId}`,
+    RATE_LIMIT_CONFIG,
+  );
   if (!rateLimitResult.allowed) {
     console.warn(`[Rate Limit] User ${userId} exceeded parse rate limit`, {
       requestId,

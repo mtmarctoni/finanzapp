@@ -33,3 +33,4 @@ next-env.d.ts
 # testing artifacts
 /test-results/
 /playwright-report/
+.env*.local
