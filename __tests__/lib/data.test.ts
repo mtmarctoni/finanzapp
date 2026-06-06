@@ -4,7 +4,7 @@ import {
   getSummaryStats,
   duplicateEntry,
 } from '@/lib/data';
-import { Entry } from '@/lib/definitions';
+import { type Entry } from '@/lib/definitions';
 
 const baseURL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 

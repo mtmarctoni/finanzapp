@@ -1,18 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { generateObject } from 'ai';
-import { z } from 'zod';
-import { PARSE_ENTRY_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { createClient } from '@vercel/postgres';
+import { generateObject } from 'ai';
+import { type NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
-import { checkRateLimit, getRateLimitHeaders } from '@/lib/ai/rate-limit';
+import { z } from 'zod';
+
+import { hasUserConfirmedPaidFallback } from '@/app/api/ai/confirm-paid/route';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import {
   raceFreeProviders,
   executePaidFallback,
   PAID_FALLBACK,
 } from '@/lib/ai/fallback';
-import { hasUserConfirmedPaidFallback } from '@/app/api/ai/confirm-paid/route';
+import { PARSE_ENTRY_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/ai/rate-limit';
 
 const parsedEntrySchema = z.object({
   fecha: z.string().describe('Transaction date in ISO 8601 format'),

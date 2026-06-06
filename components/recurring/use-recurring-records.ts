@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
 import { format } from 'date-fns';
+import { useCallback, useEffect, useState } from 'react';
 
+import { type GenerateError, type RecurringFormData } from '@/components/recurring/types';
 import { useToast } from '@/hooks/use-toast';
-import { RecurringRecord } from '@/types/finance';
-import { GenerateError, RecurringFormData } from '@/components/recurring/types';
+import { type RecurringRecord } from '@/types/finance';
 
 interface UseRecurringRecordsResult {
   recurringRecords: RecurringRecord[];

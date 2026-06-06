@@ -19,7 +19,7 @@
  */
 
 import { revalidatePath } from 'next/cache';
-import { findUserByEmail, insertUser } from '@/lib/users/repo';
+
 import {
   deleteEntriesByIds,
   deleteEntryById,
@@ -31,6 +31,7 @@ import {
   type EntryInput,
   type PaginatedEntries,
 } from '@/lib/entries/repo';
+import { findUserByEmail, insertUser } from '@/lib/users/repo';
 
 export async function createUser(formData: { name: string; email: string }) {
   try {

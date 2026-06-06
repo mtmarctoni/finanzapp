@@ -1,4 +1,4 @@
-import { RecurringRecord } from '@/types/finance';
+import { type RecurringRecord } from '@/types/finance';
 
 export const getSignedRecurringAmount = (record: RecurringRecord): number =>
   record.accion === 'Ingreso' ? record.amount : -record.amount;

@@ -1,22 +1,5 @@
 'use client';
 
-import { getFinanceEntries } from '@/lib/data';
-import {
-  formatCurrency,
-  formatDate,
-  shouldSplitTransaction,
-} from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useSession } from 'next-auth/react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,19 +13,37 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import Link from 'next/link';
-import { deleteEntry, deleteManyEntries } from '@/lib/actions';
-import { duplicateEntry } from '@/lib/data';
-import { useTransition } from 'react';
-import { useEffect, useState } from 'react';
-// import { Entry } from "@/lib/definitions"
 import { useRouter } from 'next/navigation';
-import { PaginatedEntriesResponse } from '@/types/api';
+import { useSession } from 'next-auth/react';
+import { useTransition, useEffect, useState  } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   DEFAULT_ACCION_FILTER,
   DEFAULT_SORT_BY,
   DEFAULT_SORT_ORDER,
   ITEMS_PER_PAGE,
 } from '@/config';
+import { deleteEntry, deleteManyEntries } from '@/lib/actions';
+import { duplicateEntry, getFinanceEntries  } from '@/lib/data';
+
+// import { Entry } from "@/lib/definitions"
+
+import {
+  formatCurrency,
+  formatDate,
+  shouldSplitTransaction,
+} from '@/lib/utils';
+import { type PaginatedEntriesResponse } from '@/types/api';
 
 // Using PaginatedEntriesResponse from types/api.ts instead of this interface
 

@@ -1,11 +1,12 @@
 import { createClient } from '@vercel/postgres';
-import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { v4 as uuidv4 } from 'uuid';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);

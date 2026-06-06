@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import {
   getTotalSpent,
   getCostBreakdown,
   getRecentCosts,
   isPaidFallbackAvailable,
 } from '@/lib/ai/fallback';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET() {
   const session = await getServerSession(authOptions);

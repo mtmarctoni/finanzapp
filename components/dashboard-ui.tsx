@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -9,10 +9,11 @@ import {
   BarChart2Icon,
   PercentIcon,
 } from 'lucide-react';
-import MonthlyTrendsChart from '@/components/monthly-trends-chart';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useState } from 'react';
+
+import MonthlyTrendsChart from '@/components/monthly-trends-chart';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 
 interface MonthlyTrend {
   month: string;

@@ -1,14 +1,4 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Bar } from 'react-chartjs-2';
-import { ChartData, ChartOptions } from 'chart.js';
+import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,8 +8,20 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { CategoryTemporalDatum, SeasonalItem } from '@/lib/analytics-charts';
 import { Sun, Snowflake, Leaf, Flower2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Bar } from 'react-chartjs-2';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { type CategoryTemporalDatum, type SeasonalItem } from '@/lib/analytics-charts';
+
 
 ChartJS.register(
   CategoryScale,
@@ -53,14 +55,14 @@ export function SeasonalExplorer({
     const map = new Map<string, Set<string>>();
     for (const item of categoryTemporalData) {
       if (!map.has(item.type)) map.set(item.type, new Set());
-      map.get(item.type)!.add(item.category);
+      map.get(item.type)?.add(item.category);
     }
     return map;
   }, [categoryTemporalData]);
 
   const availableQue =
     selectedTipo && tipoToQueMap.has(selectedTipo)
-      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      ? Array.from(tipoToQueMap.get(selectedTipo) ?? []).sort()
       : [];
 
   const handleTipoChange = (tipo: string) => {
@@ -104,7 +106,7 @@ export function SeasonalExplorer({
     for (const item of filtered) {
       const d = new Date(item.period);
       const month = d.getUTCMonth();
-      const existing = byMonth.get(month)!;
+      const existing = byMonth.get(month) as { total: number; count: number; yearCount: number };
       existing.total += Math.abs(Number(item.total));
       existing.count += item.count || 0;
       existing.yearCount += 1;
@@ -213,7 +215,7 @@ export function SeasonalExplorer({
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : selectedTipo ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

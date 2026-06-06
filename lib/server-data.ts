@@ -1,6 +1,8 @@
-import { getPool } from '@/lib/db';
+import { type Session } from 'next-auth';
+
 import type { Entry } from './definitions';
-import { Session } from 'next-auth';
+
+import { getPool } from '@/lib/db';
 
 /**
  * Server-side function to get summary statistics

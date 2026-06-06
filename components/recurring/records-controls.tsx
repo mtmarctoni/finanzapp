@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { CalendarDays, Plus, Search } from 'lucide-react';
 
+import { type FilterState, type SortState } from '@/components/recurring/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FilterState, SortState } from '@/components/recurring/types';
 
 interface RecordsControlsProps {
   loading: boolean;

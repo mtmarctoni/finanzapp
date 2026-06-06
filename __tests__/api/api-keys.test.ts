@@ -2,12 +2,13 @@
  * @jest-environment node
  */
 
-import { GET as listKeys, POST as createKey } from '@/app/api/api-keys/route';
+import { getServerSession } from 'next-auth';
+
 import {
   GET as getKey,
   DELETE as revokeKey,
 } from '@/app/api/api-keys/[id]/route';
-import { getServerSession } from 'next-auth';
+import { GET as listKeys, POST as createKey } from '@/app/api/api-keys/route';
 import {
   createApiKey,
   getApiKeyById,

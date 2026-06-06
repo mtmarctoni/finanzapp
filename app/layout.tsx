@@ -1,14 +1,15 @@
-import type React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import type React from 'react';
+
 import './globals.css';
+import { ChatWidget } from '@/components/ai/ChatWidget';
+import AuthProvider from '@/components/context/AuthProvider';
+import { MobileNav } from '@/components/mobile-nav';
 import { Navbar } from '@/components/navbar';
 import { Sidebar } from '@/components/sidebar';
-import { MobileNav } from '@/components/mobile-nav';
-import { Toaster } from '@/components/ui/toaster';
-import AuthProvider from '@/components/context/AuthProvider';
 import { ThemeProvider } from '@/components/theme-provider';
-import { ChatWidget } from '@/components/ai/ChatWidget';
+import { Toaster } from '@/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 

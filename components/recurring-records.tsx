@@ -2,26 +2,26 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { RecordDetailPanel } from '@/components/recurring/record-detail-panel';
 import { RecordForm } from '@/components/recurring/record-form';
 import { RecordsControls } from '@/components/recurring/records-controls';
 import { RecordsList } from '@/components/recurring/records-list';
 import { SummaryCards } from '@/components/recurring/summary-cards';
-import { useRecurringRecords } from '@/components/recurring/use-recurring-records';
 import {
   INITIAL_RECURRING_FORM,
-  FilterState,
-  RecurringFormData,
-  SortState,
+  type FilterState,
+  type RecurringFormData,
+  type SortState,
 } from '@/components/recurring/types';
+import { useRecurringRecords } from '@/components/recurring/use-recurring-records';
 import { calculateMonthlyEstimate } from '@/components/recurring/utils';
-import { RecurringRecord } from '@/types/finance';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useToast } from '@/hooks/use-toast';
+import { type RecurringRecord } from '@/types/finance';
 
 export default function RecurringRecords() {
   const {

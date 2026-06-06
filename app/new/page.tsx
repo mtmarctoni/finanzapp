@@ -1,8 +1,9 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { FinanceForm } from '@/components/finance-form';
 import { Suspense } from 'react';
+
+import { FinanceForm } from '@/components/finance-form';
 
 function NewEntryContent() {
   const searchParams = useSearchParams();
@@ -15,17 +16,17 @@ function NewEntryContent() {
     ? {
         fecha: searchParams.get('fecha') || undefined,
         hora: searchParams.get('hora')
-          ? parseInt(searchParams.get('hora')!, 10)
+          ? parseInt(searchParams.get('hora') ?? '', 10)
           : undefined,
         minuto: searchParams.get('minuto')
-          ? parseInt(searchParams.get('minuto')!, 10)
+          ? parseInt(searchParams.get('minuto') ?? '', 10)
           : undefined,
         tipo: searchParams.get('tipo') || undefined,
         accion: searchParams.get('accion') || undefined,
         que: searchParams.get('que') || undefined,
         plataforma_pago: searchParams.get('plataforma_pago') || undefined,
         cantidad: searchParams.get('cantidad')
-          ? parseFloat(searchParams.get('cantidad')!)
+          ? parseFloat(searchParams.get('cantidad') ?? '')
           : undefined,
         detalle1: searchParams.get('detalle1') || undefined,
         detalle2: searchParams.get('detalle2') || undefined,
@@ -33,7 +34,7 @@ function NewEntryContent() {
         ai_provider: searchParams.get('ai_provider') || undefined,
         ai_model: searchParams.get('ai_model') || undefined,
         ai_cost: searchParams.get('ai_cost')
-          ? parseFloat(searchParams.get('ai_cost')!)
+          ? parseFloat(searchParams.get('ai_cost') ?? '')
           : undefined,
         ai_paid: searchParams.get('ai_paid') === 'true',
       }

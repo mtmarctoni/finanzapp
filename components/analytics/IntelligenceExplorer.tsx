@@ -1,4 +1,13 @@
+import {
+  CreditCard,
+  Wallet,
+  TrendingUp,
+  Hash,
+  Calendar,
+  Store,
+} from 'lucide-react';
 import { useState, useMemo } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -8,24 +17,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  CategoryStatDatum,
-  CategoryPlatformDatum,
-  CategoryDatum,
+  type CategoryStatDatum,
+  type CategoryPlatformDatum,
+  type CategoryDatum,
 } from '@/lib/analytics-charts';
-import {
-  CreditCard,
-  Wallet,
-  TrendingUp,
-  Hash,
-  Calendar,
-  Store,
-} from 'lucide-react';
 
 interface IntelligenceExplorerProps {
   categoryStats: CategoryStatDatum[];
   categoryPlatformData: CategoryPlatformDatum[];
   categoryData: CategoryDatum[];
-  temporalData: Array<{ period: string }>;
+  temporalData: { period: string }[];
   types: string[];
   loading: boolean;
 }
@@ -46,14 +47,14 @@ export function IntelligenceExplorer({
     const map = new Map<string, Set<string>>();
     for (const item of categoryStats) {
       if (!map.has(item.type)) map.set(item.type, new Set());
-      map.get(item.type)!.add(item.category);
+      map.get(item.type)?.add(item.category);
     }
     return map;
   }, [categoryStats]);
 
   const availableQue =
     selectedTipo && tipoToQueMap.has(selectedTipo)
-      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      ? Array.from(tipoToQueMap.get(selectedTipo) ?? []).sort()
       : [];
 
   const handleTipoChange = (tipo: string) => {
@@ -237,7 +238,7 @@ export function IntelligenceExplorer({
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : selectedTipo ? (
           <>
