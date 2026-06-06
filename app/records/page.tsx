@@ -1,13 +1,14 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { PlusCircle, FileDown } from 'lucide-react';
-import FinanceTable from '@/components/finance-table';
-import { TableSkeleton } from '@/components/table-skeleton';
-import { SearchFilter } from '@/components/search-filter';
+import Link from 'next/link';
+import { Suspense } from 'react';
+
 import { QuickEntryBar } from '@/components/ai/QuickEntryBar';
-import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from '@/config';
+import FinanceTable from '@/components/finance-table';
+import { SearchFilter } from '@/components/search-filter';
+import { TableSkeleton } from '@/components/table-skeleton';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DEFAULT_ACCION_FILTER, ITEMS_PER_PAGE } from '@/config';
 
 export const dynamic = 'force-dynamic';
 

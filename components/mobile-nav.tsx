@@ -1,11 +1,12 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+
 import { AnimatedIcon } from '@/components/ui/animated-icon';
 import { NAV_ITEMS, isActivePath } from '@/config';
+import { cn } from '@/lib/utils';
 
 export function MobileNav() {
   const pathname = usePathname();

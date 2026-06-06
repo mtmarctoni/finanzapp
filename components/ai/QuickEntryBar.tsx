@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sparkles, Loader2, AlertCircle, Wand2, Lightbulb } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState } from 'react';
+
 import { PaidFallbackDialog } from './PaidFallbackDialog';
+
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -14,6 +15,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 type QuickEntryStatus = 'idle' | 'loading' | 'needs-confirmation' | 'error';
 

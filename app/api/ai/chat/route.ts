@@ -1,30 +1,31 @@
-import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import {
   streamText,
   stepCountIs,
   type UIMessage,
   convertToModelMessages,
 } from 'ai';
+import { type NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+
+import { hasUserConfirmedPaidFallback } from '@/app/api/ai/confirm-paid/route';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import {
+  raceFreeProviders,
+  executePaidFallback,
+  PAID_FALLBACK,
+} from '@/lib/ai/fallback';
 import { CHAT_SYSTEM_PROMPT } from '@/lib/ai/prompts';
+import {
+  checkRateLimit,
+  createRateLimitResponse,
+  getRateLimitHeaders,
+} from '@/lib/ai/rate-limit';
 import {
   createFinanceEntryTool,
   getRecentEntriesTool,
   getSpendingByCategoryTool,
   getTotalByPeriodTool,
 } from '@/lib/ai/tools';
-import {
-  raceFreeProviders,
-  executePaidFallback,
-  PAID_FALLBACK,
-} from '@/lib/ai/fallback';
-import {
-  checkRateLimit,
-  createRateLimitResponse,
-  getRateLimitHeaders,
-} from '@/lib/ai/rate-limit';
-import { hasUserConfirmedPaidFallback } from '@/app/api/ai/confirm-paid/route';
 
 // Rate limit config: 5 chat requests per minute per user
 const RATE_LIMIT_CONFIG = { maxRequests: 5, windowMs: 60 * 1000 };
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
     let totalChars = 0;
     for (const m of messages) {
-      const parts = (m as { parts?: Array<{ text?: unknown }> }).parts ?? [];
+      const parts = (m as { parts?: { text?: unknown }[] }).parts ?? [];
       for (const p of parts) {
         if (typeof p.text === 'string') totalChars += p.text.length;
         if (totalChars > MAX_TOTAL_TEXT) {

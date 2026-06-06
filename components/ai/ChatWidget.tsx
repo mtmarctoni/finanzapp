@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { Button } from '@/components/ui/button';
 import { MessageSquare, X, Send, Loader2, DollarSign } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+
 import { ChatMessage } from './ChatMessage';
 import { PaidFallbackDialog } from './PaidFallbackDialog';
+
+import { Button } from '@/components/ui/button';
 
 interface FallbackError {
   requiresConfirmation: boolean;

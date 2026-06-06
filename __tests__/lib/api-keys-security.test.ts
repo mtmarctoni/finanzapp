@@ -2,8 +2,9 @@
  * @jest-environment node
  */
 
-import { generateApiKey, hashApiKey } from '@/lib/api-keys';
 import { createHash, createHmac } from 'crypto';
+
+import { generateApiKey, hashApiKey } from '@/lib/api-keys';
 
 describe('api key security', () => {
   const originalPepper = process.env.API_KEY_PEPPER;

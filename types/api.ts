@@ -39,7 +39,7 @@ export type GetCryptoTransactionsOptions = {
  * Response structure for paginated entries
  */
 export type PaginatedEntriesResponse = {
-  data: Array<import('./finance').Entry>;
+  data: import('./finance').Entry[];
   totalItems: number;
   totalPages: number;
   currentPage: number;
@@ -59,7 +59,7 @@ export type DuplicateEntryResponse = import('./finance').Entry;
  * Response structure for paginated crypto transactions
  */
 export type PaginatedCryptoTransactionsResponse = {
-  data: Array<import('./finance').CryptoTransaction>;
+  data: import('./finance').CryptoTransaction[];
   totalItems: number;
   totalPages: number;
   currentPage: number;
@@ -69,14 +69,14 @@ export type PaginatedCryptoTransactionsResponse = {
  * Response structure for crypto wallets list
  */
 export type CryptoWalletsResponse = {
-  data: Array<import('./finance').CryptoWallet>;
+  data: import('./finance').CryptoWallet[];
 };
 
 /**
  * Response structure for crypto holdings summary
  */
 export type CryptoHoldingsResponse = {
-  data: Array<import('./finance').CryptoHoldingsSummary>;
+  data: import('./finance').CryptoHoldingsSummary[];
 };
 
 /**

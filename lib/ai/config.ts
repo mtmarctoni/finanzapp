@@ -1,6 +1,6 @@
 import { createGroq } from '@ai-sdk/groq';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 // Validate required environment variables at module load time
 function validateEnvVars() {
@@ -51,18 +51,18 @@ const PROVIDER = validateEnvVars();
 
 // Initialize providers with validated API keys
 const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY!,
+  apiKey: process.env.GROQ_API_KEY as string,
 });
 
 const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY!,
+  apiKey: process.env.OPENROUTER_API_KEY as string,
 });
 
 // Opencode Zen provider - uses OpenAI-compatible API
 // Correct endpoint for Big Pickle and Kimi K2.5 models
 const opencode = createOpenAICompatible({
   name: 'opencode',
-  apiKey: process.env.OPENCODE_API_KEY!,
+  apiKey: process.env.OPENCODE_API_KEY as string,
   baseURL: 'https://opencode.ai/zen/v1',
 });
 

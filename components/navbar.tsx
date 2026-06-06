@@ -1,11 +1,12 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { UserIcon } from 'lucide-react';
-import { signIn, signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useState } from 'react';
+
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Button } from '@/components/ui/button';
 
 export function Navbar() {
   const { data: session } = useSession();

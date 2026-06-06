@@ -1,4 +1,13 @@
+import {
+  CreditCard,
+  Wallet,
+  TrendingUp,
+  Hash,
+  Calendar,
+  Store,
+} from 'lucide-react';
 import { useState } from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -8,24 +17,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  CategoryStatDatum,
-  CategoryPlatformDatum,
-  CategoryDatum,
+  type CategoryStatDatum,
+  type CategoryPlatformDatum,
+  type CategoryDatum,
 } from '@/lib/analytics-charts';
-import {
-  CreditCard,
-  Wallet,
-  TrendingUp,
-  Hash,
-  Calendar,
-  Store,
-} from 'lucide-react';
 
 interface CategoryIntelligenceProps {
   categoryStats: CategoryStatDatum[];
   categoryPlatformData: CategoryPlatformDatum[];
   categoryData: CategoryDatum[];
-  temporalData: Array<{ period: string }>;
+  temporalData: { period: string }[];
   loading: boolean;
 }
 
@@ -160,7 +161,7 @@ export function CategoryIntelligence({
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
           <>

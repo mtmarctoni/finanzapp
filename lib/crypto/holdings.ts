@@ -1,5 +1,5 @@
-import type { CryptoHoldingsSummary } from '@/types/finance';
 import { withClient } from '@/lib/db';
+import type { CryptoHoldingsSummary } from '@/types/finance';
 
 /**
  * Aggregate holdings across all of a user's crypto transactions and

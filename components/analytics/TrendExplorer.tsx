@@ -1,14 +1,4 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Line } from 'react-chartjs-2';
-import { ChartData, ChartOptions } from 'chart.js';
+import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -19,12 +9,24 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import {
-  CategoryTemporalDatum,
-  TypeTemporalDatum,
-  TipoQueDatum,
-} from '@/lib/analytics-charts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Line } from 'react-chartjs-2';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  type CategoryTemporalDatum,
+  type TypeTemporalDatum,
+  type TipoQueDatum,
+} from '@/lib/analytics-charts';
+
 
 ChartJS.register(
   CategoryScale,
@@ -81,15 +83,14 @@ export function TrendExplorer({
     const map = new Map<string, Set<string>>();
     for (const item of tipoQueData) {
       if (!map.has(item.type)) map.set(item.type, new Set());
-      map.get(item.type)!.add(item.category);
+      map.get(item.type)?.add(item.category);
     }
     return map;
   }, [tipoQueData]);
 
-  // Available que options based on selected tipo
   const availableQue =
     selectedTipo && tipoToQueMap.has(selectedTipo)
-      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      ? Array.from(tipoToQueMap.get(selectedTipo) ?? []).sort()
       : [];
 
   const handleTipoChange = (tipo: string) => {
@@ -205,7 +206,7 @@ export function TrendExplorer({
           <div className="lg:col-span-3 h-80">
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : chartData && (chartData?.labels?.length ?? 0) > 0 ? (
               <Line data={chartData} options={chartOptions} />

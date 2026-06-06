@@ -1,8 +1,9 @@
-import { getEntries } from '@/lib/actions';
-import { ITEMS_PER_PAGE } from '@/config';
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { ITEMS_PER_PAGE } from '@/config';
+import { getEntries } from '@/lib/actions';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

@@ -1,6 +1,22 @@
 'use client';
 
 import { useMemo } from 'react';
+
+import { CategoryChart } from '@/components/analytics/CategoryChart';
+import { CategoryDeepDive } from '@/components/analytics/CategoryDeepDive';
+import { IntelligenceExplorer } from '@/components/analytics/IntelligenceExplorer';
+import { NetTrendChart } from '@/components/analytics/NetTrendChart';
+import { PerActionCards } from '@/components/analytics/PerActionCards';
+import { PlatformChart } from '@/components/analytics/PlatformChart';
+import { SavingsRateCard } from '@/components/analytics/SavingsRateCard';
+import { SeasonalExplorer } from '@/components/analytics/SeasonalExplorer';
+import { SpendingVelocity } from '@/components/analytics/SpendingVelocity';
+import { SummaryCards } from '@/components/analytics/SummaryCards';
+import { TemporalChart } from '@/components/analytics/TemporalChart';
+import { TipoExplorer } from '@/components/analytics/TipoExplorer';
+import { TopTransactionsTable } from '@/components/analytics/TopTransactionsTable';
+import { TrendExplorer } from '@/components/analytics/TrendExplorer';
+import { TypeChart } from '@/components/analytics/TypeChart';
 import { AnalyticsFilter } from '@/components/analytics-filter';
 import { useAnalyticsData, type Filters } from '@/hooks/use-analytics-data';
 import {
@@ -24,21 +40,6 @@ import {
   getTipoExplorerChartOptions,
   getTipoTrendData,
 } from '@/lib/analytics-charts';
-import { SummaryCards } from '@/components/analytics/SummaryCards';
-import { PerActionCards } from '@/components/analytics/PerActionCards';
-import { TemporalChart } from '@/components/analytics/TemporalChart';
-import { NetTrendChart } from '@/components/analytics/NetTrendChart';
-import { CategoryChart } from '@/components/analytics/CategoryChart';
-import { PlatformChart } from '@/components/analytics/PlatformChart';
-import { TypeChart } from '@/components/analytics/TypeChart';
-import { CategoryDeepDive } from '@/components/analytics/CategoryDeepDive';
-import { TopTransactionsTable } from '@/components/analytics/TopTransactionsTable';
-import { SavingsRateCard } from '@/components/analytics/SavingsRateCard';
-import { TipoExplorer } from '@/components/analytics/TipoExplorer';
-import { TrendExplorer } from '@/components/analytics/TrendExplorer';
-import { SpendingVelocity } from '@/components/analytics/SpendingVelocity';
-import { IntelligenceExplorer } from '@/components/analytics/IntelligenceExplorer';
-import { SeasonalExplorer } from '@/components/analytics/SeasonalExplorer';
 
 export default function AnalyticsPageContent() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
@@ -54,7 +55,7 @@ export default function AnalyticsPageContent() {
     const map = new Map<string, Set<string>>();
     for (const item of data.tipoQueData) {
       if (!map.has(item.type)) map.set(item.type, new Set());
-      map.get(item.type)!.add(item.category);
+      map.get(item.type)?.add(item.category);
     }
     return map;
   }, [data.tipoQueData]);

@@ -1,5 +1,6 @@
 import { Pencil, Trash2 } from 'lucide-react';
 
+import { frequencyLabel } from '@/components/recurring/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,9 +8,8 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
-import { frequencyLabel } from '@/components/recurring/constants';
 import { cn, formatCurrency } from '@/lib/utils';
-import { RecurringRecord } from '@/types/finance';
+import { type RecurringRecord } from '@/types/finance';
 
 interface RecordsListProps {
   records: RecurringRecord[];

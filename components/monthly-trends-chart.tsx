@@ -1,7 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,12 +9,14 @@ import {
   PointElement,
   Title,
   Tooltip,
-  Legend,
+  Legend, type ChartData, type ChartOptions 
 } from 'chart.js';
-import { ChartData, ChartOptions } from 'chart.js';
-import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useMemo } from 'react';
+import { Bar } from 'react-chartjs-2';
+
+import { formatCurrency } from '@/lib/utils';
 
 ChartJS.register(
   CategoryScale,

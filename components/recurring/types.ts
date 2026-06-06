@@ -1,4 +1,4 @@
-import { RecurringRecord } from '@/types/finance';
+import { type RecurringRecord } from '@/types/finance';
 
 export interface GenerateError {
   error: string;

@@ -1,7 +1,8 @@
-import { getPool } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getPool } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,

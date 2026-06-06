@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 // Store user confirmations (in-memory, per-session)

@@ -1,8 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -12,11 +11,13 @@ import {
   WalletIcon,
   ChevronDown,
 } from 'lucide-react';
-import MonthlyTrendsChart from '@/components/monthly-trends-chart';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+
+import MonthlyTrendsChart from '@/components/monthly-trends-chart';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 
 interface MonthlyTrend {
   month: string;
@@ -135,7 +136,7 @@ export default function Dashboard() {
 
   const renderLoading = () => (
     <div className="flex items-center justify-center min-h-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
     </div>
   );
 

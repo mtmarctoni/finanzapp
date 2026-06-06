@@ -1,16 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+
 import {
-  CategoryDatum,
-  TemporalDatum,
-  PlatformDatum,
-  TypeDatum,
-  TopTransactionDatum,
-  CategoryPlatformDatum,
-  TipoQueDatum,
-  CategoryTemporalDatum,
-  TypeTemporalDatum,
-  CategoryStatDatum,
+  type CategoryDatum,
+  type TemporalDatum,
+  type PlatformDatum,
+  type TypeDatum,
+  type TopTransactionDatum,
+  type CategoryPlatformDatum,
+  type TipoQueDatum,
+  type CategoryTemporalDatum,
+  type TypeTemporalDatum,
+  type CategoryStatDatum,
 } from '@/lib/analytics-charts';
 
 interface AnalyticsMetrics {
@@ -35,7 +36,7 @@ export interface AnalyticsData {
     inversion: number;
   };
   metrics?: AnalyticsMetrics;
-  netTemporal?: Array<{ period: string; net: number }>;
+  netTemporal?: { period: string; net: number }[];
 }
 
 export interface Filters {

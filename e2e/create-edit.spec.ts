@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { format } from 'date-fns';
+
 import { signInAsTestUser } from './utils/auth';
 
 test.describe('Create and Edit Finance Entries', () => {

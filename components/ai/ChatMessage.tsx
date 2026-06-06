@@ -2,6 +2,7 @@
 
 import type { UIMessage } from 'ai';
 import { isToolUIPart } from 'ai';
+
 import { cn } from '@/lib/utils';
 
 interface ChatMessageProps {

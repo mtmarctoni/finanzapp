@@ -1,10 +1,10 @@
 import { Pencil, Trash2 } from 'lucide-react';
 
+import { frequencyLabel } from '@/components/recurring/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { frequencyLabel } from '@/components/recurring/constants';
 import { formatCurrency } from '@/lib/utils';
-import { RecurringRecord } from '@/types/finance';
+import { type RecurringRecord } from '@/types/finance';
 
 interface RecordDetailPanelProps {
   record: RecurringRecord | null;

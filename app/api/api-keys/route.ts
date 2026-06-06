@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createApiKey, listApiKeys } from '@/lib/api-keys';
 import { CreateApiKeySchema } from '@/lib/api-validation';
-import { ZodError } from 'zod';
 
 export async function GET() {
   const session = await getServerSession(authOptions);

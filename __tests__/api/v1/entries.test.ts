@@ -2,10 +2,11 @@
  * @jest-environment node
  */
 
-import { POST } from '@/app/api/v1/entries/route';
-import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
 import { createClient } from '@vercel/postgres';
 import { v4 as uuidv4 } from 'uuid';
+
+import { POST } from '@/app/api/v1/entries/route';
+import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
 
 // Mocks
 jest.mock('@/lib/api-auth');

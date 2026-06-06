@@ -1,9 +1,10 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import CryptoTransactionTable from '@/components/crypto/crypto-transaction-table';
+import Link from 'next/link';
+import { Suspense } from 'react';
+
 import { CryptoSearchFilter } from '@/components/crypto/crypto-search-filter';
+import CryptoTransactionTable from '@/components/crypto/crypto-transaction-table';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata = {

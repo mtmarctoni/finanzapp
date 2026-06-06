@@ -1,5 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { VelocityItem } from '@/lib/analytics-charts';
 import {
   TrendingUp,
   TrendingDown,
@@ -7,6 +5,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from 'lucide-react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { type VelocityItem } from '@/lib/analytics-charts';
 
 interface SpendingVelocityProps {
   velocities: VelocityItem[];
@@ -38,7 +39,7 @@ export function SpendingVelocity({
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

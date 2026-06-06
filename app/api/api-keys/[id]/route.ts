@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getApiKeyById, revokeApiKey } from '@/lib/api-keys';
 

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SearchFilter } from '@/components/search-filter';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+
+import { SearchFilter } from '@/components/search-filter';
 
 // Mock Next.js modules
 jest.mock('next/navigation', () => ({

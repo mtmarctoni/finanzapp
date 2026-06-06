@@ -1,7 +1,7 @@
-import { tool } from 'ai';
-import { z } from 'zod';
 import { createClient } from '@vercel/postgres';
+import { tool } from 'ai';
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 
 /**
  * Helper function to execute database operations with proper connection management.

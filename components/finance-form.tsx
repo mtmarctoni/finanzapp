@@ -1,9 +1,17 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Wand2, DollarSign } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Form,
   FormControl,
@@ -20,16 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useRouter } from 'next/navigation';
 import { createEntry, updateEntry } from '@/lib/actions';
-import { useSession } from 'next-auth/react';
-import { Card, CardContent } from '@/components/ui/card';
 import type { Entry } from '@/lib/definitions';
 import { shouldSplitTransaction } from '@/lib/utils';
-import { Combobox } from '@/components/ui/combobox';
-import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Wand2, DollarSign } from 'lucide-react';
+
+
+
 
 const formSchema = z.object({
   fecha: z.string().min(1, { message: 'La fecha es requerida' }),
@@ -247,7 +251,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
     <Card>
       <CardContent className="pt-6">
         {/* AI Parse Info Banner */}
-        {parsedData && parsedData.ai_text && (
+        {parsedData?.ai_text && (
           <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Wand2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />

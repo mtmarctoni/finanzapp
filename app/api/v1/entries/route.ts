@@ -1,13 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@vercel/postgres';
+import { type NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { ZodError } from 'zod';
+
 import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
 import {
   CreateEntrySchema,
   BatchCreateEntrySchema,
 } from '@/lib/api-validation';
 import type { CreateEntryInput } from '@/lib/api-validation';
-import { ZodError } from 'zod';
 
 function devLog(...args: Parameters<typeof console.log>) {
   if (process.env.NODE_ENV !== 'production') {
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
     devLog(`[${timestamp}] 🔃 Transaction #${requestId}: BEGIN`);
 
-    const createdEntries: Array<{
+    const createdEntries: {
       id: string;
       fecha: string;
       tipo: string;
@@ -247,7 +248,7 @@ export async function POST(request: NextRequest) {
       detalle1: string | null;
       detalle2: string | null;
       quien: string;
-    }> = [];
+    }[] = [];
 
     for (const [index, entry] of entriesToCreate.entries()) {
       const id = uuidv4();
@@ -257,7 +258,7 @@ export async function POST(request: NextRequest) {
         accion: entry.accion,
         que: entry.que,
         cantidad: entry.cantidad,
-        user_id: auth!.userId,
+        user_id: auth.userId,
       });
 
       const result = await client.sql`
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
           ${entry.detalle1 ?? null},
           ${entry.detalle2 ?? null},
           ${entry.quien},
-          ${auth!.userId}
+          ${auth.userId}
         )
         RETURNING id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, quien
       `;

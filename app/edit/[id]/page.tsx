@@ -1,8 +1,10 @@
+import { redirect, notFound } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { FinanceForm } from '@/components/finance-form';
 import { getEntryById } from '@/lib/server-data';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { redirect, notFound } from 'next/navigation';
+
 
 export default async function EditEntryPage({
   params,

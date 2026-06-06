@@ -1,19 +1,3 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import {
   format,
   startOfYear,
@@ -22,6 +6,23 @@ import {
   startOfMonth,
   endOfMonth,
 } from 'date-fns';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export interface AnalyticsFilterValue {
   search?: string;
@@ -85,7 +86,7 @@ export function AnalyticsFilter({
     : value.types;
   const availableQue =
     selectedTipo && tipoToQueMap?.has(selectedTipo)
-      ? Array.from(tipoToQueMap.get(selectedTipo)!).sort()
+      ? Array.from(tipoToQueMap.get(selectedTipo) ?? []).sort()
       : categories;
 
   const handleTipoChange = (tipo: string) => {

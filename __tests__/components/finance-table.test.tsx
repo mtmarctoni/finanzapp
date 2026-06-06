@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
 import FinanceTable from '@/components/finance-table';
-import { getFinanceEntries } from '@/lib/data';
 import { deleteEntry } from '@/lib/actions';
-import { SessionProvider } from 'next-auth/react';
+import { getFinanceEntries } from '@/lib/data';
 
 // Mock the modules
 jest.mock('@/lib/data', () => ({
