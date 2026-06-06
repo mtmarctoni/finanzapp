@@ -1,6 +1,8 @@
 'use client';
 
+import { AlertCircle, DollarSign } from 'lucide-react';
 import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertCircle, DollarSign } from 'lucide-react';
 
 interface PaidFallbackDialogProps {
   isOpen: boolean;

@@ -1,7 +1,8 @@
-import { getCryptoSymbols, getUsedWallets } from '@/lib/cryptoActions';
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getCryptoSymbols, getUsedWallets } from '@/lib/cryptoActions';
 
 // Common crypto symbols for autocomplete
 const COMMON_CRYPTO_SYMBOLS = [

@@ -1,6 +1,6 @@
+import { type ChartData, type ChartDataset, type ChartOptions } from 'chart.js';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChartData, ChartDataset, ChartOptions } from 'chart.js';
 
 export interface TemporalDatum {
   period: string;
@@ -767,8 +767,8 @@ export function computeSpendingVelocity(
       byCategory.set(item.category, new Map());
     }
     byCategory
-      .get(item.category)!
-      .set(item.period, Math.abs(Number(item.total)));
+      .get(item.category)
+      ?.set(item.period, Math.abs(Number(item.total)));
   }
 
   const velocities: VelocityItem[] = [];
@@ -842,7 +842,7 @@ export function getSeasonalPatterns(
   for (const item of filtered) {
     const d = new Date(item.period);
     const month = d.getUTCMonth();
-    const existing = byMonth.get(month)!;
+    const existing = byMonth.get(month) as { total: number; count: number; yearCount: number };
     existing.total += Math.abs(Number(item.total));
     existing.count += item.count || 0;
     existing.yearCount += 1;
@@ -851,8 +851,8 @@ export function getSeasonalPatterns(
   return Array.from(byMonth.entries()).map(([month, data]) => ({
     month,
     monthName: monthNames[month],
-    total: data.yearCount > 0 ? data.total / data.yearCount : 0, // average per year
-    count: data.yearCount > 0 ? Math.round(data.count / data.yearCount) : 0,
+    total: data.yearCount > 0 ? data.total / data.yearCount : 0,
+    count: Math.round(data.total / (data.yearCount || 1)),
   }));
 }
 
@@ -1084,7 +1084,7 @@ export function computeTipoSpendingVelocity(
     if (!byType.has(item.type)) {
       byType.set(item.type, new Map());
     }
-    byType.get(item.type)!.set(item.period, Math.abs(Number(item.total)));
+    byType.get(item.type)?.set(item.period, Math.abs(Number(item.total)));
   }
 
   const velocities: VelocityItem[] = [];
@@ -1150,7 +1150,7 @@ export function getTipoSeasonalPatterns(
   for (const item of filtered) {
     const d = new Date(item.period);
     const month = d.getUTCMonth();
-    const existing = byMonth.get(month)!;
+    const existing = byMonth.get(month) as { total: number; count: number; yearCount: number };
     existing.total += Math.abs(Number(item.total));
     existing.count += item.count || 0;
     existing.yearCount += 1;

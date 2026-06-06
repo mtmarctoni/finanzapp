@@ -1,12 +1,12 @@
 'use client';
 
+import { ITEMS_PER_PAGE } from '@/config';
+import type { GetCryptoTransactionsOptions } from '@/types/api';
 import type {
   CryptoTransaction,
   CryptoHoldingsSummary,
   CryptoWallet,
 } from '@/types/finance';
-import type { GetCryptoTransactionsOptions } from '@/types/api';
-import { ITEMS_PER_PAGE } from '@/config';
 
 /**
  * Fetches crypto transactions from the API with optional filtering and pagination

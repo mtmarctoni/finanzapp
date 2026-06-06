@@ -1,17 +1,19 @@
-import GithubProvider, { GithubProfile } from 'next-auth/providers/github';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import NextAuth, {
-  DefaultSession,
-  SessionStrategy,
-  AuthOptions,
-  User,
-  Account,
-  Profile,
-} from 'next-auth';
-type Provider = NonNullable<AuthOptions['providers']>[number];
-import { JWT } from 'next-auth/jwt';
-import { createUser, getUserByEmail } from '@/lib/actions';
 import { timingSafeEqual } from 'crypto';
+
+import NextAuth, {
+  type DefaultSession,
+  type SessionStrategy,
+  type AuthOptions,
+  type User,
+  type Account,
+  type Profile,
+} from 'next-auth';
+import { type JWT } from 'next-auth/jwt';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import GithubProvider, { type GithubProfile } from 'next-auth/providers/github';
+type Provider = NonNullable<AuthOptions['providers']>[number];
+
+import { createUser, getUserByEmail } from '@/lib/actions';
 
 // Extend the default session type to include id
 interface Session extends DefaultSession {
@@ -96,8 +98,8 @@ function isAllowed(identity: string | undefined | null): boolean {
 function getProviders(): Provider[] {
   const providers: Provider[] = [
     GithubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: process.env.GITHUB_ID as string,
+      clientSecret: process.env.GITHUB_SECRET as string,
       authorization: {
         params: {
           redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/github`,

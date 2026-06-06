@@ -1,6 +1,7 @@
 'use client';
 
 import type { Entry, GetEntriesOptions } from './definitions';
+
 import { ITEMS_PER_PAGE } from '@/config';
 
 /**

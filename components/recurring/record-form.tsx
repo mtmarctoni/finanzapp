@@ -1,6 +1,7 @@
+import { type RecurringFormData } from '@/components/recurring/types';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -9,8 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CATEGORIES } from '@/types/categories';
-import { RecurringRecord } from '@/types/finance';
-import { RecurringFormData } from '@/components/recurring/types';
+import { type RecurringRecord } from '@/types/finance';
 
 interface RecordFormProps {
   formData: RecurringFormData;

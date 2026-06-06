@@ -1,5 +1,6 @@
-import { createClient } from '@vercel/postgres';
 import { randomBytes, createHash, createHmac, timingSafeEqual } from 'crypto';
+
+import { createClient } from '@vercel/postgres';
 import { v4 as uuidv4 } from 'uuid';
 
 const PREFIX = 'fa_';
@@ -83,7 +84,7 @@ export function generateApiKey(): { plaintext: string; hash: string } {
 }
 
 function stripKeyHash(key: ApiKey): SafeApiKey {
-  const { key_hash, ...safeKey } = key;
+  const { key_hash: _key_hash, ...safeKey } = key;
   return safeKey;
 }
 
@@ -124,7 +125,7 @@ export async function createApiKey(
 export async function verifyApiKey(
   plaintextKey: string,
 ): Promise<{ userId: string; keyId: string } | null> {
-  if (!plaintextKey || !plaintextKey.startsWith(PREFIX)) {
+  if (!plaintextKey?.startsWith(PREFIX)) {
     return null;
   }
 

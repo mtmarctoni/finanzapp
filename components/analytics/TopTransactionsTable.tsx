@@ -1,3 +1,5 @@
+import { TrendingUp, TrendingDown } from 'lucide-react';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -7,8 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { TopTransactionDatum } from '@/lib/analytics-charts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { type TopTransactionDatum } from '@/lib/analytics-charts';
 
 interface TopTransactionsTableProps {
   transactions: TopTransactionDatum[];
@@ -27,7 +28,7 @@ export function TopTransactionsTable({
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
         ) : transactions.length > 0 ? (
           <div className="overflow-x-auto">

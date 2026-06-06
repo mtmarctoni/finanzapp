@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+
 import AnalyticsPageContent from '@/components/analytics-page-content';
 
 export const dynamic = 'force-dynamic';

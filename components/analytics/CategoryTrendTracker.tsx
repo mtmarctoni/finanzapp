@@ -1,14 +1,4 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Line } from 'react-chartjs-2';
-import { ChartData, ChartOptions } from 'chart.js';
+import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -19,8 +9,20 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { CategoryTemporalDatum } from '@/lib/analytics-charts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useState } from 'react';
+import { Line } from 'react-chartjs-2';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { type CategoryTemporalDatum } from '@/lib/analytics-charts';
+
 
 ChartJS.register(
   CategoryScale,
@@ -119,7 +121,7 @@ export function CategoryTrendTracker({
           <div className="lg:col-span-3 h-80">
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : (chartData?.labels?.length ?? 0) > 0 ? (
               <Line data={chartData} options={chartOptions} />

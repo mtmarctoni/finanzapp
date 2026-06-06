@@ -1,4 +1,4 @@
-import { RecurringRecord } from '@/types/finance';
+import { type RecurringRecord } from '@/types/finance';
 
 export const frequencyLabel: Record<RecurringRecord['frequency'], string> = {
   monthly: 'Mensual',

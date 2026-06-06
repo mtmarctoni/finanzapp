@@ -1,11 +1,13 @@
 'use client';
 
+import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { PlusCircle } from 'lucide-react';
+
 import { Button } from './ui/button';
+
 import { NAV_ITEMS, isActivePath } from '@/config';
+import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const pathname = usePathname();

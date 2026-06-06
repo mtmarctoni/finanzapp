@@ -1,17 +1,5 @@
 'use client';
 
-import { formatDate } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useSession } from 'next-auth/react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,16 +12,29 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useTransition, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useTransition, useEffect, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ITEMS_PER_PAGE } from '@/config';
 import {
   getCryptoTransactions,
   deleteCryptoTransaction,
   duplicateCryptoTransaction,
 } from '@/lib/crypto-data';
+import { formatDate } from '@/lib/utils';
 import type { CryptoTransaction } from '@/types/finance';
-import { Badge } from '@/components/ui/badge';
-import { ITEMS_PER_PAGE } from '@/config';
 
 interface CryptoTransactionsResponse {
   data: CryptoTransaction[];

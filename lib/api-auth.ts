@@ -1,9 +1,9 @@
-import { verifyApiKey } from './api-keys';
 import {
   checkRateLimit,
   createRateLimitResponse,
   getRateLimitHeaders,
 } from './ai/rate-limit';
+import { verifyApiKey } from './api-keys';
 
 export interface ApiAuthContext {
   userId: string;

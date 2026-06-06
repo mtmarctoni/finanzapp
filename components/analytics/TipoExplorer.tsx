@@ -1,14 +1,4 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Bar } from 'react-chartjs-2';
-import { ChartData, ChartOptions } from 'chart.js';
+import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,7 +8,18 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { TipoQueDatum } from '@/lib/analytics-charts';
+import { useState } from 'react';
+import { Bar } from 'react-chartjs-2';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { type TipoQueDatum } from '@/lib/analytics-charts';
 
 ChartJS.register(
   CategoryScale,
@@ -36,12 +37,12 @@ interface TipoExplorerProps {
     data: TipoQueDatum[],
     type: string,
   ) => ChartData<'bar', number[], string> & {
-    details?: Array<{
+    details?: {
       category: string;
       total: number;
       count: number;
       action: string;
-    }>;
+    }[];
     total?: number;
   };
   getChartOptions: () => ChartOptions<'bar'>;
@@ -94,7 +95,7 @@ export function TipoExplorer({
           <div className="h-72">
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : (chartData?.labels?.length ?? 0) > 0 ? (
               <Bar data={chartData} options={chartOptions} />
@@ -110,7 +111,7 @@ export function TipoExplorer({
             </h4>
             {loading ? (
               <div className="flex items-center justify-center h-48">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : chartData.details && chartData.details.length > 0 ? (
               <div className="space-y-2 max-h-72 overflow-y-auto">
