@@ -32,9 +32,6 @@ import { createEntry, updateEntry } from '@/lib/actions';
 import type { Entry } from '@/lib/definitions';
 import { shouldSplitTransaction } from '@/lib/utils';
 
-
-
-
 const formSchema = z.object({
   fecha: z.string().min(1, { message: 'La fecha es requerida' }),
   hora: z.coerce

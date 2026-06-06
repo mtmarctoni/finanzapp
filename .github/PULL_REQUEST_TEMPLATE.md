@@ -1,11 +1,11 @@
-## 📝 Description
+## Description
 
-## 💰 Financial & Data Integrity Impacts
+## Financial & Data Integrity Impacts
 
 - **Calculations affected:** No
 - **Data migration required:** No
 - **Security implications:** No
 
-## 🧪 How It Was Tested
+## How It Was Tested
 
 -

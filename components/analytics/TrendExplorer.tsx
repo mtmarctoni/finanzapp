@@ -27,7 +27,6 @@ import {
   type TipoQueDatum,
 } from '@/lib/analytics-charts';
 
-
 ChartJS.register(
   CategoryScale,
   LinearScale,

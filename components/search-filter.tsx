@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-
 interface SearchFilterProps {
   defaultValues?: {
     search?: string;

@@ -23,7 +23,6 @@ import {
 } from '@/components/ui/select';
 import { type CategoryTemporalDatum } from '@/lib/analytics-charts';
 
-
 ChartJS.register(
   CategoryScale,
   LinearScale,

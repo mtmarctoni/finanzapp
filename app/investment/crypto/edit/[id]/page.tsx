@@ -5,7 +5,6 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { CryptoTransactionForm } from '@/components/crypto/crypto-transaction-form';
 import { getCryptoTransactionById } from '@/lib/cryptoActions';
 
-
 export const metadata = {
   title: 'Editar Transacción Cripto | FinanzApp',
   description: 'Edita una transacción de criptomonedas existente',
