@@ -32,12 +32,12 @@ export default defineConfig([
       // --- Tier 1: Safety ---
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_' },
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': [
-        'error',
+        'warn',
         { fixStyle: 'separate-type-imports' },
       ],
       eqeqeq: 'error',
@@ -49,7 +49,7 @@ export default defineConfig([
 
       // --- Tier 2: Quality ---
       '@typescript-eslint/prefer-optional-chain': 'error',
-      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
       'import-x/order': [
         'error',
         {

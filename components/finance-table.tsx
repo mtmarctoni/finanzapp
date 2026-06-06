@@ -35,9 +35,6 @@ import {
 } from '@/config';
 import { deleteEntry, deleteManyEntries } from '@/lib/actions';
 import { duplicateEntry, getFinanceEntries  } from '@/lib/data';
-
-// import { Entry } from "@/lib/definitions"
-
 import {
   formatCurrency,
   formatDate,
