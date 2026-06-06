@@ -9,7 +9,6 @@ import type {
   CryptoTransactionFormData,
 } from '@/types/finance';
 
-
 /**
  * Crypto transaction queries and mutations.
  *

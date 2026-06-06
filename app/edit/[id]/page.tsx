@@ -5,7 +5,6 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { FinanceForm } from '@/components/finance-form';
 import { getEntryById } from '@/lib/server-data';
 
-
 export default async function EditEntryPage({
   params,
 }: {

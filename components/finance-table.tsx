@@ -15,7 +15,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useTransition, useEffect, useState  } from 'react';
+import { useTransition, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,7 +34,7 @@ import {
   ITEMS_PER_PAGE,
 } from '@/config';
 import { deleteEntry, deleteManyEntries } from '@/lib/actions';
-import { duplicateEntry, getFinanceEntries  } from '@/lib/data';
+import { duplicateEntry, getFinanceEntries } from '@/lib/data';
 import {
   formatCurrency,
   formatDate,

@@ -1,7 +1,10 @@
 import { format } from 'date-fns';
 import { useCallback, useEffect, useState } from 'react';
 
-import { type GenerateError, type RecurringFormData } from '@/components/recurring/types';
+import {
+  type GenerateError,
+  type RecurringFormData,
+} from '@/components/recurring/types';
 import { useToast } from '@/hooks/use-toast';
 import { type RecurringRecord } from '@/types/finance';
 

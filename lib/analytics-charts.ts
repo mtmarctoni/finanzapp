@@ -842,7 +842,11 @@ export function getSeasonalPatterns(
   for (const item of filtered) {
     const d = new Date(item.period);
     const month = d.getUTCMonth();
-    const existing = byMonth.get(month) as { total: number; count: number; yearCount: number };
+    const existing = byMonth.get(month) as {
+      total: number;
+      count: number;
+      yearCount: number;
+    };
     existing.total += Math.abs(Number(item.total));
     existing.count += item.count || 0;
     existing.yearCount += 1;
@@ -1150,7 +1154,11 @@ export function getTipoSeasonalPatterns(
   for (const item of filtered) {
     const d = new Date(item.period);
     const month = d.getUTCMonth();
-    const existing = byMonth.get(month) as { total: number; count: number; yearCount: number };
+    const existing = byMonth.get(month) as {
+      total: number;
+      count: number;
+      yearCount: number;
+    };
     existing.total += Math.abs(Number(item.total));
     existing.count += item.count || 0;
     existing.yearCount += 1;

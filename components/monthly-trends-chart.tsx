@@ -9,7 +9,9 @@ import {
   PointElement,
   Title,
   Tooltip,
-  Legend, type ChartData, type ChartOptions 
+  Legend,
+  type ChartData,
+  type ChartOptions,
 } from 'chart.js';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

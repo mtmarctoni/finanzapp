@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { type SeasonalItem } from '@/lib/analytics-charts';
 
-
 ChartJS.register(
   CategoryScale,
   LinearScale,
