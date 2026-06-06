@@ -24,23 +24,37 @@ export interface RateLimitResult {
 }
 
 let upstashClient: Redis | null = null;
-let upstashRatelimit: Ratelimit | null = null;
+const ratelimitInstances = new Map<string, Ratelimit>();
 
-function getUpstash() {
+function getUpstash(): Redis | null {
   if (!upstashClient) {
     const url = process.env.UPSTASH_REDIS_URL;
     const token = process.env.UPSTASH_REDIS_TOKEN;
+
     if (url && token) {
       upstashClient = new Redis({ url, token });
+    } else if (url || token) {
+      const missing = url ? 'UPSTASH_REDIS_TOKEN' : 'UPSTASH_REDIS_URL';
+      console.warn(
+        `[rate-limit] ${missing} is not set. Upstash Redis rate limiting is disabled. Falling back to in-memory rate limiting.`,
+      );
     }
   }
   return upstashClient;
 }
 
-function getRatelimit(config: RateLimitConfig) {
-  if (!upstashRatelimit && getUpstash()) {
-    upstashRatelimit = new Ratelimit({
-      redis: upstashClient!,
+function getRatelimit(config: RateLimitConfig): Ratelimit | null {
+  const client = getUpstash();
+  if (!client) {
+    return null;
+  }
+
+  const configKey = `${config.maxRequests}:${config.windowMs}`;
+  let rl = ratelimitInstances.get(configKey);
+
+  if (!rl) {
+    rl = new Ratelimit({
+      redis: client,
       limiter: Ratelimit.slidingWindow(
         config.maxRequests,
         `${config.windowMs} ms`,
@@ -48,11 +62,13 @@ function getRatelimit(config: RateLimitConfig) {
       analytics: true,
       prefix: 'ratelimit',
     });
+    ratelimitInstances.set(configKey, rl);
   }
-  return upstashRatelimit;
+
+  return rl;
 }
 
-function cleanupInMemory() {
+function cleanupInMemory(): void {
   if (inMemoryStore.size > 10000) {
     const now = Date.now();
     for (const [key, entry] of inMemoryStore.entries()) {
@@ -73,13 +89,20 @@ export async function checkRateLimit(
   const rl = getRatelimit(config);
 
   if (rl) {
-    const result = await rl.limit(identifier);
-    return {
-      allowed: result.success,
-      remaining: result.remaining,
-      resetTime: Date.now() + config.windowMs,
-      retryAfter: Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)),
-    };
+    try {
+      const result = await rl.limit(identifier);
+      return {
+        allowed: result.success,
+        remaining: result.remaining,
+        resetTime: Date.now() + config.windowMs,
+        retryAfter: Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)),
+      };
+    } catch (error) {
+      console.error(
+        `[rate-limit] Upstash Redis error, falling back to in-memory:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   const now = Date.now();
