@@ -55,7 +55,7 @@ export async function authenticateAndRateLimitApiRequest(
     return { auth: null };
   }
 
-  const rateLimitResult = checkRateLimit(`api-key:${auth.keyId}`, {
+  const rateLimitResult = await checkRateLimit(`api-key:${auth.keyId}`, {
     maxRequests: 60,
     windowMs: 60 * 1000,
   });

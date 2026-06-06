@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   const userId = session.user.id;
 
   // Rate limiting check
-  const rateLimitResult = checkRateLimit(
+  const rateLimitResult = await checkRateLimit(
     `parse-form:${userId}`,
     RATE_LIMIT_CONFIG,
   );
