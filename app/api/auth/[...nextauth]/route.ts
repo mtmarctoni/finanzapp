@@ -157,7 +157,14 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user, account }) {
       if (account?.provider === 'credentials') {
+        // user is always present for credentials provider
         token.id = user.id;
+        return token;
+      }
+
+      // For OAuth providers, user may be undefined on token refresh
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!user) {
         return token;
       }
 
