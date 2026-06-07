@@ -124,7 +124,8 @@ function getProviders(): Provider[] {
           password: { label: 'Password', type: 'password' },
         },
         async authorize(credentials) {
-          if (!credentials?.email || !credentials?.password) return null;
+          if (!credentials) return null;
+          if (!credentials.email || !credentials.password) return null;
           const devUsers = loadDevCredentials();
           const user = devUsers.find(
             (u) =>
@@ -155,24 +156,27 @@ export const authOptions: AuthOptions = {
   },
   callbacks: {
     async jwt({ token, user, account }) {
-      if (account?.provider === 'credentials' && user) {
+      if (account?.provider === 'credentials') {
+        // user is always present for credentials provider
         token.id = user.id;
         return token;
       }
 
-      if (user) {
-        const existingUser = await getUserByEmail(user.email ?? '');
-        if (!existingUser) {
-          throw new Error('User not found');
-        }
-        token.id = existingUser.id;
+      // For OAuth providers, user may be undefined on token refresh
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!user) {
+        return token;
       }
+
+      const existingUser = await getUserByEmail(user.email ?? '');
+      if (!existingUser) {
+        throw new Error('User not found');
+      }
+      token.id = existingUser.id;
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-      }
+      session.user.id = token.id as string;
       return session;
     },
     async signIn({
@@ -189,11 +193,11 @@ export const authOptions: AuthOptions = {
           console.error(`User ${user.email} is not allowed to sign in.`);
           return false;
         }
-        const existingUser = await getUserByEmail(user?.email ?? '');
+        const existingUser = await getUserByEmail(user.email ?? '');
         if (!existingUser) {
           await createUser({
-            name: user?.name ?? '',
-            email: user?.email ?? '',
+            name: user.name ?? '',
+            email: user.email ?? '',
           });
         }
         return true;

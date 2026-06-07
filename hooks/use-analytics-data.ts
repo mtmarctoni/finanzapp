@@ -125,33 +125,13 @@ export function useAnalyticsData() {
       if (filters.search) params.set('search', filters.search);
       if (filters.accion && filters.accion !== 'todos')
         params.set('action', filters.accion);
-      (Array.isArray(filters.actions)
-        ? filters.actions
-        : filters.actions
-          ? [filters.actions]
-          : []
-      ).forEach((a) => params.append('action', a));
+      (filters.actions ?? []).forEach((a) => params.append('action', a));
       if (filters.from)
         params.set('from', filters.from.toISOString().split('T')[0]);
       if (filters.to) params.set('to', filters.to.toISOString().split('T')[0]);
-      (Array.isArray(filters.categories)
-        ? filters.categories
-        : filters.categories
-          ? [filters.categories]
-          : []
-      ).forEach((c) => params.append('category', c));
-      (Array.isArray(filters.platforms)
-        ? filters.platforms
-        : filters.platforms
-          ? [filters.platforms]
-          : []
-      ).forEach((p) => params.append('platform', p));
-      (Array.isArray(filters.types)
-        ? filters.types
-        : filters.types
-          ? [filters.types]
-          : []
-      ).forEach((t) => params.append('type', t));
+      (filters.categories ?? []).forEach((c) => params.append('category', c));
+      (filters.platforms ?? []).forEach((p) => params.append('platform', p));
+      (filters.types ?? []).forEach((t) => params.append('type', t));
       if (typeof filters.minAmount === 'number')
         params.set('minAmount', String(filters.minAmount));
       if (typeof filters.maxAmount === 'number')

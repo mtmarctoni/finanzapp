@@ -264,9 +264,9 @@ export function getTotalByPeriodTool(userId: string) {
             };
           }
 
-          const income = totals['Ingreso']?.total ?? 0;
-          const expense = totals['Gasto']?.total ?? 0;
-          const investment = totals['Inversión']?.total ?? 0;
+          const income = totals['Ingreso'].total;
+          const expense = totals['Gasto'].total;
+          const investment = totals['Inversión'].total;
 
           return {
             income,

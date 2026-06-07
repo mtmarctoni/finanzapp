@@ -17,7 +17,7 @@ export interface AuthorizedSession {
  */
 export async function requireSession(): Promise<AuthorizedSession> {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     throw new UnauthorizedError();
   }
   return { session, userId: session.user.id };
@@ -43,7 +43,7 @@ export async function requireSessionOrUnauthorized(): Promise<
   AuthorizedSession | { response: NextResponse }
 > {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return {
       response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     };

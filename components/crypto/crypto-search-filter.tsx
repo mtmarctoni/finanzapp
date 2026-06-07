@@ -37,8 +37,8 @@ export function CryptoSearchFilter() {
   useEffect(() => {
     const fetchOptions = async () => {
       const options = await getCryptoOptions();
-      setCryptoSymbols(options.cryptoSymbols || []);
-      setTransactionTypes(options.transactionTypes || []);
+      setCryptoSymbols(options.cryptoSymbols);
+      setTransactionTypes(options.transactionTypes);
     };
     fetchOptions();
   }, []);

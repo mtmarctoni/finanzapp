@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/utils';
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
       });

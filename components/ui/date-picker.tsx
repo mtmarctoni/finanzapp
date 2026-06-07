@@ -71,7 +71,7 @@ const es = {
       xYears: 'hace {{count}}a',
     };
     return (token: string, count: number) =>
-      formatDistanceLocale[token]?.replace('{{count}}', String(count)) ?? '';
+      formatDistanceLocale[token].replace('{{count}}', String(count));
   })(),
   formatRelative: (token: string) => {
     const formatRelativeLocale: Record<string, string> = {

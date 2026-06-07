@@ -125,7 +125,7 @@ export async function createApiKey(
 export async function verifyApiKey(
   plaintextKey: string,
 ): Promise<{ userId: string; keyId: string } | null> {
-  if (!plaintextKey?.startsWith(PREFIX)) {
+  if (!plaintextKey.startsWith(PREFIX)) {
     return null;
   }
 

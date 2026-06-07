@@ -92,17 +92,20 @@ export default function CryptoTransactionTable({
   const { data: session } = useSession();
   const currentPage = Number(searchParams?.page) || 1;
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE;
+  const rawSortBy = searchParams?.sortBy;
   const [sortBy, setSortBy] = useState<
     'transaction_date' | 'crypto_symbol' | 'amount' | 'transaction_type'
   >(
-    (searchParams?.sortBy as
-      | 'transaction_date'
-      | 'crypto_symbol'
-      | 'amount'
-      | 'transaction_type') || 'transaction_date',
+    rawSortBy === 'transaction_date' ||
+      rawSortBy === 'crypto_symbol' ||
+      rawSortBy === 'amount' ||
+      rawSortBy === 'transaction_type'
+      ? rawSortBy
+      : 'transaction_date',
   );
+  const rawSortOrder = searchParams?.sortOrder;
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
-    (searchParams?.sortOrder as 'asc' | 'desc') || 'desc',
+    rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc',
   );
 
   useEffect(() => {
@@ -336,12 +339,13 @@ export default function CryptoTransactionTable({
             </TableRow>
           ) : (
             transactions.data.map((transaction) => {
-              const typeInfo = TRANSACTION_TYPE_LABELS[
-                transaction.transactionType
-              ] || {
-                label: transaction.transactionType,
-                variant: 'outline' as const,
-              };
+              const typeInfo =
+                transaction.transactionType in TRANSACTION_TYPE_LABELS
+                  ? TRANSACTION_TYPE_LABELS[transaction.transactionType]
+                  : {
+                      label: transaction.transactionType,
+                      variant: 'outline' as const,
+                    };
 
               return (
                 <TableRow
@@ -415,7 +419,7 @@ export default function CryptoTransactionTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDelete(transaction.id)}
+                        onClick={async () => handleDelete(transaction.id)}
                         disabled={isPending}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -426,7 +430,7 @@ export default function CryptoTransactionTable({
                         size="sm"
                         title="Duplicar"
                         onClick={async () => {
-                          if (!session?.user?.id) {
+                          if (!session?.user.id) {
                             alert(
                               'Debes iniciar sesión para duplicar transacciones',
                             );

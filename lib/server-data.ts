@@ -19,7 +19,7 @@ export async function getSummaryStats(
   session: Session | null = null,
   request?: Request,
 ) {
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     // Authentication is enforced at the API route layer, but we add a
     // defensive guard here so this server-side helper can never produce
     // cross-user totals if it's invoked without a session by mistake.
@@ -208,7 +208,7 @@ export async function getEntryById(
   try {
     const params: string[] = [id];
     let userScope = '';
-    if (session?.user?.id) {
+    if (session?.user.id) {
       params.push(session.user.id);
       userScope = ' AND user_id = $2';
     }
@@ -238,7 +238,7 @@ export async function getEntryById(
  * Returns options ordered by frequency of use for each field.
  */
 export async function getFormOptions(session: Session | null = null) {
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     throw new Error('Not authenticated');
   }
 

@@ -93,9 +93,9 @@ export function CryptoTransactionForm({
     const fetchOptions = async () => {
       try {
         const data = await getCryptoOptions();
-        setCryptoSymbols(data.cryptoSymbols || []);
-        setWallets(data.wallets || []);
-        setTransactionTypes(data.transactionTypes || []);
+        setCryptoSymbols(data.cryptoSymbols);
+        setWallets(data.wallets);
+        setTransactionTypes(data.transactionTypes);
       } catch (error) {
         console.error('Failed to fetch options:', error);
       } finally {
@@ -157,7 +157,7 @@ export function CryptoTransactionForm({
   );
 
   async function onSubmit(values: CryptoFormValues) {
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       alert('Debes iniciar sesión');
       return;
     }

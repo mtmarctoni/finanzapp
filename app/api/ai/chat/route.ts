@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   // Authentication check
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return new Response('No autorizado', { status: 401 });
   }
 
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const confirmPaidFallback =
       confirmPaidFallbackHeader === 'true' || confirmPaidFallbackBody === true;
 
-    if (!messages || !Array.isArray(messages)) {
+    if (!Array.isArray(messages)) {
       return new Response("Se requiere un array de 'messages'.", {
         status: 400,
       });

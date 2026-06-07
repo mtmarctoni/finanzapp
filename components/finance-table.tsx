@@ -73,7 +73,7 @@ export default function FinanceTable({
   const accion = searchParams?.accion || DEFAULT_ACCION_FILTER;
   const from = searchParams?.from || '';
   const to = searchParams?.to || '';
-  const { data: session } = useSession() || '';
+  const { data: session } = useSession();
   const currentPage = Number(searchParams?.page) || 1;
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE;
   const [sortBy, setSortBy] = useState<
@@ -92,10 +92,12 @@ export default function FinanceTable({
       | 'tipo'
       | 'plataforma_pago'
       | 'cantidad'
-      | 'quien') || DEFAULT_SORT_BY,
+      | 'quien'
+      | undefined) ?? DEFAULT_SORT_BY,
   );
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
-    (searchParams?.sortOrder as 'asc' | 'desc') || DEFAULT_SORT_ORDER,
+    (searchParams?.sortOrder as 'asc' | 'desc' | undefined) ??
+      DEFAULT_SORT_ORDER,
   );
   if (process.env.NODE_ENV !== 'production') {
     console.log('FinanceTable received params:', {
@@ -136,12 +138,12 @@ export default function FinanceTable({
         console.log('Received entries:', result);
       }
       setEntries({
-        data: result.data ?? [],
-        totalItems: (result.totalItems ??
-          (result as { total?: number }).total ??
+        data: result.data,
+        totalItems: (result.totalItems ||
+          (result as { total?: number }).total ||
           0) as number,
-        totalPages: result.totalPages ?? 0,
-        currentPage: result.currentPage ?? currentPage,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
       });
     };
     getEntries();
@@ -193,7 +195,7 @@ export default function FinanceTable({
           <form
             action={(formData) => {
               startTransition(async () => {
-                if (!session?.user?.id) {
+                if (!session?.user.id) {
                   alert('Debes iniciar sesión para eliminar entradas');
                   return;
                 }
@@ -538,7 +540,7 @@ export default function FinanceTable({
                       title="Duplicar"
                       disabled={isPending}
                       onClick={async () => {
-                        if (!session?.user?.id) {
+                        if (!session?.user.id) {
                           alert('Debes iniciar sesión para duplicar entradas');
                           return;
                         }
@@ -558,12 +560,12 @@ export default function FinanceTable({
                               sortOrder,
                             })) as PaginatedEntriesResponse;
                             setEntries({
-                              data: result.data ?? [],
-                              totalItems: (result.totalItems ??
-                                (result as { total?: number }).total ??
+                              data: result.data,
+                              totalItems: (result.totalItems ||
+                                (result as { total?: number }).total ||
                                 0) as number,
-                              totalPages: result.totalPages ?? 0,
-                              currentPage: result.currentPage ?? currentPage,
+                              totalPages: result.totalPages,
+                              currentPage: result.currentPage,
                             });
                           });
                         } catch (error) {
@@ -593,7 +595,7 @@ export default function FinanceTable({
                           });
 
                           // Then perform the actual deletion
-                          if (!session?.user?.id) {
+                          if (!session?.user.id) {
                             throw new Error('User session not available');
                           }
                           await deleteEntry(formData, {

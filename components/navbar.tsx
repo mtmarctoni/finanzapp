@@ -39,7 +39,7 @@ export function Navbar() {
     <header className="border-b bg-background">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="font-semibold md:text-lg">
-          {session?.user?.name
+          {session?.user.name
             ? `Hola, ${session.user.name}`
             : 'Finanzas Personales'}
         </div>

@@ -69,6 +69,13 @@ export default defineConfig([
       'react/no-array-index-key': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       '@typescript-eslint/array-type': ['error', { default: 'array' }],
+
+      // --- Tier 3: Discipline ---
+      '@typescript-eslint/promise-function-async': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+      'react/destructuring-assignment': 'error',
+      'import-x/no-cycle': 'error',
+      'react/jsx-no-useless-fragment': 'error',
     },
   },
 ]);

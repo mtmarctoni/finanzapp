@@ -75,7 +75,7 @@ setInterval(cleanupExpired, CLEANUP_INTERVAL_MS);
 export async function GET(_: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -110,7 +110,7 @@ export async function GET(_: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 

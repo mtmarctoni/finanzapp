@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   // Authentication check
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
@@ -166,8 +166,8 @@ export async function POST(request: NextRequest) {
           },
           // Map AI SDK usage format to our format
           usage: {
-            inputTokens: result.usage?.inputTokens ?? 0,
-            outputTokens: result.usage?.outputTokens ?? 0,
+            inputTokens: result.usage.inputTokens ?? 0,
+            outputTokens: result.usage.outputTokens ?? 0,
           },
         };
       },
@@ -240,8 +240,8 @@ export async function POST(request: NextRequest) {
               },
               // Map AI SDK usage format to our format
               usage: {
-                inputTokens: result.usage?.inputTokens ?? 0,
-                outputTokens: result.usage?.outputTokens ?? 0,
+                inputTokens: result.usage.inputTokens ?? 0,
+                outputTokens: result.usage.outputTokens ?? 0,
               },
             };
           },

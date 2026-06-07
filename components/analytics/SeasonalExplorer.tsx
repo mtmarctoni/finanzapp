@@ -226,7 +226,7 @@ export function SeasonalExplorer({
         ) : selectedTipo ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 h-64">
-              {(chartData?.labels?.length ?? 0) > 0 ? (
+              {(chartData.labels?.length ?? 0) > 0 ? (
                 <Bar data={chartData} options={chartOptions} />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -241,10 +241,10 @@ export function SeasonalExplorer({
                     Pico
                   </div>
                   <div className="text-lg font-bold text-red-700">
-                    {peakMonth?.monthName}
+                    {peakMonth.monthName}
                   </div>
                   <div className="text-xs text-red-600">
-                    {peakMonth?.total.toLocaleString('es-ES', {
+                    {peakMonth.total.toLocaleString('es-ES', {
                       style: 'currency',
                       currency: 'EUR',
                     })}
@@ -255,10 +255,10 @@ export function SeasonalExplorer({
                     Valle
                   </div>
                   <div className="text-lg font-bold text-green-700">
-                    {lowMonth?.monthName}
+                    {lowMonth.monthName}
                   </div>
                   <div className="text-xs text-green-600">
-                    {lowMonth?.total.toLocaleString('es-ES', {
+                    {lowMonth.total.toLocaleString('es-ES', {
                       style: 'currency',
                       currency: 'EUR',
                     })}

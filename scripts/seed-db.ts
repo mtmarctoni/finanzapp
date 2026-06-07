@@ -142,7 +142,7 @@ const seedDatabase = async () => {
     for (let i = 0; i < financeEntries.length; i += batchSize) {
       const batch = financeEntries.slice(i, i + batchSize);
       const values = batch.map(
-        (entry) =>
+        async (entry) =>
           sql`(
         ${entry.id}, ${entry.fecha}, ${entry.tipo}, ${entry.accion}, 
         ${entry.que}, ${entry.cantidad}, ${entry.plataforma_pago}, 

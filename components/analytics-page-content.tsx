@@ -85,8 +85,8 @@ export default function AnalyticsPageContent() {
     if (filters.from && filters.to) {
       start = new Date(filters.from);
       end = new Date(filters.to);
-    } else if ((data.temporalData || []).length > 0) {
-      const periods = (data.temporalData || []).map((t) => new Date(t.period));
+    } else if (data.temporalData.length > 0) {
+      const periods = data.temporalData.map((t) => new Date(t.period));
       start = new Date(Math.min(...periods.map((p) => p.getTime())));
       end = new Date(Math.max(...periods.map((p) => p.getTime())));
     }

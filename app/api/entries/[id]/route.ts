@@ -13,7 +13,7 @@ export async function GET(
   // string and exposed every user's entries — both issues are fixed below
   // by using a parameterized query and scoping by `user_id`.
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -66,12 +66,12 @@ export default function UserPage() {
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center gap-4">
             <Avatar className="h-32 w-32">
-              <AvatarImage src={session.user?.image ?? undefined} />
-              <AvatarFallback>{session.user?.name?.[0] ?? 'U'}</AvatarFallback>
+              <AvatarImage src={session.user.image ?? undefined} />
+              <AvatarFallback>{session.user.name?.[0] ?? 'U'}</AvatarFallback>
             </Avatar>
             <div className="text-center">
-              <h2 className="text-2xl font-semibold">{session.user?.name}</h2>
-              <p className="text-muted-foreground">{session.user?.email}</p>
+              <h2 className="text-2xl font-semibold">{session.user.name}</h2>
+              <p className="text-muted-foreground">{session.user.email}</p>
             </div>
           </div>
 
@@ -79,7 +79,7 @@ export default function UserPage() {
             <div>
               <h3 className="font-medium">ID de Usuario</h3>
               <p className="break-all text-muted-foreground">
-                {session.user?.id}
+                {session.user.id}
               </p>
             </div>
             <div>
