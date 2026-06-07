@@ -338,7 +338,7 @@ export function getPlatformChartData(platformData: PlatformDatum[]) {
   const platformTotals = platformData.reduce<
     Record<string, { total: number; count: number }>
   >((acc, item) => {
-    if (!acc[item.platform]) acc[item.platform] = { total: 0, count: 0 };
+    if (!(item.platform in acc)) acc[item.platform] = { total: 0, count: 0 };
     acc[item.platform].total += Math.abs(Number(item.total));
     acc[item.platform].count += Number(item.count || 0);
     return acc;
@@ -409,7 +409,7 @@ export function getTypeChartData(typeData: TypeDatum[]) {
   const typeTotals = typeData.reduce<
     Record<string, { total: number; count: number }>
   >((acc, item) => {
-    if (!acc[item.type]) acc[item.type] = { total: 0, count: 0 };
+    if (!(item.type in acc)) acc[item.type] = { total: 0, count: 0 };
     acc[item.type].total += Math.abs(Number(item.total));
     acc[item.type].count += Number(item.count || 0);
     return acc;

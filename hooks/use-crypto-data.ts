@@ -102,9 +102,9 @@ export function useCryptoData(
     setOptionsLoading(true);
     try {
       const result = await getCryptoOptions();
-      setCryptoSymbols(result.cryptoSymbols || []);
-      setWallets(result.wallets || []);
-      setTransactionTypes(result.transactionTypes || []);
+      setCryptoSymbols(result.cryptoSymbols);
+      setWallets(result.wallets);
+      setTransactionTypes(result.transactionTypes);
     } catch (err) {
       console.error('Failed to fetch options:', err);
     } finally {

@@ -16,7 +16,7 @@ export default async function EditEntryPage({
   // it down to the server data layer, which scopes the lookup to the
   // current user's rows.
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     redirect('/auth/signin');
   }
 

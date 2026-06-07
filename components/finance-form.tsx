@@ -229,7 +229,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
 
     console.log('FECHA:', formattedValues.fecha);
 
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       throw new Error('User not authenticated');
     }
 

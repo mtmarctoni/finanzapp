@@ -271,18 +271,18 @@ export default function Dashboard() {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">
-                    {formatCurrency(stats.incomeBreakdown?.total || 0)}
+                    {formatCurrency(stats.incomeBreakdown.total || 0)}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {formatCurrency(stats.incomeBreakdown?.averageMonthly || 0)}{' '}
+                    {formatCurrency(stats.incomeBreakdown.averageMonthly || 0)}{' '}
                     mensuales
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                {stats.incomeBreakdown?.categories?.map(
-                  (category: Category) => (
+                {stats.incomeBreakdown.categories.length > 0 ? (
+                  stats.incomeBreakdown.categories.map((category: Category) => (
                     <div key={category.category} className="space-y-1">
                       <div className="flex justify-between items-center gap-4">
                         <span className="text-sm">{category.category}</span>
@@ -293,7 +293,7 @@ export default function Dashboard() {
                           <span className="ml-2 text-xs text-muted-foreground">
                             {getPercentage(
                               category.total,
-                              stats.incomeBreakdown?.total || 0,
+                              stats.incomeBreakdown.total || 0,
                             ).toFixed(1)}
                             %
                           </span>
@@ -303,19 +303,19 @@ export default function Dashboard() {
                         <div
                           className="h-1.5 rounded-full bg-primary"
                           style={{
-                            width: `${getPercentage(category.total, stats.incomeBreakdown?.total || 0)}%`,
+                            width: `${getPercentage(category.total, stats.incomeBreakdown.total || 0)}%`,
                           }}
                         />
                       </div>
                     </div>
-                  ),
-                ) || (
+                  ))
+                ) : (
                   <p className="text-sm text-muted-foreground">
                     No hay datos de ingresos disponibles
                   </p>
                 )}
 
-                {stats.incomeBreakdown?.hasMore && (
+                {stats.incomeBreakdown.hasMore && (
                   <Button
                     variant="ghost"
                     size="sm"

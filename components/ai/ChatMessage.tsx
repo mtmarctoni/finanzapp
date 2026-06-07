@@ -15,12 +15,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
   // Extract text content from message parts
   const textContent =
     message.parts
-      ?.filter((part) => part.type === 'text')
+      .filter((part) => part.type === 'text')
       .map((part) => part.text)
       .join('') || '';
 
   // Check for tool invocation parts
-  const toolParts = message.parts?.filter((part) => isToolUIPart(part)) || [];
+  const toolParts = message.parts.filter((part) => isToolUIPart(part));
 
   return (
     <div
@@ -48,7 +48,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
               if (part.state === 'output-available') {
                 const result = part.output as Record<string, unknown>;
-                if (result?.success === true && result?.message) {
+                if (result.success === true && result.message) {
                   return (
                     <div
                       key={part.toolCallId}
@@ -58,7 +58,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     </div>
                   );
                 }
-                if (result?.success === false && result?.message) {
+                if (result.success === false && result.message) {
                   return (
                     <div
                       key={part.toolCallId}

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   const types = searchParams.getAll('type');
 
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  if (!session?.user.id) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 

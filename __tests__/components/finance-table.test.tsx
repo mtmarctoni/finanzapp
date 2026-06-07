@@ -39,7 +39,8 @@ jest.mock('next-auth/react', () => ({
     data: { user: { id: 'test-user' } },
     status: 'authenticated',
   })),
-  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+  SessionProvider: async ({ children }: { children: React.ReactNode }) =>
+    children,
 }));
 
 describe('FinanceTable', () => {

@@ -85,7 +85,7 @@ export default function MonthlyTrendsChart({
           callback: (tickValue: string | number) => {
             const value =
               typeof tickValue === 'string' ? parseFloat(tickValue) : tickValue;
-            return value !== undefined ? formatCurrency(value) : '';
+            return formatCurrency(value);
           },
         },
       },

@@ -129,7 +129,7 @@ export function CategoryIntelligence({
     },
     {
       label: 'Plataforma principal',
-      value: topPlatform?.platform || '—',
+      value: topPlatform.platform || '—',
       icon: Store,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50',

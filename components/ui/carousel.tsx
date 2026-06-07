@@ -116,7 +116,7 @@ const Carousel = React.forwardRef<
       api.on('select', onSelect);
 
       return () => {
-        api?.off('select', onSelect);
+        api.off('select', onSelect);
       };
     }, [api, onSelect]);
 
@@ -126,8 +126,7 @@ const Carousel = React.forwardRef<
           carouselRef,
           api: api,
           opts,
-          orientation:
-            orientation || (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
+          orientation: orientation,
           scrollPrev,
           scrollNext,
           canScrollPrev,

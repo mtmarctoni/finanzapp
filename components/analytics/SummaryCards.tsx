@@ -167,7 +167,7 @@ export function SummaryCards({
         </CardHeader>
         <CardContent>
           <div className="text-xl font-bold">
-            {metrics?.totalAmount?.toLocaleString('es-ES', {
+            {metrics?.totalAmount.toLocaleString('es-ES', {
               style: 'currency',
               currency: 'EUR',
             })}

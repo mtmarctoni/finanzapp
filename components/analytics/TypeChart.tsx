@@ -39,7 +39,7 @@ export function TypeChart({ data, options, loading }: TypeChartProps) {
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : (data?.labels?.length ?? 0) > 0 ? (
+        ) : (data.labels?.length ?? 0) > 0 ? (
           <Bar data={data} options={options} />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">

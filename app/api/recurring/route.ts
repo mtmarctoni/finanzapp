@@ -13,7 +13,7 @@ import {
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
@@ -173,7 +173,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;

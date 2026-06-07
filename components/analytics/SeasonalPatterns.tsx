@@ -128,7 +128,7 @@ export function SeasonalPatterns({
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
-            ) : (chartData?.labels?.length ?? 0) > 0 ? (
+            ) : (chartData.labels?.length ?? 0) > 0 ? (
               <Bar data={chartData} options={chartOptions} />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -145,10 +145,10 @@ export function SeasonalPatterns({
                   Pico
                 </div>
                 <div className="text-lg font-bold text-red-700">
-                  {peakMonth?.monthName}
+                  {peakMonth.monthName}
                 </div>
                 <div className="text-xs text-red-600">
-                  {peakMonth?.total.toLocaleString('es-ES', {
+                  {peakMonth.total.toLocaleString('es-ES', {
                     style: 'currency',
                     currency: 'EUR',
                   })}
@@ -159,10 +159,10 @@ export function SeasonalPatterns({
                   Valle
                 </div>
                 <div className="text-lg font-bold text-green-700">
-                  {lowMonth?.monthName}
+                  {lowMonth.monthName}
                 </div>
                 <div className="text-xs text-green-600">
-                  {lowMonth?.total.toLocaleString('es-ES', {
+                  {lowMonth.total.toLocaleString('es-ES', {
                     style: 'currency',
                     currency: 'EUR',
                   })}

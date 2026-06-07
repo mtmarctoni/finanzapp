@@ -319,7 +319,7 @@ export function ApiKeyManager() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleRevokeKey(item.id)}
+                    onClick={async () => handleRevokeKey(item.id)}
                     disabled={revokingId === item.id}
                     aria-label={`Revocar llave ${item.name}`}
                   >
