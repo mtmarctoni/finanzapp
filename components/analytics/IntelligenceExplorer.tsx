@@ -124,7 +124,7 @@ export function IntelligenceExplorer({
       .sort((a, b) => Math.abs(Number(b.total)) - Math.abs(Number(a.total)));
   }
 
-  const topPlatform = platformBreakdown[0];
+  const topPlatform = platformBreakdown.at(0);
 
   const statCards = [
     {
@@ -181,7 +181,7 @@ export function IntelligenceExplorer({
     },
     {
       label: 'Plataforma principal',
-      value: topPlatform.platform || '—',
+      value: topPlatform?.platform || '—',
       icon: Store,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50',
