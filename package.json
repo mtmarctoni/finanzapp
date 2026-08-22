@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "check": "run-p typecheck lint format:check",
+    "check:all": "run-s format lint:fix check test audit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "playwright test",
