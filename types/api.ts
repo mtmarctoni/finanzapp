@@ -1,5 +1,6 @@
 import type {
   CryptoHoldingsSummary,
+  CryptoPortfolioOverview,
   CryptoTransaction,
   CryptoWallet,
   Entry,
@@ -90,8 +91,7 @@ export type CryptoHoldingsResponse = {
 /**
  * Response for the crypto overview section
  */
-export type CryptoOverviewResponse =
-  import('./finance').CryptoPortfolioOverview;
+export type CryptoOverviewResponse = CryptoPortfolioOverview;
 
 /**
  * Standard API error response
