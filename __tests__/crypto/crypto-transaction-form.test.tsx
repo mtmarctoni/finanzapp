@@ -31,6 +31,7 @@ jest.mock('@/lib/crypto-data', () => ({
       { value: 'genesis', label: 'Génesis' },
     ],
   }),
+  getCryptoMarketPrices: jest.fn().mockResolvedValue([]),
   createCryptoTransaction: jest.fn(),
   updateCryptoTransaction: jest.fn(),
 }));

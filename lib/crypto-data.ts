@@ -7,6 +7,7 @@ import type {
   CryptoHoldingsSummary,
   CryptoWallet,
   CryptoPortfolioOverview,
+  CryptoSymbolPrice,
 } from '@/types/finance';
 
 /**
@@ -225,6 +226,33 @@ export async function getCryptoWallets(): Promise<{
       savedWallets: [],
       usedWallets: [],
     };
+  }
+}
+
+/**
+ * Fetches current EUR market prices for the given crypto symbols.
+ */
+export async function getCryptoMarketPrices(
+  symbols: string[],
+): Promise<CryptoSymbolPrice[]> {
+  const clean = symbols.map((s) => s.trim()).filter(Boolean);
+  if (clean.length === 0) return [];
+
+  try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const response = await fetch(
+      `${baseUrl}/api/crypto/prices?symbols=${encodeURIComponent(clean.join(','))}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return (result.prices ?? []) as CryptoSymbolPrice[];
+  } catch (error) {
+    console.error('API Error:', error);
+    return [];
   }
 }
 
