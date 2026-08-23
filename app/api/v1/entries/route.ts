@@ -13,20 +13,7 @@ import { logger } from '@/lib/logger';
 
 function devLog(...args: Parameters<typeof console.log>) {
   if (process.env.NODE_ENV !== 'production') {
-    const sanitized = args.map((arg) => {
-      let asString: string;
-      if (typeof arg === 'string') {
-        asString = arg;
-      } else {
-        try {
-          asString = JSON.stringify(arg);
-        } catch {
-          asString = String(arg);
-        }
-      }
-      return asString.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
-    });
-    logger.info(...sanitized);
+    logger.info(...args);
   }
 }
 
