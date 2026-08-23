@@ -200,3 +200,51 @@ export type CryptoHoldingsSummary = {
   profitLoss?: number;
   profitLossPercent?: number;
 };
+
+/**
+ * Current market price for a crypto symbol, as resolved by the price
+ * service (CoinGecko with a Postgres cache).
+ */
+export type CryptoSymbolPrice = {
+  symbol: string;
+  priceEur: number | null;
+  fetchedAt: string | null;
+  stale: boolean;
+  priceKnown: boolean;
+};
+
+/**
+ * Per-symbol portfolio position computed with the average cost basis method
+ */
+export type CryptoPosition = {
+  symbol: string;
+  amount: number;
+  costBasis: number;
+  averageCost: number;
+  realizedPL: number;
+  price: CryptoSymbolPrice;
+  currentValue: number | null;
+  unrealizedPL: number | null;
+  unrealizedPLPercent: number | null;
+};
+
+/**
+ * Portfolio-wide totals for the crypto overview
+ */
+export type CryptoPortfolioTotals = {
+  totalValue: number | null;
+  totalCostBasis: number;
+  unrealizedPL: number | null;
+  unrealizedPLPercent: number | null;
+  realizedPL: number;
+};
+
+/**
+ * Full payload for the crypto overview section
+ */
+export type CryptoPortfolioOverview = {
+  positions: CryptoPosition[];
+  totals: CryptoPortfolioTotals;
+  pricesUpdatedAt: string | null;
+  missingPrices: string[];
+};

@@ -6,6 +6,7 @@ import type {
   CryptoTransaction,
   CryptoHoldingsSummary,
   CryptoWallet,
+  CryptoPortfolioOverview,
 } from '@/types/finance';
 
 /**
@@ -224,6 +225,25 @@ export async function getCryptoWallets(): Promise<{
       savedWallets: [],
       usedWallets: [],
     };
+  }
+}
+
+/**
+ * Fetches the crypto portfolio overview (positions, totals, prices)
+ */
+export async function getCryptoOverview(): Promise<CryptoPortfolioOverview | null> {
+  try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const response = await fetch(`${baseUrl}/api/crypto/overview`);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return (await response.json()) as CryptoPortfolioOverview;
+  } catch (error) {
+    console.error('API Error:', error);
+    return null;
   }
 }
 
