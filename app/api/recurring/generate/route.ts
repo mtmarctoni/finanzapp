@@ -18,7 +18,12 @@ export async function POST(request: Request) {
 
     // Get the date from the request body or use today
     const { date } = await request.json();
-    logger.info('Received date:', date);
+    logger.info('Received date payload', {
+      hasDate: Boolean(date),
+      isString: typeof date === 'string',
+      isValidDate:
+        typeof date === 'string' && !Number.isNaN(new Date(date).getTime()),
+    });
 
     if (!date) {
       throw new Error('No date provided');
