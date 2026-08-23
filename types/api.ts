@@ -88,6 +88,12 @@ export type CryptoHoldingsResponse = {
 };
 
 /**
+ * Response for the crypto overview section
+ */
+export type CryptoOverviewResponse =
+  import('./finance').CryptoPortfolioOverview;
+
+/**
  * Standard API error response
  */
 export type ApiErrorResponse = {

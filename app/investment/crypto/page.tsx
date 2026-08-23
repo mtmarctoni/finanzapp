@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
+import { CryptoOverview } from '@/components/crypto/crypto-overview';
 import { CryptoSearchFilter } from '@/components/crypto/crypto-search-filter';
 import CryptoTransactionTable from '@/components/crypto/crypto-transaction-table';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,11 @@ export default async function CryptoPage({ searchParams }: CryptoPageProps) {
           </Link>
         </Button>
       </div>
+
+      {/* Overview */}
+      <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+        <CryptoOverview />
+      </Suspense>
 
       {/* Filters */}
       <Suspense fallback={<Skeleton className="h-20 w-full" />}>
