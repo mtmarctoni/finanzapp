@@ -74,22 +74,14 @@ export async function POST(request: NextRequest) {
   // Log incoming request details (development only)
   devLog(`\n[${timestamp}] 🔵 API Request #${requestId}`);
   devLog(`  Method: ${request.method}`);
-  devLog(`  URL: ${request.url}`);
-  devLog(`  Headers:`);
-  request.headers.forEach((value, key) => {
-    // Mask API key for security
-    if (
-      key.toLowerCase().includes('authorization') ||
-      key.toLowerCase().includes('x-api-key')
-    ) {
-      const masked =
-        value.length > 10
-          ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}`
-          : '***';
-      devLog(`    ${key}: ${masked}`);
-    } else {
-      devLog(`    ${key}: ${value}`);
-    }
+  devLog(`  Path: ${request.nextUrl.pathname}`);
+  const headerKeys = Array.from(request.headers.keys());
+  devLog(`  Headers metadata:`, {
+    count: headerKeys.length,
+    hasAuthorization: headerKeys.some((key) =>
+      key.toLowerCase().includes('authorization'),
+    ),
+    hasApiKey: headerKeys.some((key) => key.toLowerCase().includes('x-api-key')),
   });
 
   const { auth, rateLimitHeaders, rateLimitResponse } =
@@ -120,10 +112,18 @@ export async function POST(request: NextRequest) {
   let body: unknown;
   try {
     body = await request.json();
-    devLog(
-      `[${timestamp}] 📦 Body #${requestId}:`,
-      JSON.stringify(body, null, 2),
-    );
+    const isObjectBody = typeof body === 'object' && body !== null;
+    const entriesCount =
+      isObjectBody &&
+      'entries' in body &&
+      Array.isArray((body as { entries?: unknown }).entries)
+        ? (body as { entries: unknown[] }).entries.length
+        : undefined;
+    devLog(`[${timestamp}] 📦 Body metadata #${requestId}:`, {
+      type: Array.isArray(body) ? 'array' : typeof body,
+      isBatch: isObjectBody && 'entries' in body,
+      entriesCount,
+    });
   } catch {
     return jsonWithHeaders(
       { error: 'Bad Request', message: 'Invalid JSON body.' },
