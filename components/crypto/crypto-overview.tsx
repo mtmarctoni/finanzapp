@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,7 +75,28 @@ export function CryptoOverview() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasError, setHasError] = useState(false);
 
-  const fetchOverview = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
+    void getCryptoOverview()
+      .then((data) => {
+        if (cancelled) return;
+        if (data !== null) {
+          setOverview(data);
+          setHasError(false);
+        } else {
+          setHasError(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
     const data = await getCryptoOverview();
     if (data !== null) {
       setOverview(data);
@@ -83,15 +104,6 @@ export function CryptoOverview() {
     } else {
       setHasError(true);
     }
-  }, []);
-
-  useEffect(() => {
-    void fetchOverview().finally(() => setIsLoading(false));
-  }, [fetchOverview]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchOverview();
     setIsRefreshing(false);
   };
 
