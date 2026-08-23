@@ -27,6 +27,7 @@ export function TableSkeleton() {
         </TableHeader>
         <TableBody>
           {Array.from({ length: 5 }).map((_, i) => (
+            // eslint-disable-next-line react/no-array-index-key -- static placeholder list; items are identical and never reorder
             <TableRow key={i}>
               <TableCell>
                 <Skeleton className="h-4 w-20" />

@@ -40,6 +40,7 @@ export async function POST(
       const newId = uuidv4();
 
       // Create a new entry with the same data but a new ID
+      /* eslint-disable @typescript-eslint/prefer-nullish-coalescing -- tagged SQL template: empty-string entry fields are intentionally normalized to NULL/'Yo' */
       const result = await client.sql`
         INSERT INTO finance_entries (
           id, 
@@ -73,6 +74,7 @@ export async function POST(
         )
         RETURNING *
       `;
+      /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
       return NextResponse.json(result.rows[0]);
     } finally {

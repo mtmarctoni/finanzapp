@@ -56,10 +56,12 @@ function Calendar({
     }
   }, [time, onTimeChange]);
 
-  // Update selected date when prop changes
-  React.useEffect(() => {
+  // Update selected date when prop changes (adjust state during render)
+  const [prevSelected, setPrevSelected] = React.useState(selected);
+  if (!Object.is(prevSelected, selected)) {
+    setPrevSelected(selected);
     setSelectedDate(selected as Date | undefined);
-  }, [selected]);
+  }
   // Determine mode-specific props for DayPicker
   const dayPickerMode: 'single' | 'multiple' | 'range' = props.mode ?? 'single';
   /* eslint-disable @typescript-eslint/no-explicit-any */

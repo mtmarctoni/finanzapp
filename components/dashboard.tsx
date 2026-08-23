@@ -131,7 +131,11 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    fetchStats();
+    // Defer past the synchronous effect body so state updates from fetchStats
+    // do not cause cascading renders (react-hooks/set-state-in-effect).
+    void Promise.resolve().then(() => {
+      fetchStats();
+    });
   }, [fetchStats]);
 
   const renderLoading = () => (

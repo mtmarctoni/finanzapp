@@ -1,8 +1,10 @@
 /** @type {import("prettier").Config} */
-export default {
+const config = {
   singleQuote: true,
   trailingComma: 'all',
   printWidth: 80,
   tabWidth: 2,
   semi: true,
 };
+
+export default config;

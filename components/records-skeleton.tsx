@@ -11,6 +11,7 @@ export function RecordsSkeleton() {
       <div className="rounded-md border">
         <div className="p-4 space-y-4">
           {Array.from({ length: 5 }).map((_, i) => (
+            // eslint-disable-next-line react/no-array-index-key -- static placeholder list; items are identical and never reorder
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>

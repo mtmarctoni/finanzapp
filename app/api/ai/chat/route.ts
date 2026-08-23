@@ -26,6 +26,7 @@ import {
   getSpendingByCategoryTool,
   getTotalByPeriodTool,
 } from '@/lib/ai/tools';
+import { logger } from '@/lib/logger';
 
 // Rate limit config: 5 chat requests per minute per user
 const RATE_LIMIT_CONFIG = { maxRequests: 5, windowMs: 60 * 1000 };
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
       response.headers.set('X-Cost-USD', '0.00');
 
       const duration = Date.now() - startTime;
-      console.log(
+      logger.info(
         `[Chat Success] Request ${requestId} completed with free provider`,
         {
           userId,
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
         response.headers.set('X-Paid-Fallback', 'true');
 
         const duration = Date.now() - startTime;
-        console.log(
+        logger.info(
           `[Chat Success] Request ${requestId} completed with paid fallback`,
           {
             userId,

@@ -112,7 +112,7 @@ export function IntelligenceExplorer({
     });
     const aggregated = new Map<string, number>();
     for (const item of raw) {
-      const current = aggregated.get(item.platform) || 0;
+      const current = aggregated.get(item.platform) ?? 0;
       aggregated.set(item.platform, current + Math.abs(Number(item.total)));
     }
     platformBreakdown = Array.from(aggregated.entries())
@@ -181,6 +181,7 @@ export function IntelligenceExplorer({
     },
     {
       label: 'Plataforma principal',
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty platform string from DB must also render as em dash
       value: topPlatform?.platform || '—',
       icon: Store,
       color: 'text-indigo-600',

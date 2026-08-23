@@ -9,6 +9,7 @@ import {
   BatchCreateEntrySchema,
 } from '@/lib/api-validation';
 import type { CreateEntryInput } from '@/lib/api-validation';
+import { logger } from '@/lib/logger';
 
 function devLog(...args: Parameters<typeof console.log>) {
   if (process.env.NODE_ENV !== 'production') {
@@ -25,7 +26,7 @@ function devLog(...args: Parameters<typeof console.log>) {
       }
       return asString.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
     });
-    console.log(...sanitized);
+    logger.info(...sanitized);
   }
 }
 
@@ -96,8 +97,8 @@ export async function POST(request: NextRequest) {
 
   devLog(`[${timestamp}] 🔑 Auth Result #${requestId}:`, {
     authenticated: !!auth,
-    userId: auth?.userId || 'none',
-    rateLimitHeaders: rateLimitHeaders ? rateLimitHeaders : {},
+    userId: auth?.userId ?? 'none',
+    rateLimitHeaders: rateLimitHeaders ?? {},
   });
 
   if (!auth) {

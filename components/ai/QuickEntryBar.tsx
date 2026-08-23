@@ -74,10 +74,10 @@ export function QuickEntryBar() {
 
         // Add original text and AI metadata
         queryParams.set('ai_text', trimmed);
-        queryParams.set('ai_provider', data.providerUsed || 'unknown');
-        queryParams.set('ai_model', data.modelUsed || 'unknown');
+        queryParams.set('ai_provider', data.providerUsed ?? 'unknown');
+        queryParams.set('ai_model', data.modelUsed ?? 'unknown');
         if (data.isPaidFallback) {
-          queryParams.set('ai_cost', String(data.costUsd || 0));
+          queryParams.set('ai_cost', String(data.costUsd ?? 0));
         }
 
         // Redirect to /new with parsed data
@@ -89,11 +89,11 @@ export function QuickEntryBar() {
           requiresConfirmation: true,
           fallbackModel: data.fallbackModel,
           estimatedCost: data.estimatedCost,
-          freeProviderErrors: data.freeProviderErrors || [],
+          freeProviderErrors: data.freeProviderErrors ?? [],
         });
       } else {
         setStatus('error');
-        setMessage(data.error || 'Error al procesar.');
+        setMessage(data.error ?? 'Error al procesar.');
         setTimeout(() => setStatus('idle'), 4000);
       }
     } catch (error) {
@@ -134,15 +134,15 @@ export function QuickEntryBar() {
         });
 
         queryParams.set('ai_text', text.trim());
-        queryParams.set('ai_provider', data.providerUsed || 'opencode');
-        queryParams.set('ai_model', data.modelUsed || 'kimi-k2.5');
-        queryParams.set('ai_cost', String(data.costUsd || 0));
+        queryParams.set('ai_provider', data.providerUsed ?? 'opencode');
+        queryParams.set('ai_model', data.modelUsed ?? 'kimi-k2.5');
+        queryParams.set('ai_cost', String(data.costUsd ?? 0));
         queryParams.set('ai_paid', 'true');
 
         router.push(`/new?${queryParams.toString()}`);
       } else {
         setStatus('error');
-        setMessage(data.error || 'Error al procesar con modelo de pago.');
+        setMessage(data.error ?? 'Error al procesar con modelo de pago.');
         setTimeout(() => setStatus('idle'), 4000);
       }
     } catch (error) {
@@ -166,8 +166,8 @@ export function QuickEntryBar() {
         onClose={handleDeclinePaidFallback}
         onConfirm={handleConfirmPaidFallback}
         onDecline={handleDeclinePaidFallback}
-        estimatedCost={fallbackError?.estimatedCost || '$0.001 - $0.005'}
-        modelName={fallbackError?.fallbackModel || 'Kimi K2.5'}
+        estimatedCost={fallbackError?.estimatedCost ?? '$0.001 - $0.005'}
+        modelName={fallbackError?.fallbackModel ?? 'Kimi K2.5'}
       />
 
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">

@@ -3,6 +3,7 @@
  */
 
 import { createClient } from '@vercel/postgres';
+import type { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
 import { POST } from '@/app/api/v1/entries/route';
@@ -77,9 +78,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(401);
@@ -105,9 +104,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
 
       expect(response.status).toBe(429);
       expect(mockSql).not.toHaveBeenCalled();
@@ -121,9 +118,7 @@ describe('POST /api/v1/entries', () => {
         // missing fecha, accion, que, plataforma_pago, cantidad
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(422);
@@ -141,9 +136,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(422);
@@ -162,9 +155,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: -100,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(422);
@@ -186,9 +177,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(422);
@@ -204,9 +193,7 @@ describe('POST /api/v1/entries', () => {
         body: 'not valid json',
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(400);
@@ -242,9 +229,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 2500.5,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -315,9 +300,7 @@ describe('POST /api/v1/entries', () => {
         ],
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -358,9 +341,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 50.06,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -397,9 +378,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 2500.5,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -435,7 +414,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      await POST(request as unknown as import('next/server').NextRequest);
+      await POST(request as unknown as NextRequest);
 
       expect(mockSql.mock.calls[0]).toContain('Yo');
     });
@@ -468,9 +447,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 45,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -509,9 +486,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 45,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -548,9 +523,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 45,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(201);
@@ -572,7 +545,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      await POST(request as unknown as import('next/server').NextRequest);
+      await POST(request as unknown as NextRequest);
 
       expect(mockSql.mock.calls[0]).toContain('user-123');
     });
@@ -603,9 +576,7 @@ describe('POST /api/v1/entries', () => {
         ],
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
 
       expect(response.status).toBe(500);
       expect(mockQuery).toHaveBeenCalledWith('ROLLBACK');
@@ -625,9 +596,7 @@ describe('POST /api/v1/entries', () => {
         cantidad: 1000,
       });
 
-      const response = await POST(
-        request as unknown as import('next/server').NextRequest,
-      );
+      const response = await POST(request as unknown as NextRequest);
       const json = await response.json();
 
       expect(response.status).toBe(500);

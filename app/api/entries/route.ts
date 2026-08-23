@@ -7,16 +7,18 @@ import { getEntries } from '@/lib/actions';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search') || '';
-  const accion = searchParams.get('accion') || '';
-  const from = searchParams.get('from') || '';
-  const to = searchParams.get('to') || '';
+  const search = searchParams.get('search') ?? '';
+  const accion = searchParams.get('accion') ?? '';
+  const from = searchParams.get('from') ?? '';
+  const to = searchParams.get('to') ?? '';
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty param must fall back to '1'; '' would make parseInt yield NaN
   const page = parseInt(searchParams.get('page') || '1');
   const itemsPerPage = parseInt(
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty param must fall back to default; '' would make parseInt yield NaN
     searchParams.get('itemsPerPage') || ITEMS_PER_PAGE.toString(),
   );
-  const sortBy = searchParams.get('sortBy') || '';
-  const sortOrder = searchParams.get('sortOrder') || '';
+  const sortBy = searchParams.get('sortBy') ?? '';
+  const sortOrder = searchParams.get('sortOrder') ?? '';
 
   const session = await getServerSession(authOptions);
 

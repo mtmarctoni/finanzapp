@@ -102,7 +102,7 @@ export function AnalyticsFilter({
     <div className="flex flex-wrap gap-2 items-end mb-4">
       <Input
         placeholder="Buscar..."
-        value={value.search || ''}
+        value={value.search ?? ''}
         onChange={(e) => onChange({ ...value, search: e.target.value })}
         className="w-40"
       />
@@ -110,7 +110,7 @@ export function AnalyticsFilter({
         value={
           Array.isArray(value.actions)
             ? value.actions[0] || ''
-            : value.actions || ''
+            : (value.actions ?? '')
         }
         onValueChange={(action) => onChange({ ...value, actions: action })}
       >
@@ -126,7 +126,7 @@ export function AnalyticsFilter({
         </SelectContent>
       </Select>
       {/* Tipo (general) comes first */}
-      <Select value={selectedTipo || ''} onValueChange={handleTipoChange}>
+      <Select value={selectedTipo ?? ''} onValueChange={handleTipoChange}>
         <SelectTrigger className="w-40">
           <SelectValue placeholder="Tipo (general)" />
         </SelectTrigger>
@@ -145,7 +145,7 @@ export function AnalyticsFilter({
         value={
           Array.isArray(value.categories)
             ? value.categories[0] || ''
-            : value.categories || ''
+            : (value.categories ?? '')
         }
         onValueChange={handleQueChange}
       >
@@ -170,7 +170,7 @@ export function AnalyticsFilter({
         value={
           Array.isArray(value.platforms)
             ? value.platforms[0] || ''
-            : value.platforms || ''
+            : (value.platforms ?? '')
         }
         onValueChange={(platform) =>
           onChange({ ...value, platforms: platform })
@@ -268,7 +268,7 @@ export function AnalyticsFilter({
         ))}
       </div>
       <Select
-        value={value.groupBy || 'month'}
+        value={value.groupBy ?? 'month'}
         onValueChange={(groupBy) =>
           onChange({ ...value, groupBy: groupBy as 'month' | 'year' })
         }

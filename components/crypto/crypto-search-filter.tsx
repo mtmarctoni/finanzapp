@@ -19,15 +19,16 @@ export function CryptoSearchFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [transactionType, setTransactionType] = useState(
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty URL param must fall back to 'all'
     searchParams.get('transactionType') || 'all',
   );
   const [cryptoSymbol, setCryptoSymbol] = useState(
-    searchParams.get('cryptoSymbol') || '',
+    searchParams.get('cryptoSymbol') ?? '',
   );
-  const [from, setFrom] = useState(searchParams.get('from') || '');
-  const [to, setTo] = useState(searchParams.get('to') || '');
+  const [from, setFrom] = useState(searchParams.get('from') ?? '');
+  const [to, setTo] = useState(searchParams.get('to') ?? '');
 
   const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<

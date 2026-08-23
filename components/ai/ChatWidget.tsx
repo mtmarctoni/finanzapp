@@ -10,6 +10,7 @@ import { ChatMessage } from './ChatMessage';
 import { PaidFallbackDialog } from './PaidFallbackDialog';
 
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 
 interface FallbackError {
   requiresConfirmation: boolean;
@@ -101,8 +102,12 @@ export function ChatWidget() {
             queueMicrotask(() => {
               setFallbackError({
                 requiresConfirmation: true,
-                fallbackModel: errorData.fallbackModel || 'Kimi K2.5',
-                estimatedCost: errorData.estimatedCost || '$0.001 - $0.005',
+                fallbackModel:
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- untyped JSON.parse payload; empty string must still fall back to default
+                  errorData.fallbackModel || 'Kimi K2.5',
+                estimatedCost:
+                  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- untyped JSON.parse payload; empty string must still fall back to default
+                  errorData.estimatedCost || '$0.001 - $0.005',
                 freeProviderErrors: Array.isArray(errorData.freeProviderErrors)
                   ? errorData.freeProviderErrors
                   : [],
@@ -112,7 +117,7 @@ export function ChatWidget() {
         }
       } catch {
         // Not a JSON error or not a valid fallback error - ignore
-        console.log('Regular error:', error.message);
+        logger.info('Regular error:', error.message);
       }
     }
   }, [error]);
@@ -197,8 +202,8 @@ export function ChatWidget() {
         onClose={handleDeclinePaidFallback}
         onConfirm={handleConfirmPaidFallback}
         onDecline={handleDeclinePaidFallback}
-        estimatedCost={fallbackError?.estimatedCost || '$0.001 - $0.005'}
-        modelName={fallbackError?.fallbackModel || 'Kimi K2.5'}
+        estimatedCost={fallbackError?.estimatedCost ?? '$0.001 - $0.005'}
+        modelName={fallbackError?.fallbackModel ?? 'Kimi K2.5'}
       />
 
       {/* Floating trigger button */}

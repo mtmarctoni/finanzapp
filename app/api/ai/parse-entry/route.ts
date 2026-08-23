@@ -14,6 +14,7 @@ import {
 } from '@/lib/ai/fallback';
 import { PARSE_ENTRY_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ai/rate-limit';
+import { logger } from '@/lib/logger';
 
 const parsedEntrySchema = z.object({
   fecha: z.string().describe('Transaction date in ISO 8601 format'),
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log AI request start
-    console.log(`[Parse Entry Start] Request ${requestId}`, {
+    logger.info(`[Parse Entry Start] Request ${requestId}`, {
       userId,
       textLength: text.length,
       timestamp: new Date().toISOString(),
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
       providerUsed = freeResult.provider;
       modelUsed = freeResult.model;
 
-      console.log(
+      logger.info(
         `[Parse Entry] Free provider succeeded: ${providerUsed}/${modelUsed}`,
       );
     } else {
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
           providerUsed = PAID_FALLBACK.provider;
           modelUsed = PAID_FALLBACK.modelId;
 
-          console.log(
+          logger.info(
             `[Parse Entry] Paid fallback succeeded: ${providerUsed}/${modelUsed}, cost: $${costUsd.toFixed(6)}`,
           );
         } else {
@@ -305,8 +306,14 @@ export async function POST(request: NextRequest) {
           ${entry.que},
           ${entry.plataforma_pago},
           ${entry.cantidad},
-          ${entry.detalle1 || null},
-          ${entry.detalle2 || null},
+          ${
+            /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must be stored as NULL, not '' */
+            entry.detalle1 || null
+          },
+          ${
+            /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must be stored as NULL, not '' */
+            entry.detalle2 || null
+          },
           ${userId}
         )
       `;
@@ -314,7 +321,7 @@ export async function POST(request: NextRequest) {
 
     // Log successful request
     const duration = Date.now() - startTime;
-    console.log(`[Parse Entry Success] Request ${requestId} completed`, {
+    logger.info(`[Parse Entry Success] Request ${requestId} completed`, {
       userId,
       provider: providerUsed,
       model: modelUsed,

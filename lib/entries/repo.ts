@@ -249,9 +249,18 @@ export async function insertEntry(
         ${data.que},
         ${data.plataforma_pago},
         ${data.cantidad},
-        ${data.detalle1 || null},
-        ${data.detalle2 || null},
-        ${data.quien || 'Yo'},
+        ${
+          /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must be stored as NULL, not '' */
+          data.detalle1 || null
+        },
+        ${
+          /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must be stored as NULL, not '' */
+          data.detalle2 || null
+        },
+        ${
+          /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must fall back to 'Yo', not be stored as '' */
+          data.quien || 'Yo'
+        },
         ${userId}
       )
     `;
@@ -273,9 +282,18 @@ export async function updateEntryById(
              que             = ${data.que},
              plataforma_pago = ${data.plataforma_pago},
              cantidad        = ${data.cantidad},
-             detalle1        = ${data.detalle1 || null},
-             detalle2        = ${data.detalle2 || null},
-             quien           = ${data.quien || 'Yo'},
+             detalle1        = ${
+               /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must be stored as NULL, not '' */
+               data.detalle1 || null
+             },
+             detalle2        = ${
+               /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must be stored as NULL, not '' */
+               data.detalle2 || null
+             },
+             quien           = ${
+               /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must fall back to 'Yo', not be stored as '' */
+               data.quien || 'Yo'
+             },
              updated_at      = NOW()
        WHERE id = ${entryId}
          AND user_id = ${userId}

@@ -72,9 +72,10 @@ export function useCryptoData(
 
     try {
       const result = await getCryptoTransactions(filterOptions);
-      setTransactions(result.data || []);
-      setTotalItems(result.total || result.totalItems || 0);
-      setTotalPages(result.totalPages || 0);
+      setTransactions(result.data ?? []);
+      setTotalItems(result.total ?? result.totalItems ?? 0);
+      setTotalPages(result.totalPages ?? 0);
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- currentPage echoes user-supplied ?page= and may be 0/NaN; must normalize to 1
       setCurrentPage(result.currentPage || 1);
     } catch (err) {
       setError('Failed to fetch transactions');
@@ -128,12 +129,14 @@ export function useCryptoData(
   // Auto-fetch on mount and when filters change
   useEffect(() => {
     if (autoFetch) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing fetch-on-mount; restructuring is out of scope
       fetchTransactions();
     }
   }, [autoFetch, fetchTransactions]);
 
   // Fetch options on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing fetch-on-mount; restructuring is out of scope
     fetchOptions();
   }, [fetchOptions]);
 

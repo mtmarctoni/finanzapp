@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { normalizeCategory } from './categories';
 
+import { logger } from '@/lib/logger';
+
 /**
  * Valid values for accion field
  */
@@ -26,7 +28,7 @@ function autoCorrectFecha(dateString: string): string {
     // Date is stale: replace year with current year
     const corrected = new Date(inputDate);
     corrected.setFullYear(now.getFullYear());
-    console.log(
+    logger.info(
       `[API Validation] Auto-corrected year: ${dateString} -> ${corrected.toISOString()}`,
     );
     return corrected.toISOString();
@@ -80,7 +82,7 @@ function applyTimezoneShift(dateString: string): string {
   const shifted = localDate.toISOString();
 
   if (shifted !== dateString) {
-    console.log(
+    logger.info(
       `[API Validation] Timezone shift: ${dateString} -> ${shifted} (treated as local time)`,
     );
   }
@@ -99,7 +101,7 @@ function applyJoyntlandaSplit(data: {
 }): number {
   if (data.plataforma_pago.trim().toLowerCase() === 'joyntlanda') {
     const halved = Number((data.cantidad / 2).toFixed(2));
-    console.log(
+    logger.info(
       `[API Validation] Joyntlanda split: ${data.cantidad} -> ${halved} (50%)`,
     );
     return halved;
@@ -123,7 +125,7 @@ export const CreateEntrySchema = z
       .transform((val) => {
         const normalized = normalizeCategory(val);
         if (normalized !== val) {
-          console.log(
+          logger.info(
             `[API Validation] Normalized category: "${val}" -> "${normalized}"`,
           );
         }

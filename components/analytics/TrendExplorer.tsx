@@ -109,7 +109,7 @@ export function TrendExplorer({
 
   const chartOptions = getLineChartOptions();
 
-  const trendSlope = chartData?.trendSlope || 0;
+  const trendSlope = chartData?.trendSlope ?? 0;
   const trendDirection =
     trendSlope > 0.5 ? 'up' : trendSlope < -0.5 ? 'down' : 'flat';
 
@@ -144,7 +144,7 @@ export function TrendExplorer({
         .map((d) => ({
           category: d.category,
           total: Math.abs(Number(d.total)),
-          count: d.count || 0,
+          count: d.count ?? 0,
           action: d.action,
         }))
         .sort((a, b) => b.total - a.total)

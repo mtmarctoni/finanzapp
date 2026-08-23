@@ -111,6 +111,7 @@ const Carousel = React.forwardRef<
         return;
       }
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- vendored shadcn/ui pattern: publish initial embla select state to the parent Carousel
       onSelect(api);
       api.on('reInit', onSelect);
       api.on('select', onSelect);

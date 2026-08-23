@@ -114,7 +114,7 @@ export function SeasonalExplorer({
         yearCount: number;
       };
       existing.total += Math.abs(Number(item.total));
-      existing.count += item.count || 0;
+      existing.count += item.count ?? 0;
       existing.yearCount += 1;
     }
 

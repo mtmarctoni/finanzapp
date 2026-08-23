@@ -74,7 +74,8 @@ export function useAnalyticsData() {
   const [loading, setLoading] = useState(true);
 
   const initialFilters = useCallback(() => {
-    const search = searchParams.get('search') || '';
+    const search = searchParams.get('search') ?? '';
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty ?accion= param must still default to 'todos'
     const accion = searchParams.get('accion') || 'todos';
     const from = searchParams.get('from')
       ? new Date(searchParams.get('from') as string)
@@ -93,9 +94,9 @@ export function useAnalyticsData() {
       ? Number(searchParams.get('maxAmount'))
       : undefined;
     const groupBy: 'month' | 'year' =
-      (searchParams.get('groupBy') || 'month') === 'year' ? 'year' : 'month';
+      (searchParams.get('groupBy') ?? 'month') === 'year' ? 'year' : 'month';
     const useActivePeriods =
-      (searchParams.get('useActivePeriods') || 'false') === 'true';
+      (searchParams.get('useActivePeriods') ?? 'false') === 'true';
     return {
       search,
       accion,
@@ -115,6 +116,7 @@ export function useAnalyticsData() {
   const [filters, setFilters] = useState<Filters>(initialFilters());
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing filter-sync effect; restructuring is out of scope
     setFilters(initialFilters());
   }, [initialFilters]);
 
@@ -136,8 +138,8 @@ export function useAnalyticsData() {
         params.set('minAmount', String(filters.minAmount));
       if (typeof filters.maxAmount === 'number')
         params.set('maxAmount', String(filters.maxAmount));
-      params.set('groupBy', filters.groupBy || 'month');
-      params.set('useActivePeriods', String(filters.useActivePeriods || false));
+      params.set('groupBy', filters.groupBy ?? 'month');
+      params.set('useActivePeriods', String(filters.useActivePeriods ?? false));
       const response = await fetch(`/api/analytics?${params.toString()}`);
       if (!response.ok) throw new Error('Error fetching analytics data');
       const result = await response.json();
@@ -150,6 +152,7 @@ export function useAnalyticsData() {
   }, [filters]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing fetch-on-mount; restructuring is out of scope
     fetchData();
   }, [fetchData]);
 

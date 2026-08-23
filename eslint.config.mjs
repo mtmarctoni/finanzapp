@@ -78,4 +78,11 @@ export default defineConfig([
       'react/jsx-no-useless-fragment': 'error',
     },
   },
+  {
+    // Standalone CLI scripts and test bootstrap print to stdout by design.
+    files: ['scripts/**/*.ts', 'jest.setup.js'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ]);

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { logger } from '@/lib/logger';
 
 // Store user confirmations (in-memory, per-session)
 // In production, use Redis or a database for serverless environments
@@ -42,7 +43,7 @@ function evictOldestIfNeeded(): void {
 
   if (oldestKey) {
     confirmations.delete(oldestKey);
-    console.log(
+    logger.info(
       `[Confirmation Store] LRU eviction: removed ${oldestKey}, size: ${confirmations.size}`,
     );
   }
@@ -63,7 +64,7 @@ function cleanupExpired(): void {
   }
 
   if (cleaned > 0) {
-    console.log(
+    logger.info(
       `[Confirmation Store] Cleaned up ${cleaned} expired entries, size: ${confirmations.size}`,
     );
   }
@@ -140,9 +141,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (confirmed) {
-      console.log(`[Paid Fallback] User ${userId} confirmed paid model usage`);
+      logger.info(`[Paid Fallback] User ${userId} confirmed paid model usage`);
     } else {
-      console.log(`[Paid Fallback] User ${userId} declined paid model usage`);
+      logger.info(`[Paid Fallback] User ${userId} declined paid model usage`);
     }
 
     return NextResponse.json({

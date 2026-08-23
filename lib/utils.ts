@@ -63,7 +63,6 @@ export function shouldSplitTransaction(
   return (
     accion === 'Gasto' &&
     (plataforma_pago.toLowerCase() === 'joyntlanda' ||
-      detalle1?.toLowerCase().includes('joyntlanda') ||
-      false)
+      (detalle1?.toLowerCase().includes('joyntlanda') ?? false))
   );
 }

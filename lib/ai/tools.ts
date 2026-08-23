@@ -78,10 +78,12 @@ export function createFinanceEntryTool(userId: string) {
         validateIsoDate(input.fecha, 'fecha');
 
         return await withDbClient(async (client) => {
+          /* eslint-disable @typescript-eslint/prefer-nullish-coalescing -- tagged SQL template: empty-string AI input is intentionally stored as SQL NULL */
           await client.sql`
             INSERT INTO finance_entries (id, fecha, tipo, accion, que, plataforma_pago, cantidad, detalle1, detalle2, user_id)
             VALUES (${entryId}, ${input.fecha}::timestamptz, ${input.tipo}, ${input.accion}, ${input.que}, ${input.plataforma_pago}, ${input.cantidad}, ${input.detalle1 || null}, ${input.detalle2 || null}, ${userId})
           `;
+          /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
           return {
             success: true as const,

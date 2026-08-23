@@ -168,7 +168,7 @@ export async function getCryptoHoldings(): Promise<CryptoHoldingsSummary[]> {
     }
 
     const result = await response.json();
-    return result.data || [];
+    return result.data ?? [];
   } catch (error) {
     console.error('API Error:', error);
     return [];

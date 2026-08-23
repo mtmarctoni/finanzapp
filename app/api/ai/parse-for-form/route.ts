@@ -12,6 +12,7 @@ import {
 } from '@/lib/ai/fallback';
 import { PARSE_ENTRY_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ai/rate-limit';
+import { logger } from '@/lib/logger';
 
 const parsedEntrySchema = z.object({
   fecha: z
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log AI request start
-    console.log(`[Parse Form Start] Request ${requestId}`, {
+    logger.info(`[Parse Form Start] Request ${requestId}`, {
       userId,
       textLength: text.length,
       timestamp: new Date().toISOString(),
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest) {
       providerUsed = freeResult.provider;
       modelUsed = freeResult.model;
 
-      console.log(
+      logger.info(
         `[Parse Form] Free provider succeeded: ${providerUsed}/${modelUsed}`,
       );
     } else {
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
           providerUsed = PAID_FALLBACK.provider;
           modelUsed = PAID_FALLBACK.modelId;
 
-          console.log(
+          logger.info(
             `[Parse Form] Paid fallback succeeded: ${providerUsed}/${modelUsed}, cost: $${costUsd.toFixed(6)}`,
           );
         } else {
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
 
     // Log successful request
     const duration = Date.now() - startTime;
-    console.log(`[Parse Form Success] Request ${requestId} completed`, {
+    logger.info(`[Parse Form Success] Request ${requestId} completed`, {
       userId,
       provider: providerUsed,
       model: modelUsed,
@@ -286,8 +287,8 @@ export async function POST(request: NextRequest) {
           que: entry.que,
           plataforma_pago: entry.plataforma_pago,
           cantidad: entry.cantidad,
-          detalle1: entry.detalle1 || '',
-          detalle2: entry.detalle2 || '',
+          detalle1: entry.detalle1 ?? '',
+          detalle2: entry.detalle2 ?? '',
         },
         originalText: text,
         providerUsed,

@@ -17,6 +17,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty callbackUrl query param must fall back to '/'
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const { data: session } = useSession();
 

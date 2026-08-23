@@ -13,9 +13,7 @@ let pool: VercelPool | null = null;
  * connections are reused across requests.
  */
 export function getPool(): VercelPool {
-  if (!pool) {
-    pool = createPool();
-  }
+  pool ??= createPool();
   return pool;
 }
 

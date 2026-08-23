@@ -45,7 +45,7 @@ export default function AnalyticsPageContent() {
   const { data, filters, setFilters, loading } = useAnalyticsData();
   const temporalChartData = getTemporalChartData(
     data,
-    data.metrics?.groupBy || 'month',
+    data.metrics?.groupBy ?? 'month',
   );
   const categoryChartData = getCategoryChartData(data);
   const platformChartData = getPlatformChartData(data.platformData);
@@ -195,7 +195,7 @@ export default function AnalyticsPageContent() {
             datasets: [
               {
                 label: 'Neto',
-                data: (data.netTemporal || []).map((n) => n.net),
+                data: (data.netTemporal ?? []).map((n) => n.net),
                 borderColor: 'rgba(99, 102, 241, 1)',
                 backgroundColor: 'rgba(99, 102, 241, 0.2)',
               },
@@ -264,7 +264,7 @@ export default function AnalyticsPageContent() {
           typeTemporalData={data.typeTemporalData}
           tipoQueData={data.tipoQueData}
           types={typesWithTemporal}
-          groupBy={data.metrics?.groupBy || 'month'}
+          groupBy={data.metrics?.groupBy ?? 'month'}
           loading={loading}
           getCategoryTrendData={getCategoryTrendData}
           getTipoTrendData={getTipoTrendData}
