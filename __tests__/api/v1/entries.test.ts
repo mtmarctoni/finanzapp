@@ -3,7 +3,7 @@
  */
 
 import { createClient } from '@vercel/postgres';
-import type { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
 import { POST } from '@/app/api/v1/entries/route';
@@ -26,8 +26,8 @@ const mockedUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>;
 function mockRequest(
   body: unknown,
   headers: Record<string, string> = {},
-): Request {
-  return new Request('http://localhost:3000/api/v1/entries', {
+): NextRequest {
+  return new NextRequest('http://localhost:3000/api/v1/entries', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -187,13 +187,13 @@ describe('POST /api/v1/entries', () => {
     });
 
     it('returns 400 for invalid JSON body', async () => {
-      const request = new Request('http://localhost:3000/api/v1/entries', {
+      const request = new NextRequest('http://localhost:3000/api/v1/entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: 'not valid json',
       });
 
-      const response = await POST(request as unknown as NextRequest);
+      const response = await POST(request);
       const json = await response.json();
 
       expect(response.status).toBe(400);
