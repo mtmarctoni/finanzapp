@@ -5,9 +5,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 // Validate required environment variables at module load time
 function validateEnvVars() {
   const provider = (process.env.AI_PROVIDER ?? 'groq') as
-    | 'groq'
-    | 'openrouter'
-    | 'opencode';
+    'groq' | 'openrouter' | 'opencode';
 
   const errors: string[] = [];
 
