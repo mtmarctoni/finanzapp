@@ -35,6 +35,7 @@ import {
 } from '@/config';
 import { deleteEntry, deleteManyEntries } from '@/lib/actions';
 import { duplicateEntry, getFinanceEntries } from '@/lib/data';
+import { logger } from '@/lib/logger';
 import {
   formatCurrency,
   formatDate,
@@ -69,10 +70,12 @@ export default function FinanceTable({
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const search = searchParams?.search || '';
-  const accion = searchParams?.accion || DEFAULT_ACCION_FILTER;
-  const from = searchParams?.from || '';
-  const to = searchParams?.to || '';
+  const search = searchParams?.search ?? '';
+  const accion =
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty URL param must fall back to 'todos'
+    searchParams?.accion || DEFAULT_ACCION_FILTER;
+  const from = searchParams?.from ?? '';
+  const to = searchParams?.to ?? '';
   const { data: session } = useSession();
   const currentPage = Number(searchParams?.page) || 1;
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE;
@@ -100,7 +103,7 @@ export default function FinanceTable({
       DEFAULT_SORT_ORDER,
   );
   if (process.env.NODE_ENV !== 'production') {
-    console.log('FinanceTable received params:', {
+    logger.info('FinanceTable received params:', {
       search,
       accion,
       from,
@@ -113,7 +116,7 @@ export default function FinanceTable({
   useEffect(() => {
     const getEntries = async () => {
       if (process.env.NODE_ENV !== 'production') {
-        console.log('Fetching entries with params:', {
+        logger.info('Fetching entries with params:', {
           search,
           accion,
           from,
@@ -135,13 +138,12 @@ export default function FinanceTable({
         sortOrder,
       })) as PaginatedEntriesResponse;
       if (process.env.NODE_ENV !== 'production') {
-        console.log('Received entries:', result);
+        logger.info('Received entries:', result);
       }
       setEntries({
         data: result.data,
         totalItems: (result.totalItems ||
-          (result as { total?: number }).total ||
-          0) as number,
+          ((result as { total?: number }).total ?? 0)) as number,
         totalPages: result.totalPages,
         currentPage: result.currentPage,
       });
@@ -562,8 +564,8 @@ export default function FinanceTable({
                             setEntries({
                               data: result.data,
                               totalItems: (result.totalItems ||
-                                (result as { total?: number }).total ||
-                                0) as number,
+                                ((result as { total?: number }).total ??
+                                  0)) as number,
                               totalPages: result.totalPages,
                               currentPage: result.currentPage,
                             });

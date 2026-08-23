@@ -14,6 +14,7 @@ function NewEntryContent() {
   // Build parsedData object from query params if AI data exists
   const parsedData = hasAiData
     ? {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         fecha: searchParams.get('fecha') || undefined,
         hora: searchParams.get('hora')
           ? parseInt(searchParams.get('hora') ?? '', 10)
@@ -21,17 +22,26 @@ function NewEntryContent() {
         minuto: searchParams.get('minuto')
           ? parseInt(searchParams.get('minuto') ?? '', 10)
           : undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         tipo: searchParams.get('tipo') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         accion: searchParams.get('accion') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         que: searchParams.get('que') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         plataforma_pago: searchParams.get('plataforma_pago') || undefined,
         cantidad: searchParams.get('cantidad')
           ? parseFloat(searchParams.get('cantidad') ?? '')
           : undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         detalle1: searchParams.get('detalle1') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         detalle2: searchParams.get('detalle2') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         ai_text: searchParams.get('ai_text') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         ai_provider: searchParams.get('ai_provider') || undefined,
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty query params must normalize to undefined
         ai_model: searchParams.get('ai_model') || undefined,
         ai_cost: searchParams.get('ai_cost')
           ? parseFloat(searchParams.get('ai_cost') ?? '')

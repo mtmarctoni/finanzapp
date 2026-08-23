@@ -20,11 +20,11 @@ export async function GET(request: NextRequest) {
   const fromDate = searchParams.get('from');
   const toDate = searchParams.get('to');
   const groupBy =
-    (searchParams.get('groupBy') || 'month').toLowerCase() === 'year'
+    (searchParams.get('groupBy') ?? 'month').toLowerCase() === 'year'
       ? 'year'
       : 'month';
   const useActivePeriods =
-    (searchParams.get('useActivePeriods') || 'false').toLowerCase() === 'true';
+    (searchParams.get('useActivePeriods') ?? 'false').toLowerCase() === 'true';
   const minAmountParam = searchParams.get('minAmount');
   const maxAmountParam = searchParams.get('maxAmount');
   const minAmount = minAmountParam ? Number(minAmountParam) : undefined;
@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
     );
     const countsByAction = actionSums.rows.reduce(
       (acc, row) => {
-        acc[row.action as string] = Number(row.count || 0);
+        acc[row.action as string] = Number(row.count ?? 0);
         return acc;
       },
       {} as Record<string, number>,
@@ -347,15 +347,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- SUM() over cantidad could yield NaN; keep || to coerce NaN to 0
     const totalAmount = Number(overall.rows[0]?.total_amount || 0);
-    const entryCount = Number(overall.rows[0]?.entry_count || 0);
+    const entryCount = Number(overall.rows[0]?.entry_count ?? 0);
 
     const netByPeriod = new Map<string, number>();
     for (const row of temporalData.rows as unknown as TemporalRow[]) {
       const key = new Date(row.period).toISOString();
       const amt = Number(row.total || 0);
       const act: string = row.action;
-      const current = netByPeriod.get(key) || 0;
+      const current = netByPeriod.get(key) ?? 0;
       if (act === 'Ingreso') {
         netByPeriod.set(key, current + amt);
       } else {
@@ -378,8 +379,11 @@ export async function GET(request: NextRequest) {
       typeTemporalData: typeTemporalData.rows,
       categoryStats: categoryStats.rows,
       sums: {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
         gastos: Math.abs(sums['Gasto'] || 0),
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
         ingresos: Math.abs(sums['Ingreso'] || 0),
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
         inversion: Math.abs(sums['Inversión'] || 0),
       },
       metrics: {
@@ -391,16 +395,19 @@ export async function GET(request: NextRequest) {
         avgPerPeriodCount: periodCount > 0 ? entryCount / periodCount : 0,
         perAction: {
           Ingreso: {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
             amount: Math.abs(sums['Ingreso'] || 0),
-            count: countsByAction['Ingreso'] || 0,
+            count: countsByAction['Ingreso'] ?? 0,
           },
           Gasto: {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
             amount: Math.abs(sums['Gasto'] || 0),
-            count: countsByAction['Gasto'] || 0,
+            count: countsByAction['Gasto'] ?? 0,
           },
           Inversión: {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
             amount: Math.abs(sums['Inversión'] || 0),
-            count: countsByAction['Inversión'] || 0,
+            count: countsByAction['Inversión'] ?? 0,
           },
         },
         groupBy: truncUnit,

@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const { searchParams } = new URL(request.url);
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty month query param must fall through to undefined
     const month = searchParams.get('month') || undefined;
 
     const stats = await getSummaryStats(month, session, request);

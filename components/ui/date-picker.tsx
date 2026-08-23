@@ -49,7 +49,7 @@ export function DatePicker({
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          selected={selected || undefined}
+          selected={selected ?? undefined}
           onSelect={onSelect}
           initialFocus
           locale={es}

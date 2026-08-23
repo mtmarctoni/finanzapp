@@ -29,9 +29,12 @@ const ratelimitInstances = new Map<string, Ratelimit>();
 function getUpstash(): Redis | null {
   if (!upstashClient) {
     const url =
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an env var set to empty string must fall through to the next provider URL
       process.env.UPSTASH_REDIS_URL || process.env.KV_REST_API_URL || undefined;
     const token =
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an env var set to empty string must fall through to the next provider token
       process.env.UPSTASH_REDIS_TOKEN ||
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an env var set to empty string must fall through to the next provider token
       process.env.KV_REST_API_TOKEN ||
       undefined;
 
@@ -191,8 +194,11 @@ export function withRateLimit(
     context?: { params: Record<string, string> },
   ): Promise<Response> => {
     const identifier =
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty header value must fall through to the next identifier; rate-limit keys must stay identical
       request.headers.get('x-user-id') ||
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty header value must fall through to the next identifier; rate-limit keys must stay identical
       request.headers.get('x-forwarded-for') ||
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty header value must fall through to the next identifier; rate-limit keys must stay identical
       request.headers.get('x-real-ip') ||
       'anonymous';
 

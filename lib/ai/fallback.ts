@@ -3,6 +3,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
 
+import { logger } from '@/lib/logger';
+
 // Initialize all providers (some may be missing API keys, that's ok)
 const groq = process.env.GROQ_API_KEY
   ? createGroq({ apiKey: process.env.GROQ_API_KEY })
@@ -104,7 +106,7 @@ export function trackCost(
 
   costHistory.push(entry);
 
-  console.log(
+  logger.info(
     `[Cost Tracker] ${provider}/${model}: $${cost.toFixed(6)} (${inputTokens} in, ${outputTokens} out)`,
   );
 }
@@ -259,7 +261,7 @@ export async function raceFreeProviders<T>(
       const inputTokens = usage?.inputTokens ?? 0;
       const outputTokens = usage?.outputTokens ?? 0;
 
-      console.log(
+      logger.info(
         `[AI Provider] Éxito: ${config.name} en ${duration}ms (${inputTokens} in, ${outputTokens} out)`,
       );
 
@@ -269,7 +271,7 @@ export async function raceFreeProviders<T>(
         config.modelId,
         inputTokens,
         outputTokens,
-        options.endpoint || 'unknown',
+        options.endpoint ?? 'unknown',
       );
 
       return {
@@ -373,10 +375,10 @@ export async function executePaidFallback<T>(
       PAID_FALLBACK.modelId,
       inputTokens,
       outputTokens,
-      options.endpoint || 'unknown',
+      options.endpoint ?? 'unknown',
     );
 
-    console.log(
+    logger.info(
       `[AI Provider] Respaldo pago usado: ${PAID_FALLBACK.name} en ${duration}ms, costo: $${costUsd.toFixed(6)} (${inputTokens} in, ${outputTokens} out)`,
     );
 

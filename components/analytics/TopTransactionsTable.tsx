@@ -95,7 +95,7 @@ export function TopTransactionsTable({
                         })}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell text-sm text-muted-foreground max-w-[200px] truncate">
-                        {tx.detalle1 || tx.detalle2 || '—'}
+                        {tx.detalle1 ?? tx.detalle2 ?? '—'}
                       </TableCell>
                     </TableRow>
                   );

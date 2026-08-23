@@ -85,6 +85,7 @@ export function Combobox({
               {loading ? (
                 // Show skeleton items while loading
                 Array.from({ length: 5 }).map((_, index) => (
+                  // eslint-disable-next-line react/no-array-index-key -- static loading placeholders; identical items that never reorder
                   <CommandItem key={index} disabled>
                     <Skeleton className="h-4 w-4 mr-2" />
                     <Skeleton className="h-4 flex-1" />

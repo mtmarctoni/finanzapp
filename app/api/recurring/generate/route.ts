@@ -3,6 +3,7 @@
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { logger } from '@/lib/logger';
 import { generateFinanceEntries } from '@/lib/recurringActions';
 
 export async function POST(request: Request) {
@@ -13,11 +14,11 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
-    console.log('Starting generate request');
+    logger.info('Starting generate request');
 
     // Get the date from the request body or use today
     const { date } = await request.json();
-    console.log('Received date:', date);
+    logger.info('Received date:', date);
 
     if (!date) {
       throw new Error('No date provided');

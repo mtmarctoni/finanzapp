@@ -61,7 +61,7 @@ export function TipoExplorer({
   const chartData = getChartData(tipoQueData, selectedTipo);
   const chartOptions = getChartOptions();
 
-  const tipoTotal = chartData.total || 0;
+  const tipoTotal = chartData.total ?? 0;
 
   return (
     <Card className="col-span-1 lg:col-span-2">

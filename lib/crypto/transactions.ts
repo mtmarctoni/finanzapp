@@ -182,6 +182,9 @@ export async function insertTransaction(
   const now = new Date();
 
   return withClient(async (client) => {
+    /* eslint-disable @typescript-eslint/prefer-nullish-coalescing --
+     * falsy form fields must normalize to SQL NULL / 0 on insert; a
+     * next-line disable is impossible inside this tagged SQL template */
     const result = await client.sql`
       INSERT INTO crypto_transactions (
         id, record_id, transaction_type, crypto_symbol, amount,
@@ -208,8 +211,9 @@ export async function insertTransaction(
         ${now.toISOString()},
         ${now.toISOString()}
       )
-      RETURNING *
+        RETURNING *
     `;
+    /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
     return mapDbRowToTransaction(result.rows[0]);
   });
 }

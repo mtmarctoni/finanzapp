@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 
+import type { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import {
@@ -84,9 +85,7 @@ describe('api key routes', () => {
       body: JSON.stringify({ name: 'Zapier' }),
     });
 
-    const response = await createKey(
-      request as unknown as import('next/server').NextRequest,
-    );
+    const response = await createKey(request as unknown as NextRequest);
     const json = await response.json();
 
     expect(response.status).toBe(201);

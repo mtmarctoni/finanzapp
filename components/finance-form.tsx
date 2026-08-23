@@ -5,7 +5,7 @@ import { Wand2, DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useForm, type Resolver } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { createEntry, updateEntry } from '@/lib/actions';
 import type { Entry } from '@/lib/definitions';
+import { logger } from '@/lib/logger';
 import { shouldSplitTransaction } from '@/lib/utils';
 
 const formSchema = z.object({
@@ -102,7 +103,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
           setTipoOptions(data.tipo);
           setQueOptions(data.que);
           setPlataformaOptions(data.plataforma_pago);
-          setQuienOptions(data.quien || ['Yo']);
+          setQuienOptions(data.quien ?? ['Yo']);
         }
       } catch (error) {
         console.error('Failed to fetch options:', error);
@@ -136,8 +137,8 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
         )
           ? entry.cantidad * 2
           : entry.cantidad,
-        detalle1: entry.detalle1 || '',
-        detalle2: entry.detalle2 || '',
+        detalle1: entry.detalle1 ?? '',
+        detalle2: entry.detalle2 ?? '',
         quien: entry.quien || 'Yo',
       };
     }
@@ -145,17 +146,18 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
     if (parsedData) {
       // Use AI-parsed data
       return {
-        fecha: parsedData.fecha || now.toISOString().split('T')[0],
+        fecha: parsedData.fecha ?? now.toISOString().split('T')[0],
         hora: parsedData.hora ?? now.getHours(),
         minuto: parsedData.minuto ?? now.getMinutes(),
-        tipo: parsedData.tipo || '',
-        accion: parsedData.accion || '',
-        que: parsedData.que || '',
-        plataforma_pago: parsedData.plataforma_pago || '',
+        tipo: parsedData.tipo ?? '',
+        accion: parsedData.accion ?? '',
+        que: parsedData.que ?? '',
+        plataforma_pago: parsedData.plataforma_pago ?? '',
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- cantidad can be NaN (parseFloat of query params); || falls back to 0
         cantidad: parsedData.cantidad || 0,
-        detalle1: parsedData.detalle1 || '',
-        detalle2: parsedData.detalle2 || '',
-        quien: parsedData.quien || 'Yo',
+        detalle1: parsedData.detalle1 ?? '',
+        detalle2: parsedData.detalle2 ?? '',
+        quien: parsedData.quien ?? 'Yo',
       };
     }
 
@@ -185,23 +187,28 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
     if (parsedData && !entry) {
       const now = new Date();
       form.reset({
-        fecha: parsedData.fecha || now.toISOString().split('T')[0],
+        fecha: parsedData.fecha ?? now.toISOString().split('T')[0],
         hora: parsedData.hora ?? now.getHours(),
         minuto: parsedData.minuto ?? now.getMinutes(),
-        tipo: parsedData.tipo || '',
-        accion: parsedData.accion || '',
-        que: parsedData.que || '',
-        plataforma_pago: parsedData.plataforma_pago || '',
+        tipo: parsedData.tipo ?? '',
+        accion: parsedData.accion ?? '',
+        que: parsedData.que ?? '',
+        plataforma_pago: parsedData.plataforma_pago ?? '',
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- cantidad can be NaN (parseFloat of query params); || falls back to 0
         cantidad: parsedData.cantidad || 0,
-        detalle1: parsedData.detalle1 || '',
-        detalle2: parsedData.detalle2 || '',
-        quien: parsedData.quien || 'Yo',
+        detalle1: parsedData.detalle1 ?? '',
+        detalle2: parsedData.detalle2 ?? '',
+        quien: parsedData.quien ?? 'Yo',
       });
     }
   }, [parsedData, entry, form]);
 
-  const plataformaPago = form.watch('plataforma_pago');
-  const detalle1 = form.watch('detalle1');
+  const plataformaPago = useWatch({
+    control: form.control,
+    name: 'plataforma_pago',
+  });
+  const detalle1 = useWatch({ control: form.control, name: 'detalle1' });
+  const accion = useWatch({ control: form.control, name: 'accion' });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     // Combine date and time into a single ISO string
@@ -227,7 +234,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
       formattedValues.cantidad /= 2;
     }
 
-    console.log('FECHA:', formattedValues.fecha);
+    logger.info('FECHA:', formattedValues.fecha);
 
     if (!session?.user.id) {
       throw new Error('User not authenticated');
@@ -269,7 +276,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                   className="text-xs flex items-center gap-1"
                 >
                   <DollarSign className="h-3 w-3" />
-                  Cost: ${parsedData.ai_cost?.toFixed(4) || '0.0000'}
+                  Cost: ${parsedData.ai_cost?.toFixed(4) ?? '0.0000'}
                 </Badge>
               )}
             </div>
@@ -418,11 +425,7 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {shouldSplitTransaction(
-                        plataformaPago,
-                        detalle1,
-                        form.watch('accion'),
-                      )
+                      {shouldSplitTransaction(plataformaPago, detalle1, accion)
                         ? 'Total Amount'
                         : 'Cantidad'}
                     </FormLabel>

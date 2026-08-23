@@ -1,3 +1,11 @@
+import type {
+  CryptoHoldingsSummary,
+  CryptoTransaction,
+  CryptoWallet,
+  Entry,
+  SummaryStats,
+} from './finance';
+
 /**
  * Options for filtering and paginating finance entries
  */
@@ -39,7 +47,7 @@ export type GetCryptoTransactionsOptions = {
  * Response structure for paginated entries
  */
 export type PaginatedEntriesResponse = {
-  data: import('./finance').Entry[];
+  data: Entry[];
   totalItems: number;
   totalPages: number;
   currentPage: number;
@@ -48,18 +56,18 @@ export type PaginatedEntriesResponse = {
 /**
  * API response for summary statistics
  */
-export type SummaryStatsResponse = import('./finance').SummaryStats;
+export type SummaryStatsResponse = SummaryStats;
 
 /**
  * Response for duplicate entry request
  */
-export type DuplicateEntryResponse = import('./finance').Entry;
+export type DuplicateEntryResponse = Entry;
 
 /**
  * Response structure for paginated crypto transactions
  */
 export type PaginatedCryptoTransactionsResponse = {
-  data: import('./finance').CryptoTransaction[];
+  data: CryptoTransaction[];
   totalItems: number;
   totalPages: number;
   currentPage: number;
@@ -69,14 +77,14 @@ export type PaginatedCryptoTransactionsResponse = {
  * Response structure for crypto wallets list
  */
 export type CryptoWalletsResponse = {
-  data: import('./finance').CryptoWallet[];
+  data: CryptoWallet[];
 };
 
 /**
  * Response structure for crypto holdings summary
  */
 export type CryptoHoldingsResponse = {
-  data: import('./finance').CryptoHoldingsSummary[];
+  data: CryptoHoldingsSummary[];
 };
 
 /**

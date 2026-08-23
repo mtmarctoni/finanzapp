@@ -52,13 +52,12 @@ export function ApiKeyManager() {
   );
 
   const loadApiKeys = useCallback(async () => {
-    setLoading(true);
-
     try {
       const response = await fetch('/api/api-keys', { cache: 'no-store' });
       const payload = await response.json();
 
       if (!response.ok) {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- untyped API payload; empty error string must still fall back to default message
         throw new Error(payload.error || 'No se pudieron cargar las llaves');
       }
 
@@ -76,8 +75,17 @@ export function ApiKeyManager() {
   }, [toast]);
 
   useEffect(() => {
-    loadApiKeys();
+    // Defer past the synchronous effect body so state updates triggered by
+    // loadApiKeys do not cause cascading renders.
+    void Promise.resolve().then(() => {
+      void loadApiKeys();
+    });
   }, [loadApiKeys]);
+
+  const handleRefreshKeys = () => {
+    setLoading(true);
+    void loadApiKeys();
+  };
 
   const handleCreateKey = async () => {
     const trimmedName = newKeyName.trim();
@@ -106,6 +114,7 @@ export function ApiKeyManager() {
       const payload = await response.json();
 
       if (!response.ok) {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- untyped API payload; empty error string must still fall back to default message
         throw new Error(payload.error || 'No se pudo crear la llave');
       }
 
@@ -151,6 +160,7 @@ export function ApiKeyManager() {
       const payload = await response.json();
 
       if (!response.ok) {
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- untyped API payload; empty error string must still fall back to default message
         throw new Error(payload.error || 'No se pudo revocar la llave');
       }
 
@@ -218,7 +228,7 @@ export function ApiKeyManager() {
           <Button
             variant="outline"
             size="sm"
-            onClick={loadApiKeys}
+            onClick={handleRefreshKeys}
             disabled={loading}
           >
             <RefreshCw className="mr-2 h-4 w-4" />

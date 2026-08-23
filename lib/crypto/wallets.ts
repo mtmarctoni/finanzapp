@@ -24,6 +24,7 @@ export async function insertWallet(
   const now = new Date();
 
   return withClient(async (client) => {
+    /* eslint-disable @typescript-eslint/prefer-nullish-coalescing -- tagged SQL template: empty-string address/notes are intentionally stored as SQL NULL */
     const result = await client.sql`
       INSERT INTO crypto_wallets (
         id, user_id, name, wallet_type, address, notes,
@@ -41,6 +42,7 @@ export async function insertWallet(
       )
       RETURNING *
     `;
+    /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
     return mapDbRowToWallet(result.rows[0]);
   });
 }

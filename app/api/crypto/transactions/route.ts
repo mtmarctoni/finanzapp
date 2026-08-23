@@ -10,18 +10,20 @@ import {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const search = searchParams.get('search') || '';
-  const transactionType = searchParams.get('transactionType') || '';
-  const cryptoSymbol = searchParams.get('cryptoSymbol') || '';
-  const wallet = searchParams.get('wallet') || '';
-  const from = searchParams.get('from') || '';
-  const to = searchParams.get('to') || '';
+  const search = searchParams.get('search') ?? '';
+  const transactionType = searchParams.get('transactionType') ?? '';
+  const cryptoSymbol = searchParams.get('cryptoSymbol') ?? '';
+  const wallet = searchParams.get('wallet') ?? '';
+  const from = searchParams.get('from') ?? '';
+  const to = searchParams.get('to') ?? '';
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty search params must fall through to parseInt defaults
   const page = parseInt(searchParams.get('page') || '1');
   const itemsPerPage = parseInt(
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty search params must fall through to ITEMS_PER_PAGE
     searchParams.get('itemsPerPage') || ITEMS_PER_PAGE.toString(),
   );
-  const sortBy = searchParams.get('sortBy') || 'transaction_date';
-  const sortOrder = searchParams.get('sortOrder') || 'desc';
+  const sortBy = searchParams.get('sortBy') ?? 'transaction_date';
+  const sortOrder = searchParams.get('sortOrder') ?? 'desc';
 
   const session = await getServerSession(authOptions);
 

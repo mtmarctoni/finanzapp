@@ -6,7 +6,7 @@ import {
 } from '@/lib/data';
 import { type Entry } from '@/lib/definitions';
 
-const baseURL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const baseURL = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
 // Mock fetch globally
 global.fetch = jest.fn();

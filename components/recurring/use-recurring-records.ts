@@ -56,6 +56,7 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
   }, [toast]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing fetch-on-mount; restructuring is out of scope
     fetchRecurringRecords();
   }, [fetchRecurringRecords]);
 
@@ -183,7 +184,7 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
         if (!response.ok) {
           const errorData = (await response.json()) as GenerateError;
           throw new Error(
-            errorData.details || 'Failed to generate recurring records',
+            errorData.details ?? 'Failed to generate recurring records',
           );
         }
 

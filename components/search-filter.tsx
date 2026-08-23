@@ -51,18 +51,19 @@ export function SearchFilter({
 
   // Use a single state object for all filters
   const [filters, setFilters] = useState(() => ({
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty-string prop/URL values must fall through to the next source
     search: defaultValues?.search || searchParams.get('search') || '',
     accion:
-      defaultValues?.accion !== undefined
-        ? defaultValues.accion
-        : searchParams.get('accion') || 'todos',
+      defaultValues?.accion ??
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty URL param must fall back to 'todos'
+      (searchParams.get('accion') || 'todos'),
     fromDate:
-      defaultValues?.fromDate ||
+      defaultValues?.fromDate ??
       (searchParams.get('from')
         ? new Date(searchParams.get('from') as string)
         : undefined),
     toDate:
-      defaultValues?.toDate ||
+      defaultValues?.toDate ??
       (searchParams.get('to')
         ? new Date(searchParams.get('to') as string)
         : undefined),

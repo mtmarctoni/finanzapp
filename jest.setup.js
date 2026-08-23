@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 // Provide a dummy connection string so @vercel/postgres can be imported in tests.
 // The actual DB calls are mocked per-test; this just prevents the module from
 // throwing during import when no .env.local is present (e.g. on CI).
+// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an empty-string env var must also fall back to the dummy DSN
 if (!process.env.POSTGRES_URL) {
   process.env.POSTGRES_URL = 'postgresql://dummy:dummy@localhost:5432/dummy';
 }

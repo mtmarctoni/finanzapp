@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -143,7 +143,10 @@ export function CryptoTransactionForm({
         },
   });
 
-  const transactionType = form.watch('transactionType');
+  const transactionType = useWatch({
+    control: form.control,
+    name: 'transactionType',
+  });
   const showExchangeFields = transactionType === 'exchange';
   const showWalletFields = [
     'wallet_transfer',

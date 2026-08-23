@@ -61,10 +61,10 @@ export function CategoryTrendTracker({
   ).sort();
 
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    categories.find((c) =>
+    (categories.find((c) =>
       ['Fiesta', 'Gym', 'Comida', 'Viajes/ Transporte'].includes(c),
-    ) ||
-      categories[0] ||
+    ) ??
+      categories[0]) ||
       '',
   );
 
@@ -76,7 +76,7 @@ export function CategoryTrendTracker({
   const chartOptions = getChartOptions();
 
   // Determine trend direction
-  const trendSlope = chartData.trendSlope || 0;
+  const trendSlope = chartData.trendSlope ?? 0;
   const trendDirection =
     trendSlope > 0.5 ? 'up' : trendSlope < -0.5 ? 'down' : 'flat';
 

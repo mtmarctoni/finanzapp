@@ -96,12 +96,12 @@ export const OPENCODE_MODELS = {
 export function getModel(provider: typeof PROVIDER, modelId?: string) {
   switch (provider) {
     case 'groq':
-      return groq(modelId || MODELS.groq);
+      return groq(modelId ?? MODELS.groq);
     case 'openrouter':
-      return openrouter(modelId || MODELS.openrouter);
+      return openrouter(modelId ?? MODELS.openrouter);
     case 'opencode':
       // For Opencode, allow selecting specific models
-      const opencodeModelId = modelId || MODELS.opencode;
+      const opencodeModelId = modelId ?? MODELS.opencode;
       return opencode(opencodeModelId);
     default:
       throw new Error(`Unknown provider: ${provider}`);

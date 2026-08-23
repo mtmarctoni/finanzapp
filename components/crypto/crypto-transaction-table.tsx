@@ -84,11 +84,13 @@ export default function CryptoTransactionTable({
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const search = searchParams?.search || '';
-  const transactionType = searchParams?.transactionType || 'all';
-  const cryptoSymbol = searchParams?.cryptoSymbol || '';
-  const from = searchParams?.from || '';
-  const to = searchParams?.to || '';
+  const search = searchParams?.search ?? '';
+  const transactionType =
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty URL param must fall back to 'all'
+    searchParams?.transactionType || 'all';
+  const cryptoSymbol = searchParams?.cryptoSymbol ?? '';
+  const from = searchParams?.from ?? '';
+  const to = searchParams?.to ?? '';
   const { data: session } = useSession();
   const currentPage = Number(searchParams?.page) || 1;
   const itemsPerPage = Number(searchParams?.itemsPerPage) || ITEMS_PER_PAGE;
@@ -390,16 +392,16 @@ export default function CryptoTransactionTable({
                           →{' '}
                           {formatCryptoAmount(
                             transaction.toAmount,
-                            transaction.toCryptoSymbol || '',
+                            transaction.toCryptoSymbol ?? '',
                           )}
                         </div>
                       )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {transaction.fromWallet || '-'}
+                    {transaction.fromWallet ?? '-'}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {transaction.toWallet || '-'}
+                    {transaction.toWallet ?? '-'}
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     {transaction.priceAtTransaction

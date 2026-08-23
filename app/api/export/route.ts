@@ -16,10 +16,10 @@ export async function GET(request: Request) {
     }
     const userId = session.user.id;
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
-    const tipo = searchParams.get('tipo') || '';
-    const from = searchParams.get('from') || '';
-    const to = searchParams.get('to') || '';
+    const search = searchParams.get('search') ?? '';
+    const tipo = searchParams.get('tipo') ?? '';
+    const from = searchParams.get('from') ?? '';
+    const to = searchParams.get('to') ?? '';
 
     // Get entries with filters from actions
     const entries = await getExportEntries({ search, tipo, from, to }, userId);
@@ -32,8 +32,9 @@ export async function GET(request: Request) {
       Qué: entry.que,
       'Plataforma pago': entry.plataforma_pago,
       Cantidad: entry.cantidad,
-      Detalle1: entry.detalle1 || '',
-      Detalle2: entry.detalle2 || '',
+      Detalle1: entry.detalle1 ?? '',
+      Detalle2: entry.detalle2 ?? '',
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty-string quien in DB must still fall back to 'Yo' in the export
       Quién: entry.quien || 'Yo',
     }));
 

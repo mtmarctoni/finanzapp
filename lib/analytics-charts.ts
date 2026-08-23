@@ -244,7 +244,8 @@ export function getTemporalChartOptions(
       tooltip: {
         callbacks: {
           label: (context) => {
-            const label = context.dataset.label || '';
+            const label = context.dataset.label ?? '';
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             const periodIso = sortedPeriods[context.dataIndex];
             const match = temporalData.find(
@@ -275,6 +276,7 @@ export function getLineChartOptions(): ChartOptions<'line'> {
       tooltip: {
         callbacks: {
           label: (context) =>
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             `${context.dataset.label}: ${formatEuro(Number(context.raw || 0))}`,
         },
       },
@@ -296,7 +298,7 @@ export function getDoughnutChartOptions(
   const countsByCategory = categoryData.reduce<Record<string, number>>(
     (acc, current) => {
       acc[current.category] =
-        (acc[current.category] || 0) + (current.count || 0);
+        (acc[current.category] || 0) + (current.count ?? 0);
       return acc;
     },
     {},
@@ -316,6 +318,7 @@ export function getDoughnutChartOptions(
         callbacks: {
           label: (context) => {
             const label = context.label || '';
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             const chartValues = context.dataset.data as number[];
             const total = chartValues.reduce(
@@ -340,7 +343,7 @@ export function getPlatformChartData(platformData: PlatformDatum[]) {
   >((acc, item) => {
     if (!(item.platform in acc)) acc[item.platform] = { total: 0, count: 0 };
     acc[item.platform].total += Math.abs(Number(item.total));
-    acc[item.platform].count += Number(item.count || 0);
+    acc[item.platform].count += Number(item.count ?? 0);
     return acc;
   }, {});
 
@@ -388,6 +391,7 @@ export function getPlatformChartOptions(): ChartOptions<'bar'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -411,7 +415,7 @@ export function getTypeChartData(typeData: TypeDatum[]) {
   >((acc, item) => {
     if (!(item.type in acc)) acc[item.type] = { total: 0, count: 0 };
     acc[item.type].total += Math.abs(Number(item.total));
-    acc[item.type].count += Number(item.count || 0);
+    acc[item.type].count += Number(item.count ?? 0);
     return acc;
   }, {});
 
@@ -460,6 +464,7 @@ export function getTypeChartOptions(): ChartOptions<'bar'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -489,7 +494,7 @@ export function getCategoryPlatformBreakdown(
     .map((item) => ({
       platform: item.platform,
       total: Math.abs(Number(item.total)),
-      count: Number(item.count || 0),
+      count: Number(item.count ?? 0),
     }))
     .sort((a, b) => b.total - a.total);
 
@@ -531,6 +536,7 @@ export function getCategoryPlatformChartOptions(): ChartOptions<'bar'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -560,7 +566,7 @@ export function getTipoQueBreakdown(
     .map((item) => ({
       category: item.category,
       total: Math.abs(Number(item.total)),
-      count: Number(item.count || 0),
+      count: Number(item.count ?? 0),
       action: item.action,
     }))
     .sort((a, b) => b.total - a.total);
@@ -605,6 +611,7 @@ export function getTipoQueChartOptions(): ChartOptions<'bar'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -654,7 +661,7 @@ export function getCategoryTrendData(
   const counts = periods.map((period) => {
     return filtered
       .filter((d) => d.period === period)
-      .reduce((sum, d) => sum + (d.count || 0), 0);
+      .reduce((sum, d) => sum + (d.count ?? 0), 0);
   });
 
   // Simple linear regression on gastos to show trend
@@ -724,6 +731,7 @@ export function getCategoryTrendChartOptions(): ChartOptions<'line'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -776,7 +784,9 @@ export function computeSpendingVelocity(
     const periods = Array.from(periodMap.keys()).sort();
     if (periods.length < 2) continue;
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces potential NaN to 0
     const current = periodMap.get(periods[periods.length - 1]) || 0;
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces potential NaN to 0
     const previous = periodMap.get(periods[periods.length - 2]) || 0;
 
     const change = current - previous;
@@ -848,7 +858,7 @@ export function getSeasonalPatterns(
       yearCount: number;
     };
     existing.total += Math.abs(Number(item.total));
-    existing.count += item.count || 0;
+    existing.count += item.count ?? 0;
     existing.yearCount += 1;
   }
 
@@ -890,6 +900,7 @@ export function getSeasonalChartOptions(): ChartOptions<'bar'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -919,7 +930,7 @@ export function getTipoExplorerData(
     .map((item) => ({
       category: item.category,
       total: Math.abs(Number(item.total)),
-      count: Number(item.count || 0),
+      count: Number(item.count ?? 0),
       action: item.action,
     }))
     .sort((a, b) => b.total - a.total);
@@ -967,6 +978,7 @@ export function getTipoExplorerChartOptions(): ChartOptions<'bar'> {
       tooltip: {
         callbacks: {
           label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
             const value = Number(context.raw || 0);
             return `${context.dataset.label}: ${formatEuro(value)}`;
           },
@@ -1016,7 +1028,7 @@ export function getTipoTrendData(
   const counts = periods.map((period) => {
     return filtered
       .filter((d) => d.period === period)
-      .reduce((sum, d) => sum + (d.count || 0), 0);
+      .reduce((sum, d) => sum + (d.count ?? 0), 0);
   });
 
   const n = gastos.length;
@@ -1096,7 +1108,9 @@ export function computeTipoSpendingVelocity(
     const periods = Array.from(periodMap.keys()).sort();
     if (periods.length < 2) continue;
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces potential NaN to 0
     const current = periodMap.get(periods[periods.length - 1]) || 0;
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces potential NaN to 0
     const previous = periodMap.get(periods[periods.length - 2]) || 0;
 
     const change = current - previous;
@@ -1160,7 +1174,7 @@ export function getTipoSeasonalPatterns(
       yearCount: number;
     };
     existing.total += Math.abs(Number(item.total));
-    existing.count += item.count || 0;
+    existing.count += item.count ?? 0;
     existing.yearCount += 1;
   }
 
