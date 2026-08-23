@@ -5,9 +5,28 @@ function sanitizeLogString(value: string): string {
   return value.replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
-function sanitizeLogArg(arg: unknown): unknown {
+function toSafeLogString(arg: unknown): string {
   if (typeof arg === 'string') {
     return sanitizeLogString(arg);
+  }
+
+  if (
+    typeof arg === 'number' ||
+    typeof arg === 'boolean' ||
+    typeof arg === 'bigint' ||
+    typeof arg === 'symbol'
+  ) {
+    return sanitizeLogString(String(arg));
+  }
+
+  if (arg instanceof Error) {
+    return sanitizeLogString(
+      JSON.stringify({
+        name: arg.name,
+        message: arg.message,
+        stack: arg.stack,
+      }),
+    );
   }
 
   if (arg && typeof arg === 'object') {
@@ -18,11 +37,11 @@ function sanitizeLogArg(arg: unknown): unknown {
     }
   }
 
-  return arg;
+  return sanitizeLogString(String(arg));
 }
 
 function write(level: LogLevel, ...args: unknown[]): void {
-  const sanitizedArgs = args.map(sanitizeLogArg);
+  const sanitizedArgs = args.map(toSafeLogString);
 
   if (level === 'warn') {
     console.warn(...sanitizedArgs);

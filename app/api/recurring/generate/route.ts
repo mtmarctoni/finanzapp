@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Detailed error:', {
+    logger.error('Detailed error:', {
       error,
       message: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
