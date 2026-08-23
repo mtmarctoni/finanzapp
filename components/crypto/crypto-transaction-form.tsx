@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -13,6 +13,7 @@ import { Combobox } from '@/components/ui/combobox';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,9 +29,15 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  evaluatePriceSanity,
+  impliedTotalEur,
+  unitPriceFromTotal,
+} from '@/lib/crypto/price-input';
+import {
   createCryptoTransaction,
   updateCryptoTransaction,
   getCryptoOptions,
+  getCryptoMarketPrices,
 } from '@/lib/crypto-data';
 import type { CryptoTransaction, CryptoTransactionType } from '@/types/finance';
 
@@ -147,6 +154,19 @@ export function CryptoTransactionForm({
     control: form.control,
     name: 'transactionType',
   });
+  const cryptoSymbol = useWatch({
+    control: form.control,
+    name: 'cryptoSymbol',
+  });
+  const amountValue = useWatch({ control: form.control, name: 'amount' });
+  const priceValue = useWatch({
+    control: form.control,
+    name: 'priceAtTransaction',
+  });
+  const dateValue = useWatch({
+    control: form.control,
+    name: 'transactionDate',
+  });
   const showExchangeFields = transactionType === 'exchange';
   const showWalletFields = [
     'wallet_transfer',
@@ -158,6 +178,66 @@ export function CryptoTransactionForm({
   const showPriceField = ['deposit', 'withdrawal', 'genesis'].includes(
     transactionType,
   );
+
+  const [marketPriceEur, setMarketPriceEur] = useState<number | null>(null);
+  const [totalDraft, setTotalDraft] = useState('');
+  const [isTotalFocused, setIsTotalFocused] = useState(false);
+
+  useEffect(() => {
+    if (!showPriceField || !cryptoSymbol) return;
+    let cancelled = false;
+    getCryptoMarketPrices([cryptoSymbol])
+      .catch(() => [])
+      .then((prices) => {
+        if (cancelled) return;
+        const match = prices.find(
+          (p) => p.symbol.toUpperCase() === cryptoSymbol.toUpperCase(),
+        );
+        setMarketPriceEur(match?.priceKnown ? (match.priceEur ?? null) : null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cryptoSymbol, showPriceField]);
+
+  function handleTotalChange(raw: string) {
+    setTotalDraft(raw);
+    const parsed = parseFloat(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const amt = Number(amountValue);
+    if (!Number.isFinite(amt) || amt <= 0) return;
+    const unit = unitPriceFromTotal(parsed, amt);
+    if (unit !== null) {
+      form.setValue('priceAtTransaction', Math.round(unit * 1e8) / 1e8, {
+        shouldValidate: true,
+      });
+    }
+  }
+
+  const priceSanity = useMemo(
+    () =>
+      evaluatePriceSanity({
+        symbol: cryptoSymbol,
+        unitPrice: priceValue,
+        marketPriceEur,
+        transactionDate: dateValue,
+      }),
+    [cryptoSymbol, priceValue, marketPriceEur, dateValue],
+  );
+
+  const impliedTotal = impliedTotalEur(Number(priceValue), Number(amountValue));
+  const shownTotal = isTotalFocused
+    ? totalDraft
+    : impliedTotal !== null
+      ? String(Number(impliedTotal.toFixed(2)))
+      : '';
+
+  function formatEur(value: number, maximumFractionDigits = 2): string {
+    return value.toLocaleString('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits,
+    });
+  }
 
   async function onSubmit(values: CryptoFormValues) {
     if (!session?.user.id) {
@@ -280,33 +360,85 @@ export function CryptoTransactionForm({
                 )}
               />
 
-              {/* Price at Transaction (for deposits/withdrawals) */}
+              {/* Price at Transaction (for deposits/withdrawals/genesis) */}
               {showPriceField && (
-                <FormField
-                  control={form.control}
-                  name="priceAtTransaction"
-                  render={({ field }) => (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="priceAtTransaction"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Precio por unidad (EUR)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value
+                                    ? parseFloat(e.target.value)
+                                    : null,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {impliedTotal !== null && (
+                              <>≈ Total: €{formatEur(impliedTotal)}. </>
+                            )}
+                            {marketPriceEur !== null &&
+                              cryptoSymbol &&
+                              `Mercado hoy: €${formatEur(marketPriceEur, 6)}/${cryptoSymbol}`}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormItem>
-                      <FormLabel>Precio (EUR)</FormLabel>
+                      <FormLabel>Total (EUR)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
-                          {...field}
-                          value={field.value ?? ''}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value
-                                ? parseFloat(e.target.value)
-                                : null,
-                            )
+                          value={shownTotal}
+                          onChange={(e) => handleTotalChange(e.target.value)}
+                          onFocus={() => setIsTotalFocused(true)}
+                          onBlur={() => setIsTotalFocused(false)}
+                          placeholder={
+                            Number(amountValue) > 0
+                              ? 'Introduce el total y derivamos el precio'
+                              : 'Introduce primero la cantidad'
                           }
+                          disabled={!Number(amountValue)}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormDescription>
+                        Lo que pagaste en total; calcula el precio por unidad.
+                      </FormDescription>
                     </FormItem>
+                  </div>
+
+                  {marketPriceEur !== null && priceSanity.level !== 'ok' && (
+                    <p
+                      className={
+                        priceSanity.level === 'warn'
+                          ? 'md:col-span-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400'
+                          : 'md:col-span-2 text-sm text-muted-foreground'
+                      }
+                    >
+                      {priceSanity.reason === 'stablecoin' &&
+                        `${cryptoSymbol} es una stablecoin y debería cotizar cerca de su paridad (mercado actual: €${formatEur(marketPriceEur, 4)}). El precio introducido difiere un ${priceSanity.deviationPercent}%: comprueba que no hayas escrito el total pagado en lugar del precio por unidad.`}
+                      {priceSanity.reason === 'recent-deviation' &&
+                        `El precio difiere un ${priceSanity.deviationPercent}% del mercado actual (€${formatEur(marketPriceEur, 6)}/${cryptoSymbol}). Si pagaste un total fijo en euros, introdúcelo en el campo Total y se calculará el precio por unidad.`}
+                      {priceSanity.reason === 'historical-deviation' &&
+                        `El precio difiere un ${priceSanity.deviationPercent}% del mercado actual (€${formatEur(marketPriceEur, 6)}/${cryptoSymbol}). Puede ser correcto si la compra es antigua, pero revísalo.`}
+                    </p>
                   )}
-                />
+                </>
               )}
 
               {/* Exchange Fields */}
