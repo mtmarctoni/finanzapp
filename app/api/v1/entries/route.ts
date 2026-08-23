@@ -68,7 +68,9 @@ export async function POST(request: NextRequest) {
     hasAuthorization: headerKeys.some((key) =>
       key.toLowerCase().includes('authorization'),
     ),
-    hasApiKey: headerKeys.some((key) => key.toLowerCase().includes('x-api-key')),
+    hasApiKey: headerKeys.some((key) =>
+      key.toLowerCase().includes('x-api-key'),
+    ),
   });
 
   const { auth, rateLimitHeaders, rateLimitResponse } =
@@ -101,14 +103,12 @@ export async function POST(request: NextRequest) {
     body = await request.json();
     const isObjectBody = typeof body === 'object' && body !== null;
     const entriesCount =
-      isObjectBody &&
-      'entries' in body &&
-      Array.isArray((body as { entries?: unknown }).entries)
+      isObjectBody && Array.isArray((body as { entries?: unknown }).entries)
         ? (body as { entries: unknown[] }).entries.length
         : undefined;
     devLog(`[${timestamp}] 📦 Body metadata #${requestId}:`, {
       type: Array.isArray(body) ? 'array' : typeof body,
-      isBatch: isObjectBody && 'entries' in body,
+      isBatch: typeof body === 'object' && body !== null && 'entries' in body,
       entriesCount,
     });
   } catch {
