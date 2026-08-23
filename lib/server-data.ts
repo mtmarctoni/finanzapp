@@ -187,6 +187,13 @@ export async function getSummaryStats(
         total: 0,
         categories: [],
         averageMonthly: 0,
+        hasMore: false,
+      },
+      incomeBreakdown: {
+        total: 0,
+        categories: [],
+        averageMonthly: 0,
+        hasMore: false,
       },
     };
   }

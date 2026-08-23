@@ -256,7 +256,13 @@ export function getTotalByPeriodTool(userId: string) {
             GROUP BY accion
           `;
 
-          const totals: Record<string, { total: number; count: number }> = {};
+          // Seed zero defaults so categories with no rows in the date
+          // range resolve to 0 instead of crashing on a missing key.
+          const totals: Record<string, { total: number; count: number }> = {
+            Ingreso: { total: 0, count: 0 },
+            Gasto: { total: 0, count: 0 },
+            Inversión: { total: 0, count: 0 },
+          };
           for (const row of result.rows) {
             totals[row.accion] = {
               total: Number(row.total),
