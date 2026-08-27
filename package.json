@@ -109,10 +109,10 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
+    "@types/react-dom": "19.2.5",
     "@types/uuid": "^9.0.7",
     "eslint": "9.23.0",
-    "eslint-config-next": "16.3.1",
+    "eslint-config-next": "16.3.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4.17.1",
     "jest": "^29.7.0",
@@ -127,6 +127,6 @@
   },
   "overrides": {
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4"
+    "@types/react-dom": "19.2.5"
   }
 }
