@@ -59,9 +59,9 @@ export function impliedTotalEur(
   return unitPrice * amount;
 }
 
-export type PriceSanityLevel = 'ok' | 'info' | 'warn';
+type PriceSanityLevel = 'ok' | 'info' | 'warn';
 
-export type PriceSanityReason =
+type PriceSanityReason =
   'stablecoin' | 'recent-deviation' | 'historical-deviation' | null;
 
 export interface PriceSanityInput {
