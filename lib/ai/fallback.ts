@@ -85,7 +85,7 @@ interface CostEntry {
 
 const costHistory: CostEntry[] = [];
 
-export function trackCost(
+function trackCost(
   provider: string,
   model: string,
   inputTokens: number,
@@ -111,7 +111,7 @@ export function trackCost(
   );
 }
 
-export function calculateCost(
+function calculateCost(
   provider: string,
   model: string,
   inputTokens: number,
@@ -152,7 +152,7 @@ export function getRecentCosts(limit: number = 10): CostEntry[] {
 }
 
 // Get available free models based on configured providers
-export function getAvailableFreeModels(): typeof FREE_MODELS {
+function getAvailableFreeModels(): typeof FREE_MODELS {
   return FREE_MODELS.filter((config) => {
     switch (config.provider) {
       case 'groq':
@@ -173,7 +173,7 @@ export function isPaidFallbackAvailable(): boolean {
 }
 
 // Create model instance
-export function createModel(
+function createModel(
   provider: (typeof FREE_MODELS)[number]['provider'],
   modelId: string,
 ): LanguageModel | null {
@@ -400,6 +400,3 @@ export async function executePaidFallback<T>(
     };
   }
 }
-
-// Export providers for direct use if needed
-export { groq, openrouter, opencode };

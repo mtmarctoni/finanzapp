@@ -4,8 +4,6 @@ import { ITEMS_PER_PAGE } from '@/config';
 import type { GetCryptoTransactionsOptions } from '@/types/api';
 import type {
   CryptoTransaction,
-  CryptoHoldingsSummary,
-  CryptoWallet,
   CryptoPortfolioOverview,
   CryptoSymbolPrice,
 } from '@/types/finance';
@@ -61,27 +59,6 @@ export async function getCryptoTransactions(
       totalPages: 0,
       currentPage: page,
     };
-  }
-}
-
-/**
- * Fetches a single crypto transaction by ID
- */
-export async function getCryptoTransactionById(
-  id: string,
-): Promise<CryptoTransaction | null> {
-  try {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const response = await fetch(`${baseUrl}/api/crypto/transactions/${id}`);
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('API Error:', error);
-    return null;
   }
 }
 
@@ -158,26 +135,6 @@ export async function deleteCryptoTransaction(id: string): Promise<boolean> {
 }
 
 /**
- * Fetches crypto holdings summary
- */
-export async function getCryptoHoldings(): Promise<CryptoHoldingsSummary[]> {
-  try {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const response = await fetch(`${baseUrl}/api/crypto/holdings`);
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result.data ?? [];
-  } catch (error) {
-    console.error('API Error:', error);
-    return [];
-  }
-}
-
-/**
  * Fetches crypto options (symbols, wallets, transaction types)
  */
 export async function getCryptoOptions(): Promise<{
@@ -200,31 +157,6 @@ export async function getCryptoOptions(): Promise<{
       cryptoSymbols: [],
       wallets: [],
       transactionTypes: [],
-    };
-  }
-}
-
-/**
- * Fetches crypto wallets (saved and used)
- */
-export async function getCryptoWallets(): Promise<{
-  savedWallets: CryptoWallet[];
-  usedWallets: string[];
-}> {
-  try {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const response = await fetch(`${baseUrl}/api/crypto/wallets`);
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('API Error:', error);
-    return {
-      savedWallets: [],
-      usedWallets: [],
     };
   }
 }

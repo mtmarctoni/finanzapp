@@ -29,7 +29,7 @@ interface CachedPriceRow {
   fetchedAtMs: number;
 }
 
-export function isPriceFresh(row: CachedPriceRow, now = Date.now()): boolean {
+function isPriceFresh(row: CachedPriceRow, now = Date.now()): boolean {
   return now - row.fetchedAtMs < PRICE_TTL_MS;
 }
 

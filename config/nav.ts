@@ -6,7 +6,7 @@ import {
   Bitcoin,
 } from 'lucide-react';
 
-export type NavIcon = React.ComponentType<{ className?: string }>;
+type NavIcon = React.ComponentType<{ className?: string }>;
 
 export type NavItem = {
   name: string;

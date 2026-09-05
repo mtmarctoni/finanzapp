@@ -18,5 +18,3 @@ export const CATEGORIES = [
   'Salud',
   'Autónomo',
 ] as const;
-
-export type Category = (typeof CATEGORIES)[number];
