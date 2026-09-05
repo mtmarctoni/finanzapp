@@ -87,15 +87,7 @@ jobs:
             # Comment if not already commented
             EXISTING_COMMENT=$(gh pr view "$PR_NUMBER" --repo "$REPO" --comments --json comments --jq '.comments[] | select(.author.login == "github-actions[bot]") | .body' 2>/dev/null || echo "")
             if ! echo "$EXISTING_COMMENT" | grep -q "minimumReleaseAge violation"; then
-              gh pr comment "$PR_NUMBER" --repo "$REPO" --body "### Supply Chain Protection Active
-
-CI failed due to pnpm's \`minimumReleaseAge\` policy (\`trustPolicy: strict\` in \`pnpm-workspace.yaml\`).
-Some dependency updates were published less than 24 hours ago.
-
-This PR will be automatically retried every ~6 hours.
-Once the packages age past the 24-hour window, CI should pass.
-
-> This protection guards against supply-chain attacks from freshly published malicious packages."
+              gh pr comment "$PR_NUMBER" --repo "$REPO" --body $'### Supply Chain Protection Active\n\nCI failed due to pnpm\'s `minimumReleaseAge` policy (`trustPolicy: strict` in `pnpm-workspace.yaml`).\nSome dependency updates were published less than 24 hours ago.\n\nThis PR will be automatically retried every ~6 hours.\nOnce the packages age past the 24-hour window, CI should pass.\n\n> This protection guards against supply-chain attacks from freshly published malicious packages.'
             fi
 
             # Push empty commit to retry CI
