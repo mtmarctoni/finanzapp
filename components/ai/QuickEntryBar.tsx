@@ -27,7 +27,7 @@ interface FallbackError {
 }
 
 export function QuickEntryBar() {
-  const { data: session } = useSession();
+  const { status: sessionStatus } = useSession();
   const router = useRouter();
   const [text, setText] = useState('');
   const [status, setStatus] = useState<QuickEntryStatus>('idle');
@@ -36,7 +36,7 @@ export function QuickEntryBar() {
     null,
   );
 
-  if (!session) return null;
+  if (sessionStatus === 'loading') return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
