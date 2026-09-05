@@ -301,6 +301,49 @@ pnpm run test:e2e:ui
    pnpm start
    ```
 
+```
+
+---
+
+## 🔀 Dependency Architecture
+
+Dependency direction is enforced by `.dependency-cruiser.js` (runs on every PR
+in CI). The guiding principle: **dependencies point downward and toward the
+shared layers — never up or sideways across features.**
+
+```
+
+app/ composition root (pages, API routes, layouts) — may import everything below; nothing below imports it
+│
+├─ components/ UI ─ feature slices are isolated: ai/, analytics/, crypto/, recurring/, context/
+│ └─ ui/ primitives — presentation-only, import nothing but ui-peers, lib/utils, config, types
+├─ hooks/ client-side logic — import UI types, client-safe lib, config, types (no feature components)
+├─ lib/ server-trusted by default — client code may only import the allow-listed client-safe modules
+│ ├─ data.ts, crypto-data.ts client fetch wrappers (browser → /api/*)
+│ ├─ actions.ts, *Actions.ts server-action boundary (the ONLY client → server-data path)
+│ └─ everything else db pool, repos, server-data, AI/API-key internals (server-only)
+├─ config/ leaves — nothing may import them back down
+└─ types/ leaves
+
+```
+
+The check fails if any rule is violated. The full rule set lives in
+`.dependency-cruiser.js`; the highest-value ones:
+
+- `no-server-side-code-in-client-boundary` — *fail-closed*: client code may
+  import nothing from `lib/` except the 11 allow-listed modules. New server
+  modules are blocked automatically.
+- `no-api-routes-depend-on-ui-or-client-data` — API route handlers must not
+  import components/hooks or the client fetch wrappers (no HTTP round-trip to
+  your own API).
+- `no-cross-import-from-<feature>` — feature slices cannot import each other;
+  shared code must be lifted into a shared layer. This prevents duplicated
+  helper functions across features.
+- `no-app-imported-from-below`, `no-hooks-depend-on-features-or-app`,
+  `no-ui-primitives-depend-on-hooks|-features`, `no-data-layer-does-not-depend-on-ui`,
+  `no-server-lib-imports-client-data`, `no-circular`, `no-leaf-modules-import-internals`,
+  `no-utils-imports-internals`, `no-tests-in-production`.
+
 ---
 
 ## 🤝 Contributing
@@ -335,3 +378,4 @@ FinanzApp was created to solve the need for a simple yet powerful personal finan
 ---
 
 Made with ❤️ by mtmarctoni | [Website](https://marctonimas.com)
+```

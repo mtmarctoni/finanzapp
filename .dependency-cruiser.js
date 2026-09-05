@@ -1,3 +1,35 @@
+/**
+ * Feature folders under `components/` are independent slices. They may share
+ * code ONLY through the shared layers (`components/ui`, `hooks/`, `lib/`,
+ * `config/`, `types/`) — never by importing each other. That is what prevents
+ * accidental cross-feature coupling and duplicated helper functions.
+ *
+ * Generated per-feature so the `from`/`to` regexes stay simple (no look-behind,
+ * which dependency-cruiser's ReDoS-protected regex engine rejects).
+ */
+const COMPONENT_FEATURES = [
+  'ai',
+  'analytics',
+  'context',
+  'crypto',
+  'recurring',
+];
+
+const featureIsolationRules = COMPONENT_FEATURES.map((feature) => ({
+  name: `no-cross-import-from-${feature}`,
+  severity: 'error',
+  comment:
+    `Feature "${feature}" must not import from other feature folders. ` +
+    'Move shared logic into the shared layers (`components/ui`, `hooks/`, ' +
+    '`lib/`, `config/`, `types/`).',
+  from: {
+    path: `^components/${feature}/`,
+  },
+  to: {
+    path: `^components/(${COMPONENT_FEATURES.filter((f) => f !== feature).join('|')})/`,
+  },
+}));
+
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -119,13 +151,86 @@ module.exports = {
       severity: 'error',
       comment:
         'The data layer (db, repos, server-data, actions) must never import ' +
-        'from `app/` or `components/`. Keep infrastructure independent so it ' +
-        'stays framework-agnostic and trivially testable.',
+        'from `app/`, `components/` or `hooks/`. Keep infrastructure ' +
+        'independent so it stays framework-agnostic and trivially testable.',
       from: {
         path: '^lib/',
       },
       to: {
-        path: ['^app/', '^components/'],
+        path: ['^app/', '^components/', '^hooks/'],
+      },
+    },
+
+    // `app/` is the composition root. Nothing below it (components, hooks,
+    // lib, config, types) may reach up into pages, layouts, or API routes.
+    // If lower layers "need" something from `app/`, it belongs in a lower
+    // layer instead.
+    {
+      name: 'no-app-imported-from-below',
+      severity: 'error',
+      comment:
+        '`app/` is the composition root. Only code inside `app/` may import ' +
+        'from `app/`. Anything a lower layer needs belongs in components, ' +
+        'hooks, lib, config, or types.',
+      from: {
+        pathNot: [
+          '^app/',
+          '^__tests__/',
+          '^e2e/',
+          '\\.test\\.tsx?$',
+          '\\.spec\\.tsx?$',
+        ],
+      },
+      to: {
+        path: '^app/',
+      },
+    },
+
+    // API route handlers are pure backend: they run server-side, receive
+    // HTTP requests, and talk to the data layer directly. They must never
+    // bootstrap as if they were a UI page (importing components/hooks) and
+    // never call the client-side fetch wrappers (which would make them
+    // re-enter the app over HTTP instead of using the repos available to
+    // them server-side).
+    {
+      name: 'no-api-routes-depend-on-ui-or-client-data',
+      severity: 'error',
+      comment:
+        '`app/api/**` route handlers are backend-only. They must not import ' +
+        'UI (`components/`, `hooks/`) or the client fetch wrappers ' +
+        '(`lib/data.ts` / `lib/crypto-data.ts`). Prefer `lib/server-data.ts`, ' +
+        'repos, and server actions.',
+      from: {
+        path: '^app/api/',
+      },
+      to: {
+        path: [
+          '^components/',
+          '^hooks/',
+          '^lib/data\\.ts$',
+          '^lib/crypto-data\\.ts$',
+        ],
+      },
+    },
+
+    // None-----------------------------------------------------------------
+    // Server-side `lib/` modules must not use the client fetch wrappers.
+    // Server modules have direct access to the repos and DB pool; importing
+    // `lib/data.ts`/`lib/crypto-data.ts` would round-trip through HTTP to
+    // the app's own API, duplicating the data-access path.
+    {
+      name: 'no-server-lib-imports-client-data',
+      severity: 'error',
+      comment:
+        'Server-side `lib/` modules must not import the client fetch ' +
+        'wrappers. They already run with direct access to repos and the DB; ' +
+        'a fetch through `/api/...` would duplicate the data path and add a ' +
+        'pointless HTTP round-trip.',
+      from: {
+        path: '^lib/',
+      },
+      to: {
+        path: ['^lib/data\\.ts$', '^lib/crypto-data\\.ts$'],
       },
     },
 
@@ -187,6 +292,47 @@ module.exports = {
         ],
       },
     },
+
+    // UI primitives must not depend on hooks, with a single sanctioned
+    // exception: `components/ui/toaster.tsx` bridges shadcn-style `use-toast`.
+    // That keeps hooks out of the presentation layer while acknowledging the
+    // toast wiring seam.
+    {
+      name: 'no-ui-primitives-depend-on-hooks',
+      severity: 'error',
+      comment:
+        'UI primitives in `components/ui/` must not import `hooks/`. The ' +
+        'only exception is `components/ui/toaster.tsx` -> `@/hooks/use-toast`, ' +
+        'which is the toast wiring seam.',
+      from: {
+        path: '^components/ui/',
+      },
+      to: {
+        path: '^hooks/',
+        pathNot: '^hooks/(use-toast|use-toaster)\\.ts$',
+      },
+    },
+
+    // Hooks are client-side logic. They may use UI types, the client-safe
+    // `lib/` surface, config, and types — but they must not import feature
+    // components or app code.
+    {
+      name: 'no-hooks-depend-on-features-or-app',
+      severity: 'error',
+      comment:
+        '`hooks/` must stay logic-only. They may import UI **types** from ' +
+        '`components/ui/`, the client-safe `lib/` surface, `config/`, and ' +
+        '`types/` — never feature components or `app/` code.',
+      from: {
+        path: '^hooks/',
+      },
+      to: {
+        path: ['^app/', '^components/(?!ui/)'],
+      },
+    },
+
+    // Feature folders under `components/` are independent slices.
+    ...featureIsolationRules,
 
     /* ------------------------------------------------------------------ *
      * 4. Hygiene / quality
