@@ -21,7 +21,7 @@ const mockedAuthenticate =
 const mockedCreateClient = createClient as jest.MockedFunction<
   typeof createClient
 >;
-const mockedUuidv4 = uuidv4 as jest.MockedFunction<typeof uuidv4>;
+const mockedUuidv4 = uuidv4 as jest.MockedFunction<() => string>;
 
 function mockRequest(
   body: unknown,
