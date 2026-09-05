@@ -1,0 +1,7 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreDependencies": [
+    // lint-staged is invoked from .githooks/pre-commit, which is outside knip's dependency-graph scope
+    "lint-staged",
+  ],
+}
