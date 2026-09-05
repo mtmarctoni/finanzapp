@@ -3,7 +3,7 @@
 import { Sparkles, Loader2, AlertCircle, Wand2, Lightbulb } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { PaidFallbackDialog } from './PaidFallbackDialog';
 
@@ -29,6 +29,7 @@ interface FallbackError {
 export function QuickEntryBar() {
   const { status: sessionStatus } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [text, setText] = useState('');
   const [status, setStatus] = useState<QuickEntryStatus>('idle');
   const [message, setMessage] = useState('');
@@ -36,7 +37,10 @@ export function QuickEntryBar() {
     null,
   );
 
-  if (sessionStatus === 'loading') return null;
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical hydration-detect pattern
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || sessionStatus !== 'authenticated') return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

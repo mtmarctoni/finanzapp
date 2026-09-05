@@ -21,6 +21,7 @@ interface FallbackError {
 
 export function ChatWidget() {
   const { status: sessionStatus, data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [fallbackError, setFallbackError] = useState<FallbackError | null>(
@@ -29,6 +30,9 @@ export function ChatWidget() {
   const [paidSessionActive, setPaidSessionActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical hydration-detect pattern
+  useEffect(() => setMounted(true), []);
 
   const transport = useMemo(
     () =>
@@ -175,7 +179,7 @@ export function ChatWidget() {
     return () => clearTimeout(timeout);
   }, [paidSessionActive]);
 
-  if (sessionStatus === 'loading') return null;
+  if (!mounted || sessionStatus !== 'authenticated') return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
