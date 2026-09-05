@@ -20,6 +20,7 @@ export default defineConfig([
             'next.config.mjs',
             'postcss.config.mjs',
             'prettier.config.mjs',
+            '.dependency-cruiser.js',
           ],
         },
       },
