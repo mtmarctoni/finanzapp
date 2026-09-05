@@ -20,7 +20,7 @@ interface FallbackError {
 }
 
 export function ChatWidget() {
-  const { data: session } = useSession();
+  const { status: sessionStatus, data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [fallbackError, setFallbackError] = useState<FallbackError | null>(
@@ -175,7 +175,7 @@ export function ChatWidget() {
     return () => clearTimeout(timeout);
   }, [paidSessionActive]);
 
-  if (!session) return null;
+  if (sessionStatus === 'loading') return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
