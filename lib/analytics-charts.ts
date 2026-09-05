@@ -554,81 +554,6 @@ export function getCategoryPlatformChartOptions(): ChartOptions<'bar'> {
   };
 }
 
-// ─── TIPO × QUE BREAKDOWN ───
-
-export function getTipoQueBreakdown(
-  tipoQueData: TipoQueDatum[],
-  selectedType: string,
-) {
-  const filtered = tipoQueData.filter((item) => item.type === selectedType);
-
-  const sorted = filtered
-    .map((item) => ({
-      category: item.category,
-      total: Math.abs(Number(item.total)),
-      count: Number(item.count ?? 0),
-      action: item.action,
-    }))
-    .sort((a, b) => b.total - a.total);
-
-  const colors = [
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56',
-    '#4BC0C0',
-    '#9966FF',
-    '#FF9F40',
-    '#8AC24A',
-    '#FF5252',
-    '#607D8B',
-    '#9C27B0',
-    '#3F51B5',
-    '#E91E63',
-  ];
-
-  return {
-    labels: sorted.map((item) => item.category),
-    datasets: [
-      {
-        label: 'Total',
-        data: sorted.map((item) => item.total),
-        backgroundColor: sorted.map(
-          (_, index) => colors[index % colors.length],
-        ),
-        borderWidth: 1,
-      },
-    ],
-    details: sorted,
-  };
-}
-
-export function getTipoQueChartOptions(): ChartOptions<'bar'> {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
-  };
-}
-
 // ─── CATEGORY TREND TRACKER ───
 
 export function getCategoryTrendData(
@@ -722,33 +647,6 @@ export function getCategoryTrendData(
   };
 }
 
-export function getCategoryTrendChartOptions(): ChartOptions<'line'> {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
-  };
-}
-
 // ─── SPENDING VELOCITY (MoM change) ───
 
 export interface VelocityItem {
@@ -814,60 +712,6 @@ export interface SeasonalItem {
   monthName: string;
   total: number;
   count: number;
-}
-
-export function getSeasonalPatterns(
-  categoryTemporalData: CategoryTemporalDatum[],
-  selectedCategory: string,
-  action: string = 'Gasto',
-): SeasonalItem[] {
-  const filtered = categoryTemporalData.filter(
-    (item) => item.category === selectedCategory && item.action === action,
-  );
-
-  const monthNames = [
-    'Ene',
-    'Feb',
-    'Mar',
-    'Abr',
-    'May',
-    'Jun',
-    'Jul',
-    'Ago',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dic',
-  ];
-
-  // Aggregate by calendar month across all years
-  const byMonth = new Map<
-    number,
-    { total: number; count: number; yearCount: number }
-  >();
-  for (let i = 0; i < 12; i++) {
-    byMonth.set(i, { total: 0, count: 0, yearCount: 0 });
-  }
-
-  for (const item of filtered) {
-    const d = new Date(item.period);
-    const month = d.getUTCMonth();
-    const existing = byMonth.get(month) as {
-      total: number;
-      count: number;
-      yearCount: number;
-    };
-    existing.total += Math.abs(Number(item.total));
-    existing.count += item.count ?? 0;
-    existing.yearCount += 1;
-  }
-
-  return Array.from(byMonth.entries()).map(([month, data]) => ({
-    month,
-    monthName: monthNames[month],
-    total: data.yearCount > 0 ? data.total / data.yearCount : 0,
-    count: Math.round(data.total / (data.yearCount || 1)),
-  }));
 }
 
 export function getSeasonalChartData(seasonalData: SeasonalItem[]) {
@@ -1129,59 +973,4 @@ export function computeTipoSpendingVelocity(
   return velocities.sort(
     (a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent),
   );
-}
-
-// ─── TIPO-LEVEL SEASONAL PATTERNS ───
-
-export function getTipoSeasonalPatterns(
-  typeTemporalData: TypeTemporalDatum[],
-  selectedTipo: string,
-  action: string = 'Gasto',
-): SeasonalItem[] {
-  const filtered = typeTemporalData.filter(
-    (item) => item.type === selectedTipo && item.action === action,
-  );
-
-  const monthNames = [
-    'Ene',
-    'Feb',
-    'Mar',
-    'Abr',
-    'May',
-    'Jun',
-    'Jul',
-    'Ago',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dic',
-  ];
-
-  const byMonth = new Map<
-    number,
-    { total: number; count: number; yearCount: number }
-  >();
-  for (let i = 0; i < 12; i++) {
-    byMonth.set(i, { total: 0, count: 0, yearCount: 0 });
-  }
-
-  for (const item of filtered) {
-    const d = new Date(item.period);
-    const month = d.getUTCMonth();
-    const existing = byMonth.get(month) as {
-      total: number;
-      count: number;
-      yearCount: number;
-    };
-    existing.total += Math.abs(Number(item.total));
-    existing.count += item.count ?? 0;
-    existing.yearCount += 1;
-  }
-
-  return Array.from(byMonth.entries()).map(([month, data]) => ({
-    month,
-    monthName: monthNames[month],
-    total: data.yearCount > 0 ? data.total / data.yearCount : 0,
-    count: data.yearCount > 0 ? Math.round(data.count / data.yearCount) : 0,
-  }));
 }

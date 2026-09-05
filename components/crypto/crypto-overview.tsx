@@ -337,5 +337,3 @@ export function CryptoOverview() {
     </div>
   );
 }
-
-export default CryptoOverview;

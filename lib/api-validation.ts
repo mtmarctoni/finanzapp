@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 /**
  * Valid values for accion field
  */
-export const AccionEnum = z.enum(['Ingreso', 'Gasto', 'Inversión']);
+const AccionEnum = z.enum(['Ingreso', 'Gasto', 'Inversión']);
 
 /**
  * Auto-correct stale years in dates.
@@ -156,10 +156,6 @@ export const BatchCreateEntrySchema = z.object({
     .max(100, 'Maximum 100 entries per batch'),
 });
 
-export type BatchCreateEntryInput = z.infer<typeof BatchCreateEntrySchema>;
-
 export const CreateApiKeySchema = z.object({
   name: z.string().trim().min(1, 'name is required').max(255),
 });
-
-export type CreateApiKeyInput = z.infer<typeof CreateApiKeySchema>;

@@ -3,7 +3,7 @@
  * This ensures consistency between AI/OCR extraction and the database.
  */
 
-export const STANDARD_CATEGORIES = [
+const STANDARD_CATEGORIES = [
   // Income
   'Salario',
   'Freelance',
@@ -78,7 +78,7 @@ export type StandardCategory = (typeof STANDARD_CATEGORIES)[number];
  * to standardized Spanish categories.
  * All keys must be quoted strings to handle special characters.
  */
-export const CATEGORY_ALIASES: Record<string, StandardCategory> = {
+const CATEGORY_ALIASES: Record<string, StandardCategory> = {
   // Income
   salary: 'Salario',
   wages: 'Salario',
@@ -341,13 +341,4 @@ export function normalizeCategory(input: string): StandardCategory | string {
     `[Category] Unknown category "${trimmed}" - using as-is. Consider adding to CATEGORY_ALIASES.`,
   );
   return trimmed;
-}
-
-/**
- * Strict validation: only allows standard categories.
- * Use this when you want to reject unknown categories.
- */
-export function isStandardCategory(input: string): input is StandardCategory {
-  const normalized = normalizeCategory(input);
-  return STANDARD_CATEGORIES.includes(normalized as StandardCategory);
 }

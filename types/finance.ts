@@ -17,35 +17,6 @@ export type Entry = {
 };
 
 /**
- * Summary statistics for the dashboard
- */
-export type SummaryStats = {
-  totalIncome: number;
-  incomeCount: number;
-  totalExpense: number;
-  expenseCount: number;
-  totalInvestment: number;
-  investmentCount: number;
-  netBalance: number;
-  monthlyData: MonthlyData[];
-};
-
-/**
- * Monthly aggregated data for charts
- */
-export type MonthlyData = {
-  month: string;
-  income: number;
-  expense: number;
-  investment: number;
-};
-
-/**
- * Transaction types
- */
-export type TransactionType = 'Ingreso' | 'Gasto' | 'Inversión' | 'todos';
-
-/**
  * Recurring record type
  */
 export type RecurringRecord = {
@@ -127,7 +98,7 @@ export type CryptoTransactionType =
 /**
  * Crypto wallet types
  */
-export type CryptoWalletType = 'exchange' | 'hardware' | 'software' | 'paper';
+type CryptoWalletType = 'exchange' | 'hardware' | 'software' | 'paper';
 
 /**
  * Crypto transaction record
@@ -231,7 +202,7 @@ export type CryptoPosition = {
 /**
  * Portfolio-wide totals for the crypto overview
  */
-export type CryptoPortfolioTotals = {
+type CryptoPortfolioTotals = {
   totalValue: number | null;
   totalCostBasis: number;
   unrealizedPL: number | null;

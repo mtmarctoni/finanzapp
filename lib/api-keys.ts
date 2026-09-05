@@ -246,25 +246,3 @@ export async function revokeApiKey(
     await client.end();
   }
 }
-
-/**
- * Delete a API key permanently.
- */
-export async function deleteApiKey(
-  keyId: string,
-  userId: string,
-): Promise<boolean> {
-  const client = createClient();
-  await client.connect();
-
-  try {
-    const result = await client.sql`
-      DELETE FROM api_keys
-       WHERE id = ${keyId} AND user_id = ${userId}
-    `;
-
-    return (result.rowCount ?? 0) > 0;
-  } finally {
-    await client.end();
-  }
-}

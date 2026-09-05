@@ -9,7 +9,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-export type CalendarProps = Omit<
+type CalendarProps = Omit<
   React.ComponentProps<typeof DayPicker>,
   'mode' | 'selected' | 'onSelect'
 > & {

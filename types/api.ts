@@ -1,11 +1,4 @@
-import type {
-  CryptoHoldingsSummary,
-  CryptoPortfolioOverview,
-  CryptoTransaction,
-  CryptoWallet,
-  Entry,
-  SummaryStats,
-} from './finance';
+import type { Entry } from './finance';
 
 /**
  * Options for filtering and paginating finance entries
@@ -52,52 +45,4 @@ export type PaginatedEntriesResponse = {
   totalItems: number;
   totalPages: number;
   currentPage: number;
-};
-
-/**
- * API response for summary statistics
- */
-export type SummaryStatsResponse = SummaryStats;
-
-/**
- * Response for duplicate entry request
- */
-export type DuplicateEntryResponse = Entry;
-
-/**
- * Response structure for paginated crypto transactions
- */
-export type PaginatedCryptoTransactionsResponse = {
-  data: CryptoTransaction[];
-  totalItems: number;
-  totalPages: number;
-  currentPage: number;
-};
-
-/**
- * Response structure for crypto wallets list
- */
-export type CryptoWalletsResponse = {
-  data: CryptoWallet[];
-};
-
-/**
- * Response structure for crypto holdings summary
- */
-export type CryptoHoldingsResponse = {
-  data: CryptoHoldingsSummary[];
-};
-
-/**
- * Response for the crypto overview section
- */
-export type CryptoOverviewResponse = CryptoPortfolioOverview;
-
-/**
- * Standard API error response
- */
-export type ApiErrorResponse = {
-  error: string;
-  message: string;
-  statusCode: number;
 };

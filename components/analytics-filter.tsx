@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export interface AnalyticsFilterValue {
+interface AnalyticsFilterValue {
   search?: string;
   accion?: string;
   actions?: string | string[];
