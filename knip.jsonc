@@ -4,4 +4,7 @@
     // lint-staged is invoked from .githooks/pre-commit, which is outside knip's dependency-graph scope
     "lint-staged",
   ],
+  // `dot` (Graphviz) is a system tool used by the depcruise:graph script,
+  // not a package-provided binary.
+  "ignoreBinaries": ["dot"],
 }

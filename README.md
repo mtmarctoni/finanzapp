@@ -54,6 +54,7 @@ FinanzApp is a comprehensive personal finance management application built with 
 
 - ESLint
 - Prettier
+- dependency-cruiser for dependency-graph governance
 - Jest & Playwright for testing
 - TailwindCSS PostCSS Plugin
 - tsx for TypeScript execution
@@ -89,6 +90,8 @@ The following scripts are available in `package.json`:
 - `build`: Build the application for production.
 - `start`: Start the production server.
 - `lint`: Run ESLint to check for code quality issues.
+- `depcruise`: Validate the dependency graph against the rules in `.dependency-cruiser.js` (no circular dependencies, client/server boundary safety, and layering rules).
+- `depcruise:graph`: Render a `dependency-graph.svg` from the current module graph.
 - `test`: Run unit tests with Jest.
 - `test:watch`: Run Jest in watch mode.
 - `test:e2e`: Run end-to-end tests with Playwright.
