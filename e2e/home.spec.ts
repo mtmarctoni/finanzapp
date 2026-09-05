@@ -40,25 +40,14 @@ test.describe('Home Page', () => {
     ).toBeVisible();
   });
 
-  test('should filter entries by search term', async ({ page }, testInfo) => {
-    // TODO: Fix hydration flakiness with Next.js 16.2+ in CI.
-    // The stricter hydration checks cause React to re-render the
-    // SearchFilter component, swallowing the Enter key event.
-    // Locally this passes; in CI it fails on WebKit + Chromium.
-    const isCi = !!process.env.CI;
-    const isProblematicBrowser =
-      testInfo.project.name === 'webkit' ||
-      testInfo.project.name === 'chromium';
-    test.skip(
-      isCi && isProblematicBrowser,
-      'Flaky in CI due to Next.js 16.2 hydration strictness',
-    );
-
+  test('should filter entries by search term', async ({ page }) => {
     await page.goto('/records');
+    await page.waitForLoadState('networkidle');
 
     const searchInput = page.getByPlaceholder(
       'Buscar por descripción o plataforma...',
     );
+    await expect(searchInput).toBeVisible();
     await searchInput.fill('test search');
     await searchInput.press('Enter');
 
