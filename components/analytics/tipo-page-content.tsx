@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 
+import { MonthlyAveragesCard } from '@/components/analytics/MonthlyAveragesCard';
 import { SavingsRateCard } from '@/components/analytics/SavingsRateCard';
 import { SpendingVelocity } from '@/components/analytics/SpendingVelocity';
 import { TipoExplorer } from '@/components/analytics/TipoExplorer';
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalyticsData } from '@/hooks/use-analytics-data';
 import {
+  computeMonthlyAverages,
   computeSpendingVelocity,
   getCategoryTrendData,
   getDoughnutChartOptions,
@@ -194,6 +196,27 @@ export default function TipoPageContent() {
     'Gasto',
   );
 
+  const isYearGranularity = searchParams.get('groupBy') === 'year';
+
+  const averagesSeries = useMemo(() => {
+    if (selectedQue === 'todos') {
+      return data.typeTemporalData.filter((d) => d.type === selectedTipo);
+    }
+    return data.categoryTemporalData.filter(
+      (d) => d.type === selectedTipo && d.category === selectedQue,
+    );
+  }, [
+    data.typeTemporalData,
+    data.categoryTemporalData,
+    selectedTipo,
+    selectedQue,
+  ]);
+
+  const averages = useMemo(
+    () => computeMonthlyAverages(averagesSeries),
+    [averagesSeries],
+  );
+
   const tableFilters = {
     tipo: selectedTipo,
     que: selectedQue !== 'todos' ? selectedQue : undefined,
@@ -347,6 +370,20 @@ export default function TipoPageContent() {
           />
         </div>
       </div>
+
+      {!isYearGranularity && (
+        <div className="mb-6">
+          <MonthlyAveragesCard
+            result={averages}
+            scopeLabel={
+              selectedQue !== 'todos'
+                ? `${selectedTipo} · ${selectedQue}`
+                : selectedTipo
+            }
+            loading={loading}
+          />
+        </div>
+      )}
 
       <div className="mb-6">
         <TipoExplorer
