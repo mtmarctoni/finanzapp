@@ -27,10 +27,10 @@ import {
 interface AnalyticsFilterValue {
   search?: string;
   accion?: string;
-  actions?: string | string[];
-  categories?: string | string[];
-  platforms?: string | string[];
-  types?: string | string[];
+  actions?: string[];
+  categories?: string[];
+  platforms?: string[];
+  types?: string[];
   minAmount?: number;
   maxAmount?: number;
   from?: Date;
@@ -91,11 +91,11 @@ export function AnalyticsFilter({
 
   const handleTipoChange = (tipo: string) => {
     // Reset que when tipo changes
-    onChange({ ...value, types: tipo, categories: undefined });
+    onChange({ ...value, types: [tipo], categories: undefined });
   };
 
   const handleQueChange = (que: string) => {
-    onChange({ ...value, categories: que });
+    onChange({ ...value, categories: [que] });
   };
 
   return (
@@ -107,12 +107,8 @@ export function AnalyticsFilter({
         className="w-40"
       />
       <Select
-        value={
-          Array.isArray(value.actions)
-            ? value.actions[0] || ''
-            : (value.actions ?? '')
-        }
-        onValueChange={(action) => onChange({ ...value, actions: action })}
+        value={value.actions?.[0] ?? ''}
+        onValueChange={(action) => onChange({ ...value, actions: [action] })}
       >
         <SelectTrigger className="w-36">
           <SelectValue placeholder="Acción" />
@@ -142,11 +138,7 @@ export function AnalyticsFilter({
       </Select>
       {/* Que (specific) cascades from tipo */}
       <Select
-        value={
-          Array.isArray(value.categories)
-            ? value.categories[0] || ''
-            : (value.categories ?? '')
-        }
+        value={value.categories?.[0] ?? ''}
         onValueChange={handleQueChange}
       >
         <SelectTrigger className="w-40">
@@ -167,13 +159,9 @@ export function AnalyticsFilter({
         </SelectContent>
       </Select>
       <Select
-        value={
-          Array.isArray(value.platforms)
-            ? value.platforms[0] || ''
-            : (value.platforms ?? '')
-        }
+        value={value.platforms?.[0] ?? ''}
         onValueChange={(platform) =>
-          onChange({ ...value, platforms: platform })
+          onChange({ ...value, platforms: [platform] })
         }
       >
         <SelectTrigger className="w-36">

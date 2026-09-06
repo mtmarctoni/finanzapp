@@ -54,7 +54,22 @@ export interface Filters {
   useActivePeriods?: boolean;
 }
 
-export function useAnalyticsData() {
+/**
+ * Defensive normalization for multi-value filters.
+ *
+ * The analytics filter bar used to emit single strings for these fields
+ * (see components/analytics-filter.tsx) while the fetch logic here iterated
+ * them with `.forEach`. A string would throw a TypeError, the fetch would
+ * fail, and the UI would silently keep showing stale data. Callers now emit
+ * arrays, but a lone-old-read of this shape must never crash the request.
+ */
+function asArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+export function useAnalyticsData(options?: { ignoreTipoFromUrl?: boolean }) {
+  const ignoreTipoFromUrl = options?.ignoreTipoFromUrl ?? false;
   const searchParams = useSearchParams();
   const [data, setData] = useState<AnalyticsData>({
     temporalData: [],
@@ -86,7 +101,7 @@ export function useAnalyticsData() {
     const actions = searchParams.getAll('action');
     const categories = searchParams.getAll('category');
     const platforms = searchParams.getAll('platform');
-    const types = searchParams.getAll('type');
+    const types = ignoreTipoFromUrl ? [] : searchParams.getAll('type');
     const minAmount = searchParams.get('minAmount')
       ? Number(searchParams.get('minAmount'))
       : undefined;
@@ -111,7 +126,7 @@ export function useAnalyticsData() {
       groupBy,
       useActivePeriods,
     };
-  }, [searchParams]);
+  }, [searchParams, ignoreTipoFromUrl]);
 
   const [filters, setFilters] = useState<Filters>(initialFilters());
 
@@ -127,13 +142,13 @@ export function useAnalyticsData() {
       if (filters.search) params.set('search', filters.search);
       if (filters.accion && filters.accion !== 'todos')
         params.set('action', filters.accion);
-      (filters.actions ?? []).forEach((a) => params.append('action', a));
+      asArray(filters.actions).forEach((a) => params.append('action', a));
       if (filters.from)
         params.set('from', filters.from.toISOString().split('T')[0]);
       if (filters.to) params.set('to', filters.to.toISOString().split('T')[0]);
-      (filters.categories ?? []).forEach((c) => params.append('category', c));
-      (filters.platforms ?? []).forEach((p) => params.append('platform', p));
-      (filters.types ?? []).forEach((t) => params.append('type', t));
+      asArray(filters.categories).forEach((c) => params.append('category', c));
+      asArray(filters.platforms).forEach((p) => params.append('platform', p));
+      asArray(filters.types).forEach((t) => params.append('type', t));
       if (typeof filters.minAmount === 'number')
         params.set('minAmount', String(filters.minAmount));
       if (typeof filters.maxAmount === 'number')
