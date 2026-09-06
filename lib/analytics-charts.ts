@@ -1115,16 +1115,9 @@ export interface AverageActionStat {
   average: number;
 }
 
-export interface YearlyAverage {
-  year: number;
-  months: number;
-  stats: AverageActionStat[];
-}
-
 export interface MonthlyAveragesResult {
   totalMonths: number;
   overall: AverageActionStat[];
-  byYear: YearlyAverage[];
 }
 
 const ACTION_DISPLAY_ORDER = ['Gasto', 'Inversión', 'Ingreso'];
@@ -1150,7 +1143,7 @@ export function computeMonthlyAverages(
   data: AveragesDatum[],
 ): MonthlyAveragesResult {
   if (data.length === 0) {
-    return { totalMonths: 0, overall: [], byYear: [] };
+    return { totalMonths: 0, overall: [] };
   }
 
   // monthIndex = year * 12 + month keeps first/last comparisons trivial.
@@ -1179,24 +1172,15 @@ export function computeMonthlyAverages(
   }
 
   if (firstIndex === Infinity || lastIndex === -Infinity) {
-    return { totalMonths: 0, overall: [], byYear: [] };
+    return { totalMonths: 0, overall: [] };
   }
 
   const totalMonths = lastIndex - firstIndex + 1;
-  const firstYear = Math.floor(firstIndex / 12);
-  const lastYear = Math.floor(lastIndex / 12);
 
   const grandTotals = new Map<string, number>();
-  const yearTotals = new Map<number, Map<string, number>>();
-  for (const [monthIndex, byAction] of totalsByMonth) {
-    const year = Math.floor(monthIndex / 12);
-    if (!yearTotals.has(year)) yearTotals.set(year, new Map());
-    const yearActions = yearTotals.get(year);
+  for (const [, byAction] of totalsByMonth) {
     for (const [action, total] of byAction) {
       grandTotals.set(action, (grandTotals.get(action) ?? 0) + total);
-      if (yearActions) {
-        yearActions.set(action, (yearActions.get(action) ?? 0) + total);
-      }
     }
   }
 
@@ -1208,19 +1192,5 @@ export function computeMonthlyAverages(
     return { action, total, average: total / totalMonths };
   });
 
-  const byYear: YearlyAverage[] = [];
-  for (let year = firstYear; year <= lastYear; year++) {
-    const yearStart = year * 12;
-    const months =
-      Math.min(lastIndex, yearStart + 11) - Math.max(firstIndex, yearStart) + 1;
-    const yearActions = yearTotals.get(year);
-    const stats = actions.map((action) => {
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces to 0
-      const total = yearActions?.get(action) || 0;
-      return { action, total, average: months > 0 ? total / months : 0 };
-    });
-    byYear.push({ year, months, stats });
-  }
-
-  return { totalMonths, overall, byYear };
+  return { totalMonths, overall };
 }

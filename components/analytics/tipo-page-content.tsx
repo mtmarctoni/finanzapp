@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 
-import { MonthlyAveragesCard } from '@/components/analytics/MonthlyAveragesCard';
 import { SavingsRateCard } from '@/components/analytics/SavingsRateCard';
 import { SpendingVelocity } from '@/components/analytics/SpendingVelocity';
 import { TipoExplorer } from '@/components/analytics/TipoExplorer';
@@ -196,26 +195,33 @@ export default function TipoPageContent() {
     'Gasto',
   );
 
-  const isYearGranularity = searchParams.get('groupBy') === 'year';
-
-  const averagesSeries = useMemo(() => {
-    if (selectedQue === 'todos') {
-      return data.typeTemporalData.filter((d) => d.type === selectedTipo);
-    }
-    return data.categoryTemporalData.filter(
-      (d) => d.type === selectedTipo && d.category === selectedQue,
-    );
-  }, [
-    data.typeTemporalData,
-    data.categoryTemporalData,
-    selectedTipo,
-    selectedQue,
-  ]);
+  const averagesSeries = useMemo(
+    () => data.typeTemporalData.filter((d) => d.type === selectedTipo),
+    [data.typeTemporalData, selectedTipo],
+  );
 
   const averages = useMemo(
     () => computeMonthlyAverages(averagesSeries),
     [averagesSeries],
   );
+
+  const averageByAction = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const stat of averages.overall) {
+      map.set(stat.action, stat.average);
+    }
+    return map;
+  }, [averages]);
+
+  const hasAverage = averages.totalMonths > 0;
+
+  const netAverage = hasAverage
+    ? Math.abs(
+        (averageByAction.get('Ingreso') ?? 0) -
+          (averageByAction.get('Gasto') ?? 0) -
+          (averageByAction.get('Inversión') ?? 0),
+      )
+    : null;
 
   const tableFilters = {
     tipo: selectedTipo,
@@ -230,24 +236,28 @@ export default function TipoPageContent() {
       amount: perAction.Gasto.amount,
       count: perAction.Gasto.count,
       accent: 'text-destructive',
+      average: hasAverage ? (averageByAction.get('Gasto') ?? 0) : null,
     },
     {
       label: 'Inversión',
       amount: perAction.Inversión.amount,
       count: perAction.Inversión.count,
       accent: 'text-blue-600',
+      average: hasAverage ? (averageByAction.get('Inversión') ?? 0) : null,
     },
     {
       label: 'Ingresos',
       amount: perAction.Ingreso.amount,
       count: perAction.Ingreso.count,
       accent: 'text-green-600',
+      average: hasAverage ? (averageByAction.get('Ingreso') ?? 0) : null,
     },
     {
       label: 'Neto',
       amount: Math.abs(net),
       count: null,
       accent: net >= 0 ? 'text-green-600' : 'text-destructive',
+      average: netAverage,
     },
   ];
 
@@ -333,6 +343,14 @@ export default function TipoPageContent() {
                   {card.count} mov.
                 </div>
               )}
+              {card.average !== null && (
+                <div
+                  className="text-sm text-muted-foreground"
+                  title="Promedio por mes de calendario entre el primer y el último movimiento; los meses sin movimientos cuentan como 0."
+                >
+                  {formatCurrency(card.average)}/mes
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -370,20 +388,6 @@ export default function TipoPageContent() {
           />
         </div>
       </div>
-
-      {!isYearGranularity && (
-        <div className="mb-6">
-          <MonthlyAveragesCard
-            result={averages}
-            scopeLabel={
-              selectedQue !== 'todos'
-                ? `${selectedTipo} · ${selectedQue}`
-                : selectedTipo
-            }
-            loading={loading}
-          />
-        </div>
-      )}
 
       <div className="mb-6">
         <TipoExplorer

@@ -43,19 +43,6 @@ jest.mock('@/components/analytics/SavingsRateCard', () => ({
 jest.mock('@/components/analytics/SpendingVelocity', () => ({
   SpendingVelocity: () => <div data-testid="spending-velocity" />,
 }));
-jest.mock('@/components/analytics/MonthlyAveragesCard', () => ({
-  MonthlyAveragesCard: ({
-    scopeLabel,
-    result,
-  }: {
-    scopeLabel: string;
-    result: { totalMonths: number };
-  }) => (
-    <div data-testid="averages-card">
-      {scopeLabel}|{result.totalMonths}
-    </div>
-  ),
-}));
 
 const euro = new Intl.NumberFormat('es-ES', {
   style: 'currency',
@@ -212,33 +199,28 @@ describe('TipoPageContent', () => {
     expect(screen.getByText('No hay datos disponibles')).toBeInTheDocument();
   });
 
-  it('renders the monthly averages card scoped to the selected tipo', () => {
+  it('shows a monthly average line on each summary card', () => {
     mockParams = new URLSearchParams('type=Vivienda');
 
     render(<TipoPageContent />);
 
-    // 3 calendar months of Vivienda history -> whole-history average over 3.
-    expect(screen.getByTestId('averages-card')).toHaveTextContent('Vivienda|3');
+    // Vivienda has 3 calendar months of Gasto (100+300+200) -> 600/3 = 200/mes.
+    expect(cardText('Gastos')).toContain(euro(200));
+    expect(cardText('Gastos')).toContain('/mes');
+    expect(cardText('Inversión')).toContain('/mes');
+    expect(cardText('Ingresos')).toContain('/mes');
+    // Neto average = |Ingreso - Gasto - Inversión| over the same months.
+    expect(cardText('Neto')).toContain(euro(200));
   });
 
-  it('scopes the averages card to the selected que category', () => {
+  it('keeps the averages tipo-scoped when a que category is selected', () => {
     mockParams = new URLSearchParams('type=Vivienda');
 
     render(<TipoPageContent />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Alquiler' }));
 
-    // Alquiler only has movements in Jan+Feb 2025 -> 2 calendar months.
-    expect(screen.getByTestId('averages-card')).toHaveTextContent(
-      'Vivienda · Alquiler|2',
-    );
-  });
-
-  it('hides the averages card when data is grouped by year', () => {
-    mockParams = new URLSearchParams('type=Vivienda&groupBy=year');
-
-    render(<TipoPageContent />);
-
-    expect(screen.queryByTestId('averages-card')).not.toBeInTheDocument();
+    // The summary cards (and their averages) always cover the whole tipo.
+    expect(cardText('Gastos')).toContain(euro(200));
   });
 });
