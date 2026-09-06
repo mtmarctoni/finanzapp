@@ -139,7 +139,14 @@ export default function TipoPageContent() {
   const activeYear = fromStr
     ? Number(fromStr.slice(0, 4))
     : (years[0] ?? new Date().getFullYear());
-  const activeMonth = fromStr ? Number(fromStr.slice(5, 7)) : 0;
+
+  const isFullYear =
+    fromStr &&
+    toStr &&
+    fromStr.endsWith('-01-01') &&
+    toStr.endsWith('-12-31') &&
+    fromStr.slice(0, 4) === toStr.slice(0, 4);
+  const activeMonth = !isFullYear && fromStr ? Number(fromStr.slice(5, 7)) : 0;
 
   const updateUrl = (overrides: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams.toString());
