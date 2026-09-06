@@ -13,15 +13,17 @@ test.describe('Create and Edit Finance Entries', () => {
   }) => {
     await page.goto('/records');
 
-    await page.getByRole('link', { name: 'Añadir Entrada' }).click();
+    // Register the response waiter before navigating so it cannot miss the
+    // /api/options request fired on mount of the /new page.
+    await Promise.all([
+      page.waitForResponse('/api/options'),
+      page.getByRole('link', { name: 'Añadir Entrada' }).click(),
+    ]);
 
     await expect(page).toHaveURL('/new');
     await expect(
       page.getByRole('heading', { name: 'Añadir Nueva Entrada' }),
     ).toBeVisible();
-
-    // Wait for combobox options to load before interacting
-    await page.waitForResponse('/api/options');
 
     const today = format(new Date(), 'yyyy-MM-dd');
     await page.getByLabel('Fecha').fill(today);
