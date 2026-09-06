@@ -554,6 +554,131 @@ export function getCategoryPlatformChartOptions(): ChartOptions<'bar'> {
   };
 }
 
+// ─── TIPO × QUE BREAKDOWN ───
+
+export function getTipoQueBreakdown(
+  tipoQueData: TipoQueDatum[],
+  selectedType: string,
+) {
+  const filtered = tipoQueData.filter((item) => item.type === selectedType);
+
+  const sorted = filtered
+    .map((item) => ({
+      category: item.category,
+      total: Math.abs(Number(item.total)),
+      count: Number(item.count ?? 0),
+      action: item.action,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const colors = [
+    '#FF6384',
+    '#36A2EB',
+    '#FFCE56',
+    '#4BC0C0',
+    '#9966FF',
+    '#FF9F40',
+    '#8AC24A',
+    '#FF5252',
+    '#607D8B',
+    '#9C27B0',
+    '#3F51B5',
+    '#E91E63',
+  ];
+
+  return {
+    labels: sorted.map((item) => item.category),
+    datasets: [
+      {
+        label: 'Total',
+        data: sorted.map((item) => item.total),
+        backgroundColor: sorted.map(
+          (_, index) => colors[index % colors.length],
+        ),
+        borderWidth: 1,
+      },
+    ],
+    details: sorted,
+  };
+}
+
+export function getTipoQueChartOptions(): ChartOptions<'bar'> {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
+            const value = Number(context.raw || 0);
+            return `${context.dataset.label}: ${formatEuro(value)}`;
+          },
+        },
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => formatEuro(Number(value)),
+        },
+      },
+    },
+  };
+}
+
+// ─── TIPO QUE DOUGHNUT (expenses only) ───
+
+export function getTipoQueDoughnutData(
+  tipoQueData: TipoQueDatum[],
+  selectedTipo: string,
+) {
+  const filtered = tipoQueData.filter(
+    (item) => item.type === selectedTipo && item.action === 'Gasto',
+  );
+
+  const sorted = filtered
+    .map((item) => ({
+      category: item.category,
+      total: Math.abs(Number(item.total)),
+      count: Number(item.count ?? 0),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const total = sorted.reduce((sum, item) => sum + item.total, 0);
+
+  const colors = [
+    '#FF6384',
+    '#36A2EB',
+    '#FFCE56',
+    '#4BC0C0',
+    '#9966FF',
+    '#FF9F40',
+    '#8AC24A',
+    '#FF5252',
+    '#607D8B',
+    '#9C27B0',
+    '#3F51B5',
+    '#E91E63',
+  ];
+
+  return {
+    labels: sorted.map((item) => item.category),
+    datasets: [
+      {
+        label: 'Gasto',
+        data: sorted.map((item) => item.total),
+        backgroundColor: sorted.map(
+          (_, index) => colors[index % colors.length],
+        ),
+        borderWidth: 1,
+      },
+    ],
+    total,
+  };
+}
 // ─── CATEGORY TREND TRACKER ───
 
 export function getCategoryTrendData(

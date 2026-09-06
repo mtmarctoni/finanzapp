@@ -17,6 +17,7 @@ import { TipoExplorer } from '@/components/analytics/TipoExplorer';
 import { TopTransactionsTable } from '@/components/analytics/TopTransactionsTable';
 import { TrendExplorer } from '@/components/analytics/TrendExplorer';
 import { TypeChart } from '@/components/analytics/TypeChart';
+import { AnalyticsSubnav } from '@/components/analytics/analytics-subnav';
 import { AnalyticsFilter } from '@/components/analytics-filter';
 import { useAnalyticsData, type Filters } from '@/hooks/use-analytics-data';
 import {
@@ -130,6 +131,9 @@ export default function AnalyticsPageContent() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Analíticas Financieras</h1>
+      <div className="mb-6">
+        <AnalyticsSubnav />
+      </div>
       <div className="mb-6">
         <AnalyticsFilter
           value={filters}

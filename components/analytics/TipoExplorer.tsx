@@ -47,6 +47,8 @@ interface TipoExplorerProps {
   };
   getChartOptions: () => ChartOptions<'bar'>;
   loading: boolean;
+  selectedTipo?: string;
+  onTipoChange?: (tipo: string) => void;
 }
 
 export function TipoExplorer({
@@ -55,8 +57,19 @@ export function TipoExplorer({
   getChartData,
   getChartOptions,
   loading,
+  selectedTipo: selectedTipoProp,
+  onTipoChange,
 }: TipoExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>(types[0] || '');
+  const [internalTipo, setInternalTipo] = useState<string>(types[0] || '');
+
+  const isControlled =
+    selectedTipoProp !== undefined && onTipoChange !== undefined;
+  const selectedTipo = isControlled ? selectedTipoProp : internalTipo;
+
+  const handleTipoChange = (tipo: string) => {
+    if (isControlled) onTipoChange(tipo);
+    else setInternalTipo(tipo);
+  };
 
   const chartData = getChartData(tipoQueData, selectedTipo);
   const chartOptions = getChartOptions();
@@ -77,7 +90,7 @@ export function TipoExplorer({
             })}
           </p>
         </div>
-        <Select value={selectedTipo} onValueChange={setSelectedTipo}>
+        <Select value={selectedTipo} onValueChange={handleTipoChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Selecciona tipo" />
           </SelectTrigger>
