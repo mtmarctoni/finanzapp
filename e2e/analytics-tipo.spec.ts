@@ -29,7 +29,9 @@ test.describe('Analytics por Tipo', () => {
     await expect(
       page.getByRole('heading', { name: 'Analíticas por Tipo' }),
     ).toBeVisible();
-    await expect(page.getByText(/movimientos en Vivienda/)).toBeVisible();
+    await expect(
+      page.getByText(/movimientos en Vivienda/).first(),
+    ).toBeVisible();
     await expect(page.getByText('Movimientos por Tipo')).toBeVisible();
 
     // The summary cards carry a monthly average line.
@@ -68,6 +70,8 @@ test.describe('Analytics por Tipo', () => {
     // A reload keeps the tipo-scoped state coming from the URL.
     await page.reload();
     await expect(page).toHaveURL(/type=Vivienda/);
-    await expect(page.getByText(/movimientos en Vivienda/)).toBeVisible();
+    await expect(
+      page.getByText(/movimientos en Vivienda/).first(),
+    ).toBeVisible();
   });
 });
