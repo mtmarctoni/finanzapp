@@ -8,7 +8,6 @@ describe('computeMonthlyAverages', () => {
     expect(computeMonthlyAverages([])).toEqual({
       totalMonths: 0,
       overall: [],
-      byYear: [],
     });
   });
 
@@ -22,13 +21,6 @@ describe('computeMonthlyAverages', () => {
     expect(result.totalMonths).toBe(1);
     expect(result.overall).toEqual([
       { action: 'Gasto', total: 900, average: 900 },
-    ]);
-    expect(result.byYear).toEqual([
-      {
-        year: 2025,
-        months: 1,
-        stats: [{ action: 'Gasto', total: 900, average: 900 }],
-      },
     ]);
   });
 
@@ -56,8 +48,6 @@ describe('computeMonthlyAverages', () => {
       total: 1000,
       average: 1000 / 12,
     });
-    expect(result.byYear).toHaveLength(1);
-    expect(result.byYear[0]?.months).toBe(12);
   });
 
   it('divides partial years by their elapsed calendar months and counts interior gaps', () => {
@@ -74,41 +64,6 @@ describe('computeMonthlyAverages', () => {
 
     expect(result.totalMonths).toBe(31);
     expect(result.overall[0]?.average).toBeCloseTo(590 / 31, 10);
-    expect(result.byYear).toEqual([
-      {
-        year: 2024,
-        months: 10,
-        stats: [{ action: 'Gasto', total: 300, average: 30 }],
-      },
-      {
-        year: 2025,
-        months: 12,
-        stats: [{ action: 'Gasto', total: 200, average: 200 / 12 }],
-      },
-      {
-        year: 2026,
-        months: 9,
-        stats: [{ action: 'Gasto', total: 90, average: 10 }],
-      },
-    ]);
-  });
-
-  it('still lists a year without any movements with zero averages', () => {
-    const data: AveragesDatum[] = [
-      { period: '2024-05-01', action: 'Gasto', total: 120 },
-      { period: '2026-02-01', action: 'Gasto', total: 240 },
-    ];
-
-    const result = computeMonthlyAverages(data);
-
-    expect(result.totalMonths).toBe(22);
-    expect(result.byYear).toHaveLength(3);
-    const gapYear = result.byYear.find((y) => y.year === 2025);
-    expect(gapYear).toEqual({
-      year: 2025,
-      months: 12,
-      stats: [{ action: 'Gasto', total: 0, average: 0 }],
-    });
   });
 
   it('uses absolute totals and sums duplicate period+action rows', () => {
