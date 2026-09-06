@@ -123,6 +123,7 @@ const baseData: AnalyticsData = {
     },
   ],
   categoryStats: [],
+  availableYears: [2025, 2024, 2023],
   sums: { gastos: 0, ingresos: 0, inversion: 0 },
   metrics: undefined,
   netTemporal: [],
@@ -188,6 +189,19 @@ describe('TipoPageContent', () => {
     expect(routerReplace).toHaveBeenCalledWith(
       '/analytics/tipo?type=Vivienda&from=2025-01-01&to=2025-12-31',
     );
+  });
+
+  it('keeps the full year list visible after a year is selected', () => {
+    mockParams = new URLSearchParams(
+      'type=Vivienda&from=2025-01-01&to=2025-12-31',
+    );
+
+    const view = render(<TipoPageContent />);
+    rerenderHolder.rerender = view.rerender;
+
+    for (const year of ['2025', '2024', '2023']) {
+      expect(screen.getByRole('button', { name: year })).toBeInTheDocument();
+    }
   });
 
   it('handles a stale tipo bookmark without crashing (empty chart state)', () => {

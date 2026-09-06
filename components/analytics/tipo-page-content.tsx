@@ -124,15 +124,16 @@ export default function TipoPageContent() {
 
   const [selectedQue, setSelectedQue] = useState<string>('todos');
 
-  const years = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          data.temporalData.map((d) => new Date(d.period).getUTCFullYear()),
-        ),
-      ).sort((a, b) => b - a),
-    [data.temporalData],
-  );
+  const years = useMemo(() => {
+    if (data.availableYears.length > 0) {
+      return Array.from(new Set(data.availableYears)).sort((a, b) => b - a);
+    }
+    return Array.from(
+      new Set(
+        data.temporalData.map((d) => new Date(d.period).getUTCFullYear()),
+      ),
+    ).sort((a, b) => b - a);
+  }, [data.availableYears, data.temporalData]);
 
   const fromStr = searchParams.get('from') ?? '';
   const toStr = searchParams.get('to') ?? '';

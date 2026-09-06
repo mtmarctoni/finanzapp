@@ -30,6 +30,7 @@ export interface AnalyticsData {
   categoryTemporalData: CategoryTemporalDatum[];
   typeTemporalData: TypeTemporalDatum[];
   categoryStats: CategoryStatDatum[];
+  availableYears: number[];
   sums: {
     gastos: number;
     ingresos: number;
@@ -82,6 +83,7 @@ export function useAnalyticsData(options?: { ignoreTipoFromUrl?: boolean }) {
     categoryTemporalData: [],
     typeTemporalData: [],
     categoryStats: [],
+    availableYears: [],
     sums: { gastos: 0, ingresos: 0, inversion: 0 },
     metrics: undefined,
     netTemporal: [],
