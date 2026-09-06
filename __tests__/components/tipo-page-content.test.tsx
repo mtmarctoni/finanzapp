@@ -204,6 +204,20 @@ describe('TipoPageContent', () => {
     }
   });
 
+  it('writes a selected month to the URL with the active year', () => {
+    mockParams = new URLSearchParams('type=Vivienda');
+
+    const view = render(<TipoPageContent />);
+    rerenderHolder.rerender = view.rerender;
+
+    // No period selected -> months belong to the most recent available year.
+    fireEvent.click(screen.getByRole('button', { name: 'Mar' }));
+
+    expect(routerReplace).toHaveBeenCalledWith(
+      '/analytics/tipo?type=Vivienda&from=2025-03-01&to=2025-03-31',
+    );
+  });
+
   it('handles a stale tipo bookmark without crashing (empty chart state)', () => {
     mockParams = new URLSearchParams('type=Stale');
 

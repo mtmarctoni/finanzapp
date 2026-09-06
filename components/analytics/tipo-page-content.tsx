@@ -11,7 +11,6 @@ import { TipoExplorer } from '@/components/analytics/TipoExplorer';
 import { TrendExplorer } from '@/components/analytics/TrendExplorer';
 import { AnalyticsSubnav } from '@/components/analytics/analytics-subnav';
 import { TipoEntriesTable } from '@/components/analytics/tipo-entries-table';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalyticsData } from '@/hooks/use-analytics-data';
 import {
@@ -50,29 +49,57 @@ function lastDayOfMonth(year: number, monthIndex: number) {
   return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
 }
 
-interface ChipRowProps {
-  label: string;
-  options: { value: string; label: string }[];
-  active: string;
-  onSelect: (value: string) => void;
+interface FilterChipProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  active?: boolean;
+  tone?: 'primary' | 'neutral';
 }
 
-function ChipRow({ label, options, active, onSelect }: ChipRowProps) {
+function FilterChip({
+  active = false,
+  tone = 'neutral',
+  className,
+  ...props
+}: FilterChipProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-sm font-medium text-muted-foreground w-14 shrink-0">
-        {label}
-      </span>
-      {options.map((option) => (
-        <Button
-          key={option.value}
-          variant={active === option.value ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => onSelect(option.value)}
-        >
-          {option.label}
-        </Button>
-      ))}
+    <button
+      type="button"
+      aria-pressed={active}
+      {...props}
+      className={cn(
+        'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
+        active
+          ? 'bg-primary text-primary-foreground shadow-sm'
+          : tone === 'primary'
+            ? 'text-foreground hover:bg-muted/70'
+            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+        className,
+      )}
+    />
+  );
+}
+
+interface FilterGroupProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/90 select-none">
+      {children}
+    </span>
+  );
+}
+
+function FilterGroup({ label, children }: FilterGroupProps) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex flex-wrap items-center gap-2"
+    >
+      <GroupLabel>{label}</GroupLabel>
+      {children}
     </div>
   );
 }
@@ -276,62 +303,106 @@ export default function TipoPageContent() {
         <AnalyticsSubnav />
       </div>
 
-      <div className="space-y-3 mb-6">
-        <ChipRow
-          label="Tipo"
-          options={tipos.map((tipo) => ({ value: tipo, label: tipo }))}
-          active={selectedTipo}
-          onSelect={handleTipoChange}
-        />
-        {queOptions.length > 0 && (
-          <ChipRow
-            label="Que"
-            options={[
-              { value: 'todos', label: 'Todos' },
-              ...queOptions.map((que) => ({ value: que, label: que })),
-            ]}
-            active={selectedQue}
-            onSelect={setSelectedQue}
-          />
+      <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 space-y-4">
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
+          <FilterGroup label="Tipo">
+            {tipos.map((tipo) => (
+              <FilterChip
+                key={tipo}
+                tone="primary"
+                className="px-4 py-2"
+                active={selectedTipo === tipo}
+                onClick={() => handleTipoChange(tipo)}
+              >
+                {tipo}
+              </FilterChip>
+            ))}
+          </FilterGroup>
+
+          {queOptions.length > 0 && (
+            <FilterGroup label="Que">
+              <FilterChip
+                className="px-3 py-1.5"
+                active={selectedQue === 'todos'}
+                onClick={() => setSelectedQue('todos')}
+              >
+                Todos
+              </FilterChip>
+              {queOptions.map((que) => (
+                <FilterChip
+                  key={que}
+                  className="px-3 py-1.5"
+                  active={selectedQue === que}
+                  onClick={() => setSelectedQue(que)}
+                >
+                  {que}
+                </FilterChip>
+              ))}
+            </FilterGroup>
+          )}
+        </div>
+
+        <div className="h-px bg-border/70" aria-hidden />
+
+        {years.length > 0 && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <GroupLabel>Periodo</GroupLabel>
+              <FilterChip
+                className="ml-1 px-3 py-1.5"
+                active={!fromStr}
+                onClick={() => handlePeriod(null, null)}
+              >
+                Todo
+              </FilterChip>
+              {years.map((year) => {
+                const isSelectedYear = activeYear === year;
+                return (
+                  <FilterChip
+                    key={year}
+                    className={cn(
+                      'px-3 py-1.5',
+                      isSelectedYear &&
+                        !isFullYear &&
+                        'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30 hover:bg-primary/15',
+                    )}
+                    active={Boolean(isFullYear) && isSelectedYear}
+                    onClick={() =>
+                      handlePeriod(`${year}-01-01`, `${year}-12-31`)
+                    }
+                  >
+                    {year}
+                  </FilterChip>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 grid grid-cols-6 gap-1 rounded-xl bg-muted/40 p-1 sm:grid-cols-12">
+              {MONTHS.map((month, index) => (
+                <button
+                  key={month}
+                  type="button"
+                  aria-pressed={activeMonth === index + 1}
+                  onClick={() => {
+                    const pad = String(index + 1).padStart(2, '0');
+                    handlePeriod(
+                      `${activeYear}-${pad}-01`,
+                      `${activeYear}-${pad}-${String(lastDayOfMonth(activeYear, index)).padStart(2, '0')}`,
+                    );
+                  }}
+                  className={cn(
+                    'rounded-lg py-2 text-xs font-medium transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    activeMonth === index + 1
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-card hover:text-foreground',
+                  )}
+                >
+                  {month}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
-        <ChipRow
-          label="Periodo"
-          options={[
-            { value: 'all', label: 'Todo' },
-            ...years.map((year) => ({
-              value: `year-${year}`,
-              label: String(year),
-            })),
-            ...(activeYear
-              ? MONTHS.map((month, index) => ({
-                  value: `month-${index + 1}`,
-                  label: month,
-                }))
-              : []),
-          ]}
-          active={
-            activeMonth > 0
-              ? `month-${activeMonth}`
-              : fromStr
-                ? `year-${activeYear}`
-                : 'all'
-          }
-          onSelect={(value) => {
-            if (value === 'all') handlePeriod(null, null);
-            else if (value.startsWith('year-')) {
-              const year = Number(value.slice(5));
-              handlePeriod(`${year}-01-01`, `${year}-12-31`);
-            } else if (value.startsWith('month-')) {
-              const month = Number(value.slice(6));
-              const pad = String(month).padStart(2, '0');
-              const year = activeYear;
-              handlePeriod(
-                `${year}-${pad}-01`,
-                `${year}-${pad}-${String(lastDayOfMonth(year, month - 1)).padStart(2, '0')}`,
-              );
-            }
-          }}
-        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
