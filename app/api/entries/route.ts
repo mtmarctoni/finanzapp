@@ -9,8 +9,14 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search') ?? '';
   const accion = searchParams.get('accion') ?? '';
+  const tipo = searchParams.get('tipo') ?? '';
+  const que = searchParams.get('que') ?? '';
   const from = searchParams.get('from') ?? '';
   const to = searchParams.get('to') ?? '';
+  const minAmountParam = searchParams.get('minAmount');
+  const maxAmountParam = searchParams.get('maxAmount');
+  const minAmount = minAmountParam ? Number(minAmountParam) : undefined;
+  const maxAmount = maxAmountParam ? Number(maxAmountParam) : undefined;
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty param must fall back to '1'; '' would make parseInt yield NaN
   const page = parseInt(searchParams.get('page') || '1');
   const itemsPerPage = parseInt(
@@ -30,6 +36,10 @@ export async function GET(request: NextRequest) {
     const filters = {
       search,
       accion,
+      tipo,
+      que,
+      minAmount,
+      maxAmount,
       from,
       to,
       page,
