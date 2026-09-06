@@ -10,7 +10,7 @@ import {
   Legend,
 } from 'chart.js';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,6 +61,8 @@ interface TrendExplorerProps {
     trendSlope?: number;
   };
   getLineChartOptions: () => ChartOptions<'line'>;
+  selectedTipo?: string;
+  onTipoChange?: (tipo: string) => void;
 }
 
 export function TrendExplorer({
@@ -73,9 +75,15 @@ export function TrendExplorer({
   getCategoryTrendData,
   getTipoTrendData,
   getLineChartOptions,
+  selectedTipo: selectedTipoProp,
+  onTipoChange,
 }: TrendExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>('');
+  const [internalTipo, setInternalTipo] = useState<string>('');
   const [selectedQue, setSelectedQue] = useState<string>('__all__');
+
+  const isControlled =
+    selectedTipoProp !== undefined && onTipoChange !== undefined;
+  const selectedTipo = isControlled ? selectedTipoProp : internalTipo;
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -93,9 +101,19 @@ export function TrendExplorer({
       : [];
 
   const handleTipoChange = (tipo: string) => {
-    setSelectedTipo(tipo);
-    setSelectedQue('__all__');
+    if (isControlled) {
+      onTipoChange(tipo);
+      setSelectedQue('__all__');
+    } else {
+      setInternalTipo(tipo);
+      setSelectedQue('__all__');
+    }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- external-prop resync: a controlled tipo change must reset the internal que filter
+    if (isControlled) setSelectedQue('__all__');
+  }, [selectedTipo, isControlled]);
 
   // Determine what chart data to show
   const isTipoOnly = selectedTipo && selectedQue === '__all__';
