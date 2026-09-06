@@ -1,8 +1,8 @@
 import { sql } from '@vercel/postgres';
 import { v4 as uuidv4 } from 'uuid';
 
-// Test user ID that matches our development credentials
-const TEST_USER_ID = 'test1';
+// Test user that matches our development credentials (test@example.com)
+const TEST_USER_ID = 'f7a8b9c0-1e2f-3d45-6a7b-1234567890cd';
 
 // Helper function to format date as YYYY-MM-DD
 const formatDate = (date: Date): string => {
@@ -77,21 +77,19 @@ const generateTestData = () => {
     let type, amount;
 
     if (isIncome) {
-      type = 'Ingreso';
+      type = 'Salario';
       amount = (Math.random() * 1000 + 500).toFixed(2); // 500 - 1500
     } else if (isInvestment) {
-      type = 'Inversión';
+      type = 'Inversiones';
       amount = (Math.random() * 500 + 100).toFixed(2); // 100 - 600
     } else {
-      type = 'Gasto';
+      type = ['Comida', 'Transporte', 'Ocio', 'Vivienda'][
+        Math.floor(Math.random() * 4)
+      ];
       amount = (Math.random() * 200 + 5).toFixed(2); // 5 - 205
     }
 
-    const category = isIncome
-      ? 'Salario'
-      : isInvestment
-        ? 'Inversiones'
-        : ['Comida', 'Transporte', 'Ocio'][Math.floor(Math.random() * 3)];
+    const category = isIncome ? 'Salario' : isInvestment ? 'Inversiones' : type;
 
     financeEntries.push({
       id: uuidv4(),
@@ -137,27 +135,25 @@ const seedDatabase = async () => {
     }
     console.log(`Inserted ${recurringRecords.length} recurring records`);
 
-    // Insert finance entries
+    // Insert finance entries, one statement per row to avoid the expense
+    // of building a parameterised multi-VALUES insert.
     const batchSize = 50;
     for (let i = 0; i < financeEntries.length; i += batchSize) {
       const batch = financeEntries.slice(i, i + batchSize);
-      const values = batch.map(
-        async (entry) =>
-          sql`(
-        ${entry.id}, ${entry.fecha}, ${entry.tipo}, ${entry.accion}, 
-        ${entry.que}, ${entry.cantidad}, ${entry.plataforma_pago}, 
-        ${entry.detalle1}, ${entry.detalle2}, ${entry.created_at}, 
-        ${entry.updated_at}, ${entry.user_id}
-      )`,
-      );
-
-      await sql`
-      INSERT INTO finance_entries (
-        id, fecha, tipo, accion, que, cantidad, plataforma_pago, 
-        detalle1, detalle2, created_at, updated_at, user_id
-      ) VALUES ${values.join(', ')}
-      ON CONFLICT (id) DO NOTHING;
-    `;
+      for (const entry of batch) {
+        await sql`
+          INSERT INTO finance_entries (
+            id, fecha, tipo, accion, que, cantidad, plataforma_pago,
+            detalle1, detalle2, created_at, updated_at, user_id
+          ) VALUES (
+            ${entry.id}, ${entry.fecha}, ${entry.tipo}, ${entry.accion},
+            ${entry.que}, ${entry.cantidad}, ${entry.plataforma_pago},
+            ${entry.detalle1}, ${entry.detalle2}, ${entry.created_at},
+            ${entry.updated_at}, ${entry.user_id}
+          )
+          ON CONFLICT (id) DO NOTHING;
+        `;
+      }
       console.log(
         `Inserted batch of ${Math.min(
           batchSize,
