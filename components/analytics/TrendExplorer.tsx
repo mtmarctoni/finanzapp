@@ -314,7 +314,10 @@ export function TrendExplorer({
                 const isExpense =
                   item.action === 'Gasto' || item.action === 'Inversión';
                 return (
-                  <div key={item.category} className="p-3 rounded-lg border">
+                  <div
+                    key={`${item.category}-${item.action}`}
+                    className="p-3 rounded-lg border"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">
                         {item.category}

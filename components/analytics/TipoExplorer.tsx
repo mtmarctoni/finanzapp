@@ -135,7 +135,7 @@ export function TipoExplorer({
                     item.action === 'Gasto' || item.action === 'Inversión';
                   return (
                     <div
-                      key={item.category}
+                      key={`${item.category}-${item.action}`}
                       className="flex items-center justify-between text-sm"
                     >
                       <div className="flex-1 min-w-0 mr-3">
