@@ -39,6 +39,27 @@ async function resetTestUserData() {
       'Gasolina',
     ];
     const today = new Date();
+
+    // Deterministic monthly Vivienda entries so the e2e analytics spec can
+    // rely on more than one page (10 rows) of Vivienda movements.
+    const viviendaEntries = Array.from({ length: 12 }).map((_, i) => {
+      const date = new Date(today);
+      date.setMonth(today.getMonth() - i);
+      date.setDate(5);
+      return {
+        id: uuidv4(),
+        que: 'Alquiler',
+        accion: 'Gasto',
+        tipo: 'Vivienda',
+        plataforma_pago: 'Domiciliación',
+        detalle1: 'Piso centro',
+        detalle2: 'Alquiler mensual',
+        cantidad: 800.0,
+        fecha: date.toISOString().slice(0, 10),
+        user_id: TEST_USER_UUID,
+      };
+    });
+
     const randomFinanceEntries = Array.from({ length: 15 }).map(() => {
       const cat = categories[Math.floor(Math.random() * categories.length)];
       const amount = parseFloat(
@@ -77,7 +98,7 @@ async function resetTestUserData() {
       };
     });
 
-    for (const entry of randomFinanceEntries) {
+    for (const entry of [...randomFinanceEntries, ...viviendaEntries]) {
       await sql`
                 INSERT INTO finance_entries (
                     id, que, accion, tipo, plataforma_pago, detalle1, detalle2, cantidad, fecha, user_id
@@ -89,7 +110,7 @@ async function resetTestUserData() {
             `;
     }
     console.log(
-      `Inserted ${randomFinanceEntries.length} random finance_entries for test user.`,
+      `Inserted ${randomFinanceEntries.length + viviendaEntries.length} finance_entries for test user.`,
     );
 
     console.log('Deleting recurring_records for test user...');
