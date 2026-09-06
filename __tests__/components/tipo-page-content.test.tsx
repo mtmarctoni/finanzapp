@@ -43,6 +43,19 @@ jest.mock('@/components/analytics/SavingsRateCard', () => ({
 jest.mock('@/components/analytics/SpendingVelocity', () => ({
   SpendingVelocity: () => <div data-testid="spending-velocity" />,
 }));
+jest.mock('@/components/analytics/MonthlyAveragesCard', () => ({
+  MonthlyAveragesCard: ({
+    scopeLabel,
+    result,
+  }: {
+    scopeLabel: string;
+    result: { totalMonths: number };
+  }) => (
+    <div data-testid="averages-card">
+      {scopeLabel}|{result.totalMonths}
+    </div>
+  ),
+}));
 
 const euro = new Intl.NumberFormat('es-ES', {
   style: 'currency',
@@ -84,8 +97,44 @@ const baseData: AnalyticsData = {
       count: 1,
     },
   ],
-  categoryTemporalData: [],
-  typeTemporalData: [],
+  categoryTemporalData: [
+    {
+      period: '2025-01-01',
+      category: 'Alquiler',
+      type: 'Vivienda',
+      action: 'Gasto',
+      total: 100,
+      count: 1,
+    },
+    {
+      period: '2025-02-01',
+      category: 'Alquiler',
+      type: 'Vivienda',
+      action: 'Gasto',
+      total: 100,
+      count: 1,
+    },
+  ],
+  typeTemporalData: [
+    {
+      period: '2025-01-01',
+      type: 'Vivienda',
+      action: 'Gasto',
+      total: 100,
+    },
+    {
+      period: '2025-02-01',
+      type: 'Vivienda',
+      action: 'Gasto',
+      total: 300,
+    },
+    {
+      period: '2025-03-01',
+      type: 'Vivienda',
+      action: 'Gasto',
+      total: 200,
+    },
+  ],
   categoryStats: [],
   sums: { gastos: 0, ingresos: 0, inversion: 0 },
   metrics: undefined,
@@ -161,5 +210,35 @@ describe('TipoPageContent', () => {
 
     expect(screen.getByTestId('tipo-explorer')).toHaveTextContent('Stale');
     expect(screen.getByText('No hay datos disponibles')).toBeInTheDocument();
+  });
+
+  it('renders the monthly averages card scoped to the selected tipo', () => {
+    mockParams = new URLSearchParams('type=Vivienda');
+
+    render(<TipoPageContent />);
+
+    // 3 calendar months of Vivienda history -> whole-history average over 3.
+    expect(screen.getByTestId('averages-card')).toHaveTextContent('Vivienda|3');
+  });
+
+  it('scopes the averages card to the selected que category', () => {
+    mockParams = new URLSearchParams('type=Vivienda');
+
+    render(<TipoPageContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alquiler' }));
+
+    // Alquiler only has movements in Jan+Feb 2025 -> 2 calendar months.
+    expect(screen.getByTestId('averages-card')).toHaveTextContent(
+      'Vivienda · Alquiler|2',
+    );
+  });
+
+  it('hides the averages card when data is grouped by year', () => {
+    mockParams = new URLSearchParams('type=Vivienda&groupBy=year');
+
+    render(<TipoPageContent />);
+
+    expect(screen.queryByTestId('averages-card')).not.toBeInTheDocument();
   });
 });

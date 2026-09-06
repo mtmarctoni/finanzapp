@@ -30,6 +30,9 @@ test.describe('Analytics por Tipo', () => {
     await expect(page.getByText(/movimientos en Vivienda/)).toBeVisible();
     await expect(page.getByText('Movimientos por Tipo')).toBeVisible();
 
+    // The monthly averages card reflects the selected tipo.
+    await expect(page.getByText('Promedios Mensuales')).toBeVisible();
+
     // Sorting by importe re-fetches with the sort params.
     let sortRequest = page.waitForRequest(
       (request) =>

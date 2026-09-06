@@ -1077,9 +1077,9 @@ export function computeTipoSpendingVelocity(
     const periods = Array.from(periodMap.keys()).sort();
     if (periods.length < 2) continue;
 
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces potential NaN to 0
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces to 0
     const current = periodMap.get(periods[periods.length - 1]) || 0;
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces potential NaN to 0
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces to 0
     const previous = periodMap.get(periods[periods.length - 2]) || 0;
 
     const change = current - previous;
@@ -1098,4 +1098,129 @@ export function computeTipoSpendingVelocity(
   return velocities.sort(
     (a, b) => Math.abs(b.changePercent) - Math.abs(a.changePercent),
   );
+}
+
+// ─── MONTHLY AVERAGES (calendar months) ───
+
+export interface AveragesDatum {
+  period: string;
+  action: string;
+  total: number;
+  count?: number;
+}
+
+export interface AverageActionStat {
+  action: string;
+  total: number;
+  average: number;
+}
+
+export interface YearlyAverage {
+  year: number;
+  months: number;
+  stats: AverageActionStat[];
+}
+
+export interface MonthlyAveragesResult {
+  totalMonths: number;
+  overall: AverageActionStat[];
+  byYear: YearlyAverage[];
+}
+
+const ACTION_DISPLAY_ORDER = ['Gasto', 'Inversión', 'Ingreso'];
+
+function sortActions(actions: string[]): string[] {
+  return [
+    ...ACTION_DISPLAY_ORDER.filter((action) => actions.includes(action)),
+    ...actions
+      .filter((action) => !ACTION_DISPLAY_ORDER.includes(action))
+      .sort(),
+  ];
+}
+
+/**
+ * Monthly averages over calendar months.
+ *
+ * The window spans from the first to the last period present in the data;
+ * months without movements inside that window count as zero. Partial years
+ * are divided by their elapsed months (e.g. data through September divides
+ * the current year by 9, a history starting in March divides that year by 10).
+ */
+export function computeMonthlyAverages(
+  data: AveragesDatum[],
+): MonthlyAveragesResult {
+  if (data.length === 0) {
+    return { totalMonths: 0, overall: [], byYear: [] };
+  }
+
+  // monthIndex = year * 12 + month keeps first/last comparisons trivial.
+  const totalsByMonth = new Map<number, Map<string, number>>();
+  let firstIndex = Infinity;
+  let lastIndex = -Infinity;
+
+  for (const row of data) {
+    const dt = new Date(row.period);
+    if (Number.isNaN(dt.getTime())) continue;
+
+    const monthIndex = dt.getUTCFullYear() * 12 + dt.getUTCMonth();
+    if (!totalsByMonth.has(monthIndex)) {
+      totalsByMonth.set(monthIndex, new Map());
+    }
+    const byAction = totalsByMonth.get(monthIndex);
+    if (!byAction) continue;
+    byAction.set(
+      row.action,
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- SUM() output may be NaN; || coerces to 0
+      (byAction.get(row.action) || 0) + Math.abs(Number(row.total) || 0),
+    );
+
+    if (monthIndex < firstIndex) firstIndex = monthIndex;
+    if (monthIndex > lastIndex) lastIndex = monthIndex;
+  }
+
+  if (firstIndex === Infinity || lastIndex === -Infinity) {
+    return { totalMonths: 0, overall: [], byYear: [] };
+  }
+
+  const totalMonths = lastIndex - firstIndex + 1;
+  const firstYear = Math.floor(firstIndex / 12);
+  const lastYear = Math.floor(lastIndex / 12);
+
+  const grandTotals = new Map<string, number>();
+  const yearTotals = new Map<number, Map<string, number>>();
+  for (const [monthIndex, byAction] of totalsByMonth) {
+    const year = Math.floor(monthIndex / 12);
+    if (!yearTotals.has(year)) yearTotals.set(year, new Map());
+    const yearActions = yearTotals.get(year);
+    for (const [action, total] of byAction) {
+      grandTotals.set(action, (grandTotals.get(action) ?? 0) + total);
+      if (yearActions) {
+        yearActions.set(action, (yearActions.get(action) ?? 0) + total);
+      }
+    }
+  }
+
+  const actions = sortActions(Array.from(grandTotals.keys()));
+
+  const overall: AverageActionStat[] = actions.map((action) => {
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces to 0
+    const total = grandTotals.get(action) || 0;
+    return { action, total, average: total / totalMonths };
+  });
+
+  const byYear: YearlyAverage[] = [];
+  for (let year = firstYear; year <= lastYear; year++) {
+    const yearStart = year * 12;
+    const months =
+      Math.min(lastIndex, yearStart + 11) - Math.max(firstIndex, yearStart) + 1;
+    const yearActions = yearTotals.get(year);
+    const stats = actions.map((action) => {
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- map values derive from SUM(); || coerces to 0
+      const total = yearActions?.get(action) || 0;
+      return { action, total, average: months > 0 ? total / months : 0 };
+    });
+    byYear.push({ year, months, stats });
+  }
+
+  return { totalMonths, overall, byYear };
 }
