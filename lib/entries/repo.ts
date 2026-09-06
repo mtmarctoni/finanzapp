@@ -24,6 +24,9 @@ export interface EntryFilter {
   search?: string;
   accion?: string;
   tipo?: string;
+  que?: string;
+  minAmount?: number;
+  maxAmount?: number;
   from?: string;
   to?: string;
   page: number;
@@ -132,6 +135,24 @@ function compileFilter(
     paramIndex++;
   }
 
+  if (filter.que && filter.que !== 'todos') {
+    whereClauses.push(`que = $${paramIndex}`);
+    params.push(filter.que);
+    paramIndex++;
+  }
+
+  if (typeof filter.minAmount === 'number') {
+    whereClauses.push(`cantidad >= $${paramIndex}`);
+    params.push(filter.minAmount);
+    paramIndex++;
+  }
+
+  if (typeof filter.maxAmount === 'number') {
+    whereClauses.push(`cantidad <= $${paramIndex}`);
+    params.push(filter.maxAmount);
+    paramIndex++;
+  }
+
   if (filter.from) {
     whereClauses.push(
       `fecha >= ($${paramIndex} || 'T00:00:00.000')::timestamptz`,
@@ -166,6 +187,9 @@ export async function findEntries(
     search,
     accion,
     tipo,
+    que,
+    minAmount,
+    maxAmount,
     from,
     to,
     page,
@@ -174,7 +198,7 @@ export async function findEntries(
     sortOrder,
   } = filters;
   const { whereStatement, params } = compileFilter(
-    { search, accion, tipo, from, to },
+    { search, accion, tipo, que, minAmount, maxAmount, from, to },
     userId,
   );
   const { sortField, sortDirection } = resolveSort(sortBy, sortOrder);
