@@ -13,6 +13,7 @@ const emptyData = {
   categoryTemporalData: [],
   typeTemporalData: [],
   categoryStats: [],
+  availableYears: [2024, 2023],
   sums: { gastos: 0, ingresos: 0, inversion: 0 },
   metrics: undefined,
   netTemporal: [],

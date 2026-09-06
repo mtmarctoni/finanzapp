@@ -133,6 +133,7 @@ export async function GET(request: NextRequest) {
       categoryTemporalData,
       typeTemporalData,
       categoryStats,
+      availableYears,
     ] = await Promise.all([
       pool.query(
         `SELECT
@@ -286,6 +287,13 @@ export async function GET(request: NextRequest) {
         GROUP BY que, tipo, accion`,
         queryParams,
       ),
+      pool.query(
+        `SELECT DISTINCT EXTRACT(YEAR FROM fecha) as year
+        FROM finance_entries
+        WHERE user_id = $1
+        ORDER BY year DESC`,
+        [session.user.id],
+      ),
     ]);
 
     const sums = actionSums.rows.reduce(
@@ -378,6 +386,9 @@ export async function GET(request: NextRequest) {
       categoryTemporalData: categoryTemporalData.rows,
       typeTemporalData: typeTemporalData.rows,
       categoryStats: categoryStats.rows,
+      availableYears: (availableYears.rows as { year: number }[]).map((row) =>
+        Number(row.year),
+      ),
       sums: {
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- sums derive from SUM() which could yield NaN; keep || fallback
         gastos: Math.abs(sums['Gasto'] || 0),
