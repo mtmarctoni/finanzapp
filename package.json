@@ -45,7 +45,7 @@
   "dependencies": {
     "@ai-sdk/groq": "^3.0.64",
     "@ai-sdk/openai-compatible": "^2.0.74",
-    "@ai-sdk/react": "^3.0.278",
+    "@ai-sdk/react": "^3.0.280",
     "@hookform/resolvers": "^5.9.1",
     "@openrouter/ai-sdk-provider": "^2.10.0",
     "@radix-ui/react-avatar": "^1.2.6",
@@ -61,7 +61,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.3",
     "@vercel/postgres": "^0.10.0",
-    "ai": "^6.0.275",
+    "ai": "^6.0.277",
     "chart.js": "^4.4.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
