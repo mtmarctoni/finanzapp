@@ -43,9 +43,9 @@
     ]
   },
   "dependencies": {
-    "@ai-sdk/groq": "^3.0.64",
-    "@ai-sdk/openai-compatible": "^2.0.74",
-    "@ai-sdk/react": "^3.0.278",
+    "@ai-sdk/groq": "^3.0.65",
+    "@ai-sdk/openai-compatible": "^2.0.75",
+    "@ai-sdk/react": "^3.0.283",
     "@hookform/resolvers": "^5.9.1",
     "@openrouter/ai-sdk-provider": "^2.10.0",
     "@radix-ui/react-avatar": "^1.2.6",
@@ -61,7 +61,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.3",
     "@vercel/postgres": "^0.10.0",
-    "ai": "^6.0.275",
+    "ai": "^6.0.280",
     "chart.js": "^4.4.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -71,16 +71,16 @@
     "next": "16.3.4",
     "next-auth": "^4.24.15",
     "next-themes": "^0.4.4",
-    "react": "19.2.8",
+    "react": "19.3.0",
     "react-chartjs-2": "^5.3.0",
     "react-day-picker": "^9.5.1",
-    "react-dom": "19.2.8",
+    "react-dom": "19.3.0",
     "react-hook-form": "^7.87.0",
     "recharts": "2.15.4",
     "tailwind-merge": "^2.5.5",
     "uuid": "^11.1.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^4.5.4"
+    "zod": "^4.6.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -89,8 +89,8 @@
     "@testing-library/react": "^16.3.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^22",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "dependency-cruiser": "^18.2.0",
     "eslint": "9.23.0",
     "eslint-config-next": "16.3.3",
@@ -108,7 +108,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5"
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   }
 }
