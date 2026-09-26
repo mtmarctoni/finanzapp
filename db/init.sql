@@ -98,14 +98,18 @@ CREATE TABLE IF NOT EXISTS categories (
 
 CREATE INDEX IF NOT EXISTS idx_categories_user_active ON categories(user_id, active);
 
+-- TRIM is required, not cosmetic: the Combobox create path can persist untrimmed
+-- tipo values, and ensureCategory() matches case-insensitively but not
+-- whitespace-insensitively, so an untrimmed backfill row would sit beside the
+-- tidy version as a second dropdown entry. See the migration for full rationale.
 INSERT INTO categories (user_id, name)
-SELECT DISTINCT user_id, tipo
+SELECT DISTINCT user_id, TRIM(tipo)
   FROM finance_entries
- WHERE tipo IS NOT NULL AND tipo <> '' AND user_id IS NOT NULL
+ WHERE tipo IS NOT NULL AND TRIM(tipo) <> '' AND user_id IS NOT NULL
 UNION
-SELECT DISTINCT user_id, tipo
+SELECT DISTINCT user_id, TRIM(tipo)
   FROM recurring_records
- WHERE tipo IS NOT NULL AND tipo <> '' AND user_id IS NOT NULL
+ WHERE tipo IS NOT NULL AND TRIM(tipo) <> '' AND user_id IS NOT NULL
 ON CONFLICT (user_id, name) DO NOTHING;
 
 -- The categories that used to be hardcoded in types/categories.ts, so nobody

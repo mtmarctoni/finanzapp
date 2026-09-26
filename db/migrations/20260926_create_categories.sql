@@ -36,14 +36,22 @@ CREATE INDEX IF NOT EXISTS idx_categories_user_active ON categories(user_id, act
 -- Backfill from every distinct tipo already stored on either table.
 -- Both source tables are nullable on user_id, so rows without an owner are
 -- skipped rather than creating an orphan category.
+--
+-- TRIM is required, not cosmetic. The Combobox create path passes the raw input
+-- through to `tipo`, so untrimmed values like '  Comida  ' can exist in the
+-- data. ensureCategory() trims before writing, but it matches existing names
+-- case-insensitively rather than whitespace-insensitively, so without TRIM here
+-- the backfill would seed '  Comida  ' and the next tidy 'Comida' the user types
+-- would land beside it as a second dropdown entry. DISTINCT then collapses the
+-- duplicates that trimming creates within this statement.
 INSERT INTO categories (user_id, name)
-SELECT DISTINCT user_id, tipo
+SELECT DISTINCT user_id, TRIM(tipo)
   FROM finance_entries
- WHERE tipo IS NOT NULL AND tipo <> '' AND user_id IS NOT NULL
+ WHERE tipo IS NOT NULL AND TRIM(tipo) <> '' AND user_id IS NOT NULL
 UNION
-SELECT DISTINCT user_id, tipo
+SELECT DISTINCT user_id, TRIM(tipo)
   FROM recurring_records
- WHERE tipo IS NOT NULL AND tipo <> '' AND user_id IS NOT NULL
+ WHERE tipo IS NOT NULL AND TRIM(tipo) <> '' AND user_id IS NOT NULL
 ON CONFLICT (user_id, name) DO NOTHING;
 
 -- Backfill the categories that were hardcoded in types/categories.ts. They were

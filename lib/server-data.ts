@@ -247,6 +247,14 @@ export async function getEntryById(
  * Ordered by how often the category is actually used across both tables so the
  * common ones sit at the top, then alphabetically. The usage counts are a LEFT
  * JOIN so a category that has never been used on a record still appears.
+ *
+ * Both COUNTs must be DISTINCT. The two joins are independent one-to-many
+ * matches on the same key, so they fan out against each other: a category with
+ * 3 entries and 2 recurring records yields 6 rows, and plain COUNT reports 6
+ * for each side (12 total) instead of 3 and 2 (5 total). That inflation is not
+ * uniform across categories -- it scales with usage in *both* tables -- so
+ * without DISTINCT it reorders the list and puts lightly-used dual-table
+ * categories above heavily-used single-table ones.
  */
 export async function getCategories(session: Session | null = null) {
   if (!session?.user.id) {
@@ -265,7 +273,7 @@ export async function getCategories(session: Session | null = null) {
            ON rr.tipo = c.name AND rr.user_id = c.user_id
         WHERE c.user_id = $1 AND c.active = true
         GROUP BY c.name
-        ORDER BY COUNT(fe.id) + COUNT(rr.id) DESC, c.name ASC`,
+        ORDER BY COUNT(DISTINCT fe.id) + COUNT(DISTINCT rr.id) DESC, c.name ASC`,
       [session.user.id],
     );
 
