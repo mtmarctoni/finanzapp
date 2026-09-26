@@ -1,6 +1,11 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
 import { type RecurringFormData } from '@/components/recurring/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -9,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CATEGORIES } from '@/types/categories';
 import { type RecurringRecord } from '@/types/finance';
 
 interface RecordFormProps {
@@ -35,6 +39,30 @@ export function RecordForm({
   onCancel,
   onSubmit,
 }: RecordFormProps) {
+  // Categories come from the shared `categories` table, the same source the
+  // /records form uses, so a category is never missing from one screen but
+  // present on the other.
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const response = await fetch('/api/options');
+        if (response.ok) {
+          const data = await response.json();
+          setCategoryOptions(data.tipo ?? []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch category options:', error);
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
   return (
     <div className="mt-4 border rounded-lg p-4 sm:p-5 space-y-4">
       <h3 className="font-semibold text-lg">
@@ -102,21 +130,13 @@ export function RecordForm({
 
         <div className="space-y-2">
           <label className="block text-sm font-medium">Categoría</label>
-          <Select
+          <Combobox
+            options={categoryOptions}
             value={formData.tipo}
-            onValueChange={(value) => onChange({ ...formData, tipo: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Seleccionar categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            onChange={(value) => onChange({ ...formData, tipo: value })}
+            placeholder="Seleccionar categoría"
+            loading={optionsLoading}
+          />
         </div>
 
         <div className="space-y-2">

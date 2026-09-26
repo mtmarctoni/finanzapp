@@ -241,8 +241,102 @@ export async function getEntryById(
 }
 
 /**
+ * Return every active category for the user, as the canonical list backing the
+ * "categoria" dropdown on both /records and /recurring.
+ *
+ * Ordered by how often the category is actually used across both tables so the
+ * common ones sit at the top, then alphabetically. The usage counts are a LEFT
+ * JOIN so a category that has never been used on a record still appears.
+ */
+export async function getCategories(session: Session | null = null) {
+  if (!session?.user.id) {
+    throw new Error('Not authenticated');
+  }
+
+  const pool = getPool();
+
+  try {
+    const result = await pool.query<{ name: string }>(
+      `SELECT c.name
+         FROM categories c
+         LEFT JOIN finance_entries fe
+           ON fe.tipo = c.name AND fe.user_id = c.user_id
+         LEFT JOIN recurring_records rr
+           ON rr.tipo = c.name AND rr.user_id = c.user_id
+        WHERE c.user_id = $1 AND c.active = true
+        GROUP BY c.name
+        ORDER BY COUNT(fe.id) + COUNT(rr.id) DESC, c.name ASC`,
+      [session.user.id],
+    );
+
+    return result.rows.map((row) => row.name);
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch categories.');
+  }
+}
+
+/**
+ * Insert a category if the user does not already have one with that name.
+ *
+ * Called on every write of `tipo` so that a category introduced through a record
+ * (AI parsing, a CSV import, a typed-in combobox value) becomes selectable in
+ * the dropdown instead of only existing on the row that introduced it.
+ *
+ * Best-effort by design: a failure here must not roll back the record the user
+ * actually asked to save, so callers log and continue.
+ *
+ * The existing-name check is case-insensitive, matching how the Combobox
+ * decides whether to offer "create", so "Alquiler" and "alquiler" cannot both
+ * end up in the list. `UNIQUE (user_id, name)` is exact, so without this the
+ * second variant would insert happily and surface as a duplicate row.
+ */
+export async function ensureCategory(
+  userId: string,
+  rawName: string,
+): Promise<string> {
+  const name = rawName.trim();
+  if (!name) {
+    throw new Error('Category name cannot be empty');
+  }
+
+  const pool = getPool();
+
+  try {
+    const existing = await pool.query<{ name: string }>(
+      `SELECT name
+         FROM categories
+        WHERE user_id = $1 AND LOWER(name) = LOWER($2)
+        LIMIT 1`,
+      [userId, name],
+    );
+
+    if (existing.rows[0]) {
+      return existing.rows[0].name;
+    }
+
+    const result = await pool.query<{ name: string }>(
+      `INSERT INTO categories (user_id, name)
+            VALUES ($1, $2)
+       ON CONFLICT (user_id, name) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+         RETURNING name`,
+      [userId, name],
+    );
+
+    return result.rows[0].name;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to save category.');
+  }
+}
+
+/**
  * Server-side function to get distinct options for form dropdowns.
  * Returns options ordered by frequency of use for each field.
+ *
+ * `tipo` is sourced from the `categories` table rather than DISTINCT over
+ * finance_entries, so /records and /recurring offer the same list and a
+ * category used only by a recurring record is still selectable.
  */
 export async function getFormOptions(session: Session | null = null) {
   if (!session?.user.id) {
@@ -252,16 +346,9 @@ export async function getFormOptions(session: Session | null = null) {
   const pool = getPool();
 
   try {
-    const [tipoResult, queResult, plataformaResult, quienResult] =
+    const [tipoOptions, queResult, plataformaResult, quienResult] =
       await Promise.all([
-        pool.query(
-          `SELECT tipo AS value, COUNT(*) AS count
-             FROM finance_entries
-            WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
-            GROUP BY tipo
-            ORDER BY count DESC, tipo ASC`,
-          [session.user.id],
-        ),
+        getCategories(session),
         pool.query(
           `SELECT que AS value, COUNT(*) AS count
              FROM finance_entries
@@ -291,7 +378,7 @@ export async function getFormOptions(session: Session | null = null) {
       ]);
 
     return {
-      tipo: tipoResult.rows.map((row) => row.value as string),
+      tipo: tipoOptions,
       que: queResult.rows.map((row) => row.value as string),
       plataforma_pago: plataformaResult.rows.map((row) => row.value as string),
       quien: quienResult.rows.map((row) => row.value as string),

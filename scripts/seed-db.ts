@@ -162,6 +162,24 @@ const seedDatabase = async () => {
       );
     }
 
+    // Populate the canonical `categories` table. Both inserts above use raw SQL,
+    // which bypasses the app's provisionCategory() hook, so without this the
+    // "categoria" dropdown would come up empty in a freshly seeded dev database.
+    console.log('Syncing categories...');
+    await sql`
+      INSERT INTO categories (user_id, name)
+      SELECT DISTINCT user_id, tipo
+        FROM finance_entries
+       WHERE user_id = ${TEST_USER_ID}
+         AND tipo IS NOT NULL AND tipo <> ''
+      UNION
+      SELECT DISTINCT user_id, tipo
+        FROM recurring_records
+       WHERE user_id = ${TEST_USER_ID}
+         AND tipo IS NOT NULL AND tipo <> ''
+      ON CONFLICT (user_id, name) DO NOTHING
+    `;
+
     console.log('Database seeding completed successfully!');
   } catch (error) {
     console.error('Error seeding database:', error);

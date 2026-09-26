@@ -9,6 +9,23 @@ import {
   updateRecurringRecord,
   deleteRecurringRecord,
 } from '@/lib/recurringActions';
+import { ensureCategory } from '@/lib/server-data';
+
+/**
+ * Register a newly written `tipo` in the canonical `categories` table so it
+ * becomes selectable in the "categoria" dropdown on both /records and /recurring.
+ *
+ * Best-effort by design: the recurring record has already been saved at this
+ * point, so a category-index failure must not fail the request.
+ */
+async function provisionCategory(userId: string, tipo: string | undefined) {
+  if (!tipo?.trim()) return;
+  try {
+    await ensureCategory(userId, tipo);
+  } catch (error) {
+    console.error('Failed to provision category:', error);
+  }
+}
 
 export async function GET() {
   try {
@@ -75,6 +92,7 @@ export async function POST(request: Request) {
       user_id: userId,
     };
     const result = await createRecurringRecord(data);
+    await provisionCategory(userId, tipo);
 
     // const result = await sql`
     //   INSERT INTO recurring_records (name, accion, tipo, detalle1, detalle2, amount, frequency, active, plataforma_pago, dia)
@@ -142,6 +160,7 @@ export async function PUT(request: Request) {
       },
       userId,
     );
+    await provisionCategory(userId, tipo);
 
     // const result = await sql`
     //   UPDATE recurring_records
