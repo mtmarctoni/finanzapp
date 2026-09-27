@@ -76,3 +76,60 @@ CREATE INDEX IF NOT EXISTS idx_finance_entries_user_fecha ON finance_entries(use
 CREATE INDEX IF NOT EXISTS idx_finance_entries_user_accion ON finance_entries(user_id, accion);
 CREATE INDEX IF NOT EXISTS idx_finance_entries_user_tipo ON finance_entries(user_id, tipo);
 CREATE INDEX IF NOT EXISTS idx_recurring_records_user_id ON recurring_records(user_id);
+
+-- Migration: 20260926_create_categories
+-- Canonical list for the "categoria" dropdown, shared by /records and
+-- /recurring. The backfills below are no-ops on a fresh database (no users or
+-- records yet); they matter when this file is replayed over a populated one.
+--
+-- user_id intentionally has no REFERENCES clause, matching finance_entries and
+-- recurring_records: credentials sign-ins set the session id from the allowlist
+-- while `insertUser` mints a random users.id, so `session.user.id` is not
+-- guaranteed to exist in `users`.
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_categories_user_active ON categories(user_id, active);
+
+-- TRIM is required, not cosmetic: the Combobox create path can persist untrimmed
+-- tipo values, and ensureCategory() matches case-insensitively but not
+-- whitespace-insensitively, so an untrimmed backfill row would sit beside the
+-- tidy version as a second dropdown entry. See the migration for full rationale.
+INSERT INTO categories (user_id, name)
+SELECT DISTINCT user_id, TRIM(tipo)
+  FROM finance_entries
+ WHERE tipo IS NOT NULL AND TRIM(tipo) <> '' AND user_id IS NOT NULL
+UNION
+SELECT DISTINCT user_id, TRIM(tipo)
+  FROM recurring_records
+ WHERE tipo IS NOT NULL AND TRIM(tipo) <> '' AND user_id IS NOT NULL
+ON CONFLICT (user_id, name) DO NOTHING;
+
+-- The categories that used to be hardcoded in types/categories.ts, so nobody
+-- loses one they can currently select. WHERE true keeps the parser from
+-- attributing the trailing ON CONFLICT to an inner join.
+INSERT INTO categories (user_id, name)
+SELECT owners.user_id, c.name
+  FROM (
+    SELECT id AS user_id FROM users
+    UNION
+    SELECT user_id FROM finance_entries WHERE user_id IS NOT NULL
+    UNION
+    SELECT user_id FROM recurring_records WHERE user_id IS NOT NULL
+  ) AS owners
+ CROSS JOIN (
+    VALUES
+      ('QFI'), ('Comida'), ('Otros Gastos'), ('Viajes/ Transporte'),
+      ('Tools'), ('Formación'), ('Cripto W'), ('Hobby'), ('Cripto D'),
+      ('Empleo'), ('Alquiler'), ('Café'), ('Ads'), ('Otros Ingresos'),
+      ('Piso JB38'), ('MasTrafico'), ('Salud'), ('Autónomo')
+  ) AS c(name)
+ WHERE true
+ON CONFLICT (user_id, name) DO NOTHING;
