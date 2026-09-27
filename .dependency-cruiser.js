@@ -369,11 +369,15 @@ module.exports = {
     },
 
     // Files we never want to see reported as isolated dead code:
-    // config files, tests, DB migrations, generated/build output and docs.
+    // config files, tests, DB migrations, generated/build output, docs and
+    // local agent tool directories.
     exclude: {
       path: [
         '^\\.github/',
         '^\\.next/',
+        '^\\.agents/',
+        '^\\.claude/',
+        '^\\.opencode/',
         '^node_modules/',
         '^public/',
         '^docs/',
