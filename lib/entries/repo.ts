@@ -64,6 +64,15 @@ export interface EntryInput {
   detalle1?: string;
   detalle2?: string;
   quien?: string;
+  /**
+   * Receipt provenance. Every field is optional and every existing caller
+   * omits them: a manual entry has no merchant, no hash, and an `origen` of
+   * 'manual'.
+   */
+  merchant_id?: string;
+  content_hash?: string;
+  origen?: string;
+  confianza?: number;
 }
 
 const ALLOWED_SORT_FIELDS = new Set([
@@ -264,7 +273,8 @@ export async function insertEntry(
     await client.sql`
       INSERT INTO finance_entries (
         id, fecha, tipo, accion, que, plataforma_pago, cantidad,
-        detalle1, detalle2, quien, user_id
+        detalle1, detalle2, quien, user_id,
+        merchant_id, content_hash, origen, confianza
       ) VALUES (
         ${entryId},
         ${data.fecha}::timestamptz,
@@ -285,11 +295,40 @@ export async function insertEntry(
           /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must fall back to 'Yo', not be stored as '' */
           data.quien || 'Yo'
         },
-        ${userId}
+        ${userId},
+        ${
+          /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must become NULL; '' is not a valid UUID */
+          data.merchant_id || null
+        },
+        ${
+          /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty string must become NULL; '' would never match the unique index */
+          data.content_hash || null
+        },
+        ${
+          /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- an absent origen is a manual entry, not an empty one */
+          data.origen || 'manual'
+        },
+        ${data.confianza ?? null}::numeric
       )
     `;
   });
   return entryId;
+}
+
+/**
+ * Postgres `unique_violation` (SQLSTATE 23505).
+ *
+ * `@vercel/postgres` rethrows the driver's error object untouched, so `code`
+ * is on it. Duck-typed rather than imported as a driver type because the
+ * repository layer is not supposed to depend on the driver.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === '23505'
+  );
 }
 
 export async function updateEntryById(
