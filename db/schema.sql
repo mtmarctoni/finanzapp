@@ -7,6 +7,29 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table: merchants
+-- Merchant memory: one row per (user, normalized merchant name).
+-- Written after a receipt parse, updated after the user confirms.
+-- Declared before finance_entries because that table references merchants(id).
+CREATE TABLE IF NOT EXISTS merchants (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          VARCHAR(255) NOT NULL,
+  canonical_name   VARCHAR(255) NOT NULL,
+  normalized_name  VARCHAR(255) NOT NULL,
+  tipo             VARCHAR(255),
+  plataforma_pago  VARCHAR(255),
+  veces_visto      INTEGER NOT NULL DEFAULT 0,
+  veces_confirmado INTEGER NOT NULL DEFAULT 0,
+  veces_corregido  INTEGER NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS merchants_user_normalized_name_idx
+  ON merchants (user_id, normalized_name);
+
+CREATE INDEX IF NOT EXISTS merchants_user_id_idx ON merchants (user_id);
+
 -- Table: finance_entries
 CREATE TABLE IF NOT EXISTS finance_entries (
   id VARCHAR(255) PRIMARY KEY,
@@ -21,8 +44,21 @@ CREATE TABLE IF NOT EXISTS finance_entries (
   quien VARCHAR(255) NOT NULL DEFAULT 'Yo',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  user_id VARCHAR(255)
+  user_id VARCHAR(255),
+  merchant_id  UUID REFERENCES merchants (id) ON DELETE SET NULL,
+  content_hash VARCHAR(64),
+  origen       VARCHAR(32) NOT NULL DEFAULT 'manual',
+  confianza    NUMERIC(3, 2)
 );
+
+-- Exact-image idempotency. Partial so every manual entry (NULL hash) is
+-- unaffected, and per-user so two users' identical screenshots both save.
+CREATE UNIQUE INDEX IF NOT EXISTS finance_entries_user_content_hash_idx
+  ON finance_entries (user_id, content_hash)
+  WHERE content_hash IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS finance_entries_origen_fecha_idx
+  ON finance_entries (user_id, origen, fecha DESC);
 
 -- Table: recurring_records
 CREATE TABLE IF NOT EXISTS recurring_records (

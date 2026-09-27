@@ -105,6 +105,7 @@ The five failure modes most likely to bite in real use, most likely first. Each 
 - Create: `db/migrations/20260926_add_receipt_ingestion.sql`
 - Modify: `db/schema.sql`
 - Modify: `db/init.sql` (append)
+- Test: `__tests__/lib/receipts-schema.test.ts` (added as a deviation — see Step 3)
 
 **Interfaces:**
 
@@ -162,12 +163,14 @@ Open `db/init.sql`, find the last statement, and append the entire block from St
 
 - [ ] **Step 3: Update `db/schema.sql`**
 
-Insert this after the `finance_entries` definition, keeping the file's existing comment style:
+Insert the `merchants` table **before** the `finance_entries` definition, keeping the file's existing comment style:
 
 ```sql
+-- Table: merchants
 -- Merchant memory: one row per (user, normalized merchant name).
 -- Written after a receipt parse, updated after the user confirms.
-CREATE TABLE merchants (
+-- Declared before finance_entries because that table references merchants(id).
+CREATE TABLE IF NOT EXISTS merchants (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          VARCHAR(255) NOT NULL,
   canonical_name   VARCHAR(255) NOT NULL,
@@ -181,22 +184,47 @@ CREATE TABLE merchants (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX merchants_user_normalized_name_idx
+CREATE UNIQUE INDEX IF NOT EXISTS merchants_user_normalized_name_idx
   ON merchants (user_id, normalized_name);
 
-CREATE INDEX merchants_user_id_idx ON merchants (user_id);
+CREATE INDEX IF NOT EXISTS merchants_user_id_idx ON merchants (user_id);
 ```
 
-And add to the `finance_entries` column list, after `user_id VARCHAR(255)`:
+Then add to the `finance_entries` column list, after `user_id VARCHAR(255)` — note **no trailing comma** after `confianza`, it is the last column:
 
 ```sql
   merchant_id  UUID REFERENCES merchants (id) ON DELETE SET NULL,
   content_hash VARCHAR(64),
   origen       VARCHAR(32) NOT NULL DEFAULT 'manual',
-  confianza    NUMERIC(3, 2),
+  confianza    NUMERIC(3, 2)
 ```
 
-- [ ] **Step 4: Apply to the dev database and verify**
+And add the two `finance_entries` indexes after the table, mirroring the migration:
+
+```sql
+-- Exact-image idempotency. Partial so every manual entry (NULL hash) is
+-- unaffected, and per-user so two users' identical screenshots both save.
+CREATE UNIQUE INDEX IF NOT EXISTS finance_entries_user_content_hash_idx
+  ON finance_entries (user_id, content_hash)
+  WHERE content_hash IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS finance_entries_origen_fecha_idx
+  ON finance_entries (user_id, origen, fecha DESC);
+```
+
+**Deviation from the original plan (Step 3):** the plan said to insert `merchants`
+_after_ `finance_entries` and listed no `finance_entries` indexes. Both are wrong.
+`db/schema.sql` embeds the `merchant_id REFERENCES merchants(id)` clause inline, so
+declaring `merchants` afterwards makes the script fail outright — and `README.md:146`
+tells users to run exactly this file as their setup path. (`db/init.sql` is unaffected
+because it adds the column via `ALTER TABLE ... ADD COLUMN` _after_ `merchants` already
+exists.) The omitted indexes were also missing from the reference document even though the
+migration creates them. `__tests__/lib/receipts-schema.test.ts` now guards all three files:
+declaration order, both receipt indexes, the `WHERE content_hash IS NOT NULL` predicate,
+and migration/`init.sql` agreement. The ordering assertion was confirmed to fail when the
+defect is reintroduced.
+
+- [ ] **Step 4: Apply to the scratch database and verify**
 
 Run:
 
@@ -209,10 +237,14 @@ psql "$DATABASE_URL" -c "SELECT column_name, data_type, is_nullable FROM informa
 
 Expected: the second run exits `0` with no error (re-runnable), `\d merchants` lists all 11 columns plus the two indexes, and the `information_schema` query returns exactly four rows — `confianza` / `content_hash` / `merchant_id` nullable, `origen` not nullable with default `manual`.
 
+**Deviation from the original plan (Step 4):** the plan targeted the dev database. The
+user chose the existing `TEST_DB_*` Neon database instead, remapped onto `POSTGRES_URL` /
+`POSTGRES_URL_NON_POOLING`. The dev database must not be touched.
+
 - [ ] **Step 5: Commit**
 
 ```bash
-git add db/migrations/20260926_add_receipt_ingestion.sql db/init.sql db/schema.sql
+git add db/migrations/20260926_add_receipt_ingestion.sql db/init.sql db/schema.sql __tests__/lib/receipts-schema.test.ts
 git commit -m "feat(receipts): add merchants table and entry provenance columns"
 ```
 
@@ -976,9 +1008,14 @@ describe('applyTimezoneShift', () => {
     expect(result).toBe(new Date('2026-04-26T16:47:00').toISOString());
   });
 
-  it('is idempotent', () => {
-    const once = applyTimezoneShift('2026-04-26T16:47:00.000Z');
-    expect(applyTimezoneShift(once)).toBe(once);
+  it('preserves the wall-clock reading while re-expressing it as a UTC instant', () => {
+    const result = applyTimezoneShift('2026-04-26T16:47:00.000Z');
+    const local = new Date(result);
+    expect(local.getFullYear()).toBe(2026);
+    expect(local.getMonth()).toBe(3);
+    expect(local.getDate()).toBe(26);
+    expect(local.getHours()).toBe(16);
+    expect(local.getMinutes()).toBe(47);
   });
 
   it('returns input unchanged when the components cannot be read', () => {
@@ -1033,6 +1070,20 @@ describe('buildEntryFecha', () => {
   });
 });
 ```
+
+**Deviation from the original plan (Step 1, `applyTimezoneShift`):** the plan originally
+asserted `applyTimezoneShift` was idempotent. That assertion is unsatisfiable outside
+`UTC`, so the plan was internally inconsistent — it mandated this implementation and that
+test together. The shift is a local-wall-clock to UTC reinterpretation, and nothing in the
+string marks a value as already shifted, so a stateless converter cannot be idempotent.
+Making it idempotent would also break the local-time semantics `buildEntryFecha` and
+`components/finance-form.tsx:215-216` depend on. Production applies the transform exactly
+once, in the `CreateEntrySchema` transform on the inbound create path only
+(`app/api/v1/entries/route.ts:176,188`); stored rows are never re-validated. The
+implementation is unchanged and the assertion is replaced by a strictly stronger,
+timezone-independent property: the shift must preserve the wall-clock reading. Verified
+green in `UTC`, `Europe/Madrid`, `America/New_York`, `Asia/Tokyo`, `Australia/Sydney` and
+`Pacific/Kiritimati`.
 
 - [ ] **Step 2: Run the test to verify it fails**
 
@@ -1339,9 +1390,17 @@ Expected: PASS — the new suite plus the existing `getFormOptions` suite. The e
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/categories.ts lib/server-data.ts __tests__/lib/categories-merge.test.ts
+git add lib/categories.ts lib/server-data.ts __tests__/lib/categories-merge.test.ts __tests__/lib/categories.test.ts
 git commit -m "feat(categories): always offer the standard category list in the form"
 ```
+
+**Deviation from the original plan (Steps 1 and 6):** the pre-existing
+`__tests__/lib/categories.test.ts` is not listed in the plan's `git add` but genuinely has
+to change — its `getFormOptions` fallback test asserted `tipo: []` when the `categories`
+table is missing, and this task makes that path return the standard list instead. The plan's
+Step 1 code block also referenced a `tipoResult` binding that does not exist in the real
+`lib/server-data.ts`; the block was written against a stale copy and was adapted to the
+actual function.
 
 ---
 
