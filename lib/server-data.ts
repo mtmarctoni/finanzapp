@@ -380,6 +380,10 @@ export async function ensureCategory(
 /**
  * Server-side function to get distinct options for form dropdowns.
  * Returns options ordered by frequency of use for each field.
+ *
+ * `tipo` is sourced from the `categories` table rather than DISTINCT over
+ * finance_entries, so /records and /recurring offer the same list and a
+ * category used only by a recurring record is still selectable.
  */
 export async function getFormOptions(session: Session | null = null) {
   if (!session?.user.id) {
@@ -389,16 +393,9 @@ export async function getFormOptions(session: Session | null = null) {
   const pool = getPool();
 
   try {
-    const [tipoResult, queResult, plataformaResult, quienResult] =
+    const [tipoOptions, queResult, plataformaResult, quienResult] =
       await Promise.all([
-        pool.query(
-          `SELECT tipo AS value, COUNT(*) AS count
-             FROM finance_entries
-            WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
-            GROUP BY tipo
-            ORDER BY count DESC, tipo ASC`,
-          [session.user.id],
-        ),
+        getCategories(session),
         pool.query(
           `SELECT que AS value, COUNT(*) AS count
              FROM finance_entries
@@ -428,7 +425,7 @@ export async function getFormOptions(session: Session | null = null) {
       ]);
 
     return {
-      tipo: tipoResult.rows.map((row) => row.value as string),
+      tipo: tipoOptions,
       que: queResult.rows.map((row) => row.value as string),
       plataforma_pago: plataformaResult.rows.map((row) => row.value as string),
       quien: quienResult.rows.map((row) => row.value as string),

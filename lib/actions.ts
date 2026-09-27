@@ -31,7 +31,26 @@ import {
   type EntryInput,
   type PaginatedEntries,
 } from '@/lib/entries/repo';
+import { ensureCategory } from '@/lib/server-data';
 import { findUserByEmail, insertUser } from '@/lib/users/repo';
+
+/**
+ * Register a newly written `tipo` in the canonical `categories` table so it
+ * becomes selectable in the "categoria" dropdown.
+ *
+ * Deliberately best-effort: the record has already been saved, and failing the
+ * whole request because the category index could not be updated would lose the
+ * user's actual work. A failure only means the category will be missing from
+ * the dropdown until the next successful write.
+ */
+async function provisionCategory(userId: string, tipo: string | undefined) {
+  if (!tipo?.trim()) return;
+  try {
+    await ensureCategory(userId, tipo);
+  } catch (error) {
+    console.error('Failed to provision category:', error);
+  }
+}
 
 export async function createUser(formData: { name: string; email: string }) {
   try {
@@ -58,6 +77,7 @@ export async function createEntry(
 ) {
   try {
     await insertEntry(formData, session.user.id);
+    await provisionCategory(session.user.id, formData.tipo);
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to create entry.');
@@ -72,6 +92,7 @@ export async function updateEntry(
 ) {
   try {
     await updateEntryById(entryId, formData, session.user.id);
+    await provisionCategory(session.user.id, formData.tipo);
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to update entry.');
