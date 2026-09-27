@@ -241,6 +241,143 @@ export async function getEntryById(
 }
 
 /**
+ * Return every active category for the user, as the canonical list backing the
+ * "categoria" dropdown on both /records and /recurring.
+ *
+ * Ordered by how often the category is actually used across both tables so the
+ * common ones sit at the top, then alphabetically. The usage counts are a LEFT
+ * JOIN so a category that has never been used on a record still appears.
+ *
+ * Both COUNTs must be DISTINCT. The two joins are independent one-to-many
+ * matches on the same key, so they fan out against each other: a category with
+ * 3 entries and 2 recurring records yields 6 rows, and plain COUNT reports 6
+ * for each side (12 total) instead of 3 and 2 (5 total). That inflation is not
+ * uniform across categories -- it scales with usage in *both* tables -- so
+ * without DISTINCT it reorders the list and puts lightly-used dual-table
+ * categories above heavily-used single-table ones.
+ */
+export async function getCategories(session: Session | null = null) {
+  if (!session?.user.id) {
+    throw new Error('Not authenticated');
+  }
+
+  const pool = getPool();
+
+  try {
+    const result = await pool.query<{ name: string }>(
+      `SELECT c.name
+         FROM categories c
+         LEFT JOIN finance_entries fe
+           ON fe.tipo = c.name AND fe.user_id = c.user_id
+         LEFT JOIN recurring_records rr
+           ON rr.tipo = c.name AND rr.user_id = c.user_id
+        WHERE c.user_id = $1 AND c.active = true
+        GROUP BY c.name
+        ORDER BY COUNT(DISTINCT fe.id) + COUNT(DISTINCT rr.id) DESC, c.name ASC`,
+      [session.user.id],
+    );
+
+    return result.rows.map((row) => row.name);
+  } catch (error) {
+    // A missing `categories` table (migration not yet applied) must not take
+    // down the whole options endpoint: getFormOptions shares one connection
+    // pool and one try/catch with the other dropdown sources, so a throw here
+    // would blank out que, plataforma_pago and quien as well. Degrading to an
+    // empty list keeps the user-facing forms working against the pre-migration
+    // state, and the Combobox still allows creating a category by hand.
+    if (isMissingCategoriesTable(error)) {
+      console.warn(
+        'categories table not found; returning no categories. Apply db/migrations/20260926_create_categories.sql.',
+      );
+      return [];
+    }
+
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch categories.');
+  }
+}
+
+/**
+ * Detect "the categories table does not exist yet".
+ *
+ * Postgres reports an undefined table as SQLSTATE 42P01. The driver used here is
+ * @neondatabase/serverless (via @vercel/postgres, since `pg` is not installed),
+ * and its parseErrorMessage assigns `code` straight from the SQLSTATE field, so
+ * 42P01 arrives as `error.code`. The message text is checked as a secondary
+ * signal so this keeps working if a driver surfaces the failure without a code.
+ *
+ * Only this case degrades. A permissions or connection failure still throws,
+ * because silently returning nothing there would hide a real outage behind an
+ * empty dropdown.
+ */
+function isMissingCategoriesTable(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+
+  const candidate = error as { code?: unknown; message?: unknown };
+
+  if (candidate.code === '42P01') return true;
+
+  return (
+    typeof candidate.message === 'string' &&
+    /relation "categories" does not exist|42P01/.test(candidate.message)
+  );
+}
+
+/**
+ * Insert a category if the user does not already have one with that name.
+ *
+ * Called on every write of `tipo` so that a category introduced through a record
+ * (AI parsing, a CSV import, a typed-in combobox value) becomes selectable in the
+ * dropdown instead of only existing on the row that introduced it.
+ *
+ * Best-effort by design: a failure here must not roll back the record the user
+ * actually asked to save, so callers log and continue.
+ *
+ * The existing-name check is case-insensitive, matching how the Combobox
+ * decides whether to offer "create", so "Alquiler" and "alquiler" cannot both
+ * end up in the list. `UNIQUE (user_id, name)` is exact, so without this the
+ * second variant would insert happily and surface as a duplicate row.
+ */
+export async function ensureCategory(
+  userId: string,
+  rawName: string,
+): Promise<string> {
+  const name = rawName.trim();
+  if (!name) {
+    throw new Error('Category name cannot be empty');
+  }
+
+  const pool = getPool();
+
+  try {
+    const existing = await pool.query<{ name: string }>(
+      `SELECT name
+         FROM categories
+        WHERE user_id = $1 AND LOWER(name) = LOWER($2)
+        LIMIT 1`,
+      [userId, name],
+    );
+
+    if (existing.rows[0]) {
+      return existing.rows[0].name;
+    }
+
+    const result = await pool.query<{ name: string }>(
+      `INSERT INTO categories (user_id, name)
+            VALUES ($1, $2)
+       ON CONFLICT (user_id, name) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
+         RETURNING name`,
+      [userId, name],
+    );
+
+    return result.rows[0].name;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to save category.');
+  }
+}
+
+/**
  * Server-side function to get distinct options for form dropdowns.
  * Returns options ordered by frequency of use for each field.
  */

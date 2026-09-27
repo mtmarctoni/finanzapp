@@ -58,3 +58,24 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
 CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+
+-- Table: categories
+-- Canonical list for the "categoria" dropdown, shared by /records and
+-- /recurring. See db/migrations/20260926_create_categories.sql for the
+-- rationale and the backfill.
+--
+-- user_id intentionally has no REFERENCES clause, matching finance_entries and
+-- recurring_records: credentials sign-ins set the session id from the allowlist
+-- while `insertUser` mints a random users.id, so `session.user.id` is not
+-- guaranteed to exist in `users`.
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_categories_user_active ON categories(user_id, active);
