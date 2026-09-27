@@ -3,7 +3,7 @@
  * This ensures consistency between AI/OCR extraction and the database.
  */
 
-const STANDARD_CATEGORIES = [
+export const STANDARD_CATEGORIES = [
   // Income
   'Salario',
   'Freelance',
@@ -341,4 +341,41 @@ export function normalizeCategory(input: string): StandardCategory | string {
     `[Category] Unknown category "${trimmed}" - using as-is. Consider adding to CATEGORY_ALIASES.`,
   );
   return trimmed;
+}
+
+/**
+ * Build the `tipo` dropdown options for the finance form.
+ *
+ * The dropdown used to be built only from values already in
+ * `finance_entries`, so a brand-new user got an empty category picker and
+ * a first-time category had to be typed by hand. Standard categories are
+ * appended, in their declared order, so the picker is always complete.
+ *
+ * The historical spelling wins over the standard one, and the comparison is
+ * case-insensitive so `farmacia` does not appear next to `Farmacia`.
+ */
+export function mergeCategoryOptions(historical: string[]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const raw of historical) {
+    // `tipo` is NOT NULL, so the value is a plain string; `?.` here would be
+    // flagged by @typescript-eslint/no-unnecessary-condition, which is an error
+    // in this repo. An empty string is the only empty case worth guarding.
+    const value = raw.trim();
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(value);
+  }
+
+  for (const standard of STANDARD_CATEGORIES) {
+    const key = standard.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(standard);
+  }
+
+  return merged;
 }
