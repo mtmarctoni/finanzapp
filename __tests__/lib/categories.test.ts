@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import { type Session } from 'next-auth';
 
+import { mergeCategoryOptions } from '@/lib/categories';
 import {
   ensureCategory,
   getCategories,
@@ -296,7 +297,7 @@ describe('getFormOptions', () => {
     respondByColumn();
 
     await expect(getFormOptions(session)).resolves.toEqual({
-      tipo: ['Alquiler'],
+      tipo: mergeCategoryOptions(['Alquiler']),
       que: ['Cena'],
       plataforma_pago: ['Tarjeta'],
       quien: ['Yo'],
@@ -317,7 +318,7 @@ describe('getFormOptions', () => {
 
     const { tipo } = await getFormOptions(session);
 
-    expect(tipo).toEqual(['Alquiler']);
+    expect(tipo).toEqual(mergeCategoryOptions(['Alquiler']));
     const tipoQueries = mockQuery.mock.calls
       .map(([sql]: [string]) => sql)
       .filter((sql) => sql.includes('tipo AS value'));
@@ -346,7 +347,7 @@ describe('getFormOptions', () => {
     });
 
     await expect(getFormOptions(session)).resolves.toEqual({
-      tipo: [],
+      tipo: mergeCategoryOptions([]),
       que: ['Cena'],
       plataforma_pago: ['Tarjeta'],
       quien: ['Yo'],

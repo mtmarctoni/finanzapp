@@ -2,6 +2,7 @@ import { type Session } from 'next-auth';
 
 import type { Entry } from './definitions';
 
+import { mergeCategoryOptions } from '@/lib/categories';
 import { getPool } from '@/lib/db';
 
 /**
@@ -425,7 +426,7 @@ export async function getFormOptions(session: Session | null = null) {
       ]);
 
     return {
-      tipo: tipoOptions,
+      tipo: mergeCategoryOptions(tipoOptions),
       que: queResult.rows.map((row) => row.value as string),
       plataforma_pago: plataformaResult.rows.map((row) => row.value as string),
       quien: quienResult.rows.map((row) => row.value as string),
