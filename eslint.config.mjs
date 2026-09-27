@@ -6,6 +6,12 @@ import importX from 'eslint-plugin-import-x';
 
 export default defineConfig([
   {
+    // Local agent tool directories are git-ignored developer environment, not
+    // project source. Linting them fails type-aware parsing because they are
+    // not part of the tsconfig project.
+    ignores: ['.agents/**', '.claude/**', '.opencode/**'],
+  },
+  {
     extends: [...nextCoreWebVitals, ...nextTypescript, prettier],
     plugins: {
       'import-x': importX,

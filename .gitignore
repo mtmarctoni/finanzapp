@@ -38,3 +38,4 @@ next-env.d.ts
 # agent/tool directories
 .agents
 .claude
+.opencode
