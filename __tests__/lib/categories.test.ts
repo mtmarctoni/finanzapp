@@ -3,7 +3,11 @@ import { join } from 'node:path';
 
 import { type Session } from 'next-auth';
 
-import { ensureCategory, getCategories } from '@/lib/server-data';
+import {
+  ensureCategory,
+  getCategories,
+  getFormOptions,
+} from '@/lib/server-data';
 
 const mockQuery = jest.fn();
 
@@ -255,5 +259,97 @@ describe('categories backfill SQL', () => {
         .trim();
 
     expect(normalise(init)).toContain(normalise(migration));
+  });
+});
+
+describe('getFormOptions', () => {
+  beforeEach(() => {
+    mockQuery.mockReset();
+  });
+
+  // Answer each query by the column it selects, so a field wired to the wrong
+  // query surfaces as a mismatch instead of quietly returning another
+  // column's values.
+  function respondByColumn() {
+    mockQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM categories c')) {
+        return { rows: [{ name: 'Alquiler' }] };
+      }
+      if (sql.includes('que AS value')) {
+        return { rows: [{ value: 'Cena' }] };
+      }
+      if (sql.includes('plataforma_pago AS value')) {
+        return { rows: [{ value: 'Tarjeta' }] };
+      }
+      if (sql.includes('quien AS value')) {
+        return { rows: [{ value: 'Yo' }] };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    });
+  }
+
+  // Regression guard. An earlier draft had five queries in the Promise.all
+  // against four destructured slots: a duplicated `que` query shifted
+  // everything along, so plataforma_pago returned que values and quien
+  // returned plataforma_pago values.
+  it('maps each field to its own query', async () => {
+    respondByColumn();
+
+    await expect(getFormOptions(session)).resolves.toEqual({
+      tipo: ['Alquiler'],
+      que: ['Cena'],
+      plataforma_pago: ['Tarjeta'],
+      quien: ['Yo'],
+    });
+  });
+
+  it('runs exactly one query per field', async () => {
+    respondByColumn();
+
+    await getFormOptions(session);
+
+    // getCategories (1) + que + plataforma_pago + quien
+    expect(mockQuery).toHaveBeenCalledTimes(4);
+  });
+
+  it('sources tipo from the categories table, not DISTINCT over finance_entries', async () => {
+    respondByColumn();
+
+    const { tipo } = await getFormOptions(session);
+
+    expect(tipo).toEqual(['Alquiler']);
+    const tipoQueries = mockQuery.mock.calls
+      .map(([sql]: [string]) => sql)
+      .filter((sql) => sql.includes('tipo AS value'));
+    expect(tipoQueries).toEqual([]);
+  });
+
+  it('still returns the other fields when the categories table is missing', async () => {
+    // The options endpoint shares one try/catch across every dropdown source,
+    // so if this threw, que, plataforma_pago and quien would blank out too.
+    mockQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('FROM categories c')) {
+        throw Object.assign(new Error('relation "categories" does not exist'), {
+          code: '42P01',
+        });
+      }
+      if (sql.includes('que AS value')) {
+        return { rows: [{ value: 'Cena' }] };
+      }
+      if (sql.includes('plataforma_pago AS value')) {
+        return { rows: [{ value: 'Tarjeta' }] };
+      }
+      if (sql.includes('quien AS value')) {
+        return { rows: [{ value: 'Yo' }] };
+      }
+      throw new Error(`Unexpected query: ${sql}`);
+    });
+
+    await expect(getFormOptions(session)).resolves.toEqual({
+      tipo: [],
+      que: ['Cena'],
+      plataforma_pago: ['Tarjeta'],
+      quien: ['Yo'],
+    });
   });
 });

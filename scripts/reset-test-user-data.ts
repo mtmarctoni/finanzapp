@@ -183,6 +183,24 @@ async function resetTestUserData() {
     console.log(
       `Inserted ${recurringRecords.length} recurring records for test user.`,
     );
+    // Populate the canonical `categories` table. Both seed paths above write via
+    // raw SQL, which bypasses the app's provisionCategory() hook, so without this
+    // the "categoria" dropdown would start empty in dev and CI.
+    console.log('Syncing categories for test user...');
+    await sql`
+      INSERT INTO categories (user_id, name)
+      SELECT DISTINCT user_id, TRIM(tipo)
+        FROM finance_entries
+       WHERE user_id = ${TEST_USER_UUID}
+         AND tipo IS NOT NULL AND TRIM(tipo) <> ''
+      UNION
+      SELECT DISTINCT user_id, TRIM(tipo)
+        FROM recurring_records
+       WHERE user_id = ${TEST_USER_UUID}
+         AND tipo IS NOT NULL AND TRIM(tipo) <> ''
+      ON CONFLICT (user_id, name) DO NOTHING
+    `;
+
     console.log('Test user data reset complete.');
   } catch (error) {
     console.error('Error resetting test user data:', error);
