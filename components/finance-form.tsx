@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { z } from 'zod';
 
+import { buildReceiptSubmitContext } from '@/components/ai/receiptSubmitContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -77,6 +78,13 @@ interface ParsedData {
   ai_model?: string;
   ai_cost?: number;
   ai_paid?: boolean;
+  // Receipt provenance, from `/new?rcpt=1`
+  rcpt?: string;
+  content_hash?: string;
+  merchant_id?: string;
+  confianza?: number;
+  comercio?: string;
+  needs_review?: boolean;
 }
 
 interface FinanceFormProps {
@@ -240,12 +248,21 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
       throw new Error('User not authenticated');
     }
 
+    const { provenance, learning } = buildReceiptSubmitContext(parsedData);
+
     if (entry) {
+      // Provenance is write-once at insert. `updateEntry` does not store
+      // it (Task 11 leaves it untouched), and an edit months later is not a
+      // statement about the receipt that produced the entry.
       await updateEntry(entry.id, formattedValues, {
         user: { id: session.user.id },
       });
     } else {
-      await createEntry(formattedValues, { user: { id: session.user.id } });
+      await createEntry(
+        { ...formattedValues, ...provenance },
+        { user: { id: session.user.id } },
+        learning,
+      );
     }
     router.push('/');
     router.refresh();
@@ -284,6 +301,19 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
               Revisa y confirma los datos antes de guardar
             </p>
           </div>
+        )}
+
+        {/* A receipt with a fuzzy amount is a different situation from a
+            clean read, and it is not an `ai_text` parse: it has no banner
+            above, so the warning is its own block rather than a line inside
+            one. */}
+        {parsedData?.needs_review && (
+          <p
+            role="status"
+            className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-300"
+          >
+            La IA no estaba segura del importe. Revísalo antes de guardar.
+          </p>
         )}
 
         <Form {...form}>
