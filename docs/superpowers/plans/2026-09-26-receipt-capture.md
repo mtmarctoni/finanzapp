@@ -6081,6 +6081,82 @@ git commit -m "test(receipts): cover the receipt flow end to end and document it
 
 ---
 
+## Task 15 outcome: what actually changed, and why
+
+The E2E run is green (9/9 across chromium, firefox and webkit), but three of the plan's
+instructions were wrong or incomplete and had to be corrected. Recording them so the next
+reader does not re-learn them the hard way.
+
+### 1. The plan's category selector was the wrong combobox
+
+The plan (and the earlier draft of the spec) selected the category via
+`getByText('Selecciona un tipo')`. That is the **`accion`** combobox — its options are
+`Ingreso` / `Gasto` — not the category. Choosing `Limpieza` from it cannot work, and the
+test's final assertion would then fail for a reason that has nothing to do with the
+feature. The category combobox is the one whose placeholder is
+`Seleccionar tipo...`.
+
+Worse, on a receipt-prefilled form **neither placeholder exists**: the prefill puts
+`Supermercado` in Tipo, so `Seleccionar tipo...` is gone too. The spec now selects by
+accessible name, which is stable in both the prefilled and empty cases:
+
+```ts
+await page.getByRole('combobox', { name: 'Tipo', exact: true }).click();
+await page.getByRole('option', { name: 'Limpieza' }).click();
+```
+
+The form exposes `Acción`, `Tipo`, `Qué`, `Plataforma de pago` and `Quién` as combobox
+names. Prefer these to placeholder text everywhere.
+
+### 2. `page.waitForResponse('/api/options')` races
+
+The plan registers the waiter _after_ the navigation that triggers the `/api/options`
+request, so it can miss the response and hang until the test timeout. `create-edit.spec.ts`
+avoids this by registering the waiter inside a `Promise.all` with the click that navigates;
+the receipt flow arrives on `/new` via `router.push`, so there is no click to pair it with.
+Replaced with `await page.waitForLoadState('networkidle')`.
+
+### 3. `playwright.config.ts` started the server with npm
+
+`webServer.command` was `npm run dev`, which violates the pnpm-only policy. Changed to
+`pnpm dev`. This is a tracked-file change beyond the plan's `git add` list, and it fixes a
+real latent bug: on a pnpm-only machine the web server would fail to start.
+
+### 4. Local E2E needs two env facts the plan does not mention
+
+Running this spec outside CI required discovering both of these:
+
+- **`isAllowed()` also guards the credentials provider.** It matches on `user.name`, _not_
+  email, and answers `403 User test@example.com is not allowed to sign in.` The local
+  `.env.local` allow-list has no `Test User`, so `ALLOWED_USERS` must have it appended —
+  which is exactly what CI does (`.github/workflows/ci.yml` sets `ALLOWED_USERS: Test User`).
+  `DEV_CREDENTIALS` alone is not sufficient.
+- **`scripts/reset-test-user-data.ts` is pinned to a different UUID.** Its
+  `TEST_USER_UUID` is `f7a8b9c0-…`, which matches the CI fixture but not a locally seeded
+  scratch database, so `pnpm reset:test` silently deletes nothing there. The scratch
+  database was cleaned with direct `DELETE`s scoped to the real test-user id instead. The
+  script is worth making env-driven at some point; it is not fixed here.
+
+### 5. `merchant_id` is null in the E2E, and that is correct
+
+The route returns `merchantId` in both `parsedData.merchant_id` and `receipt.merchantId`,
+and `ReceiptUpload` forwards `parsedData` verbatim to the URL, so the real flow populates
+the FK. The E2E's canned stub omits `merchantId` on purpose: it models a _first_ visit to
+a shop that has no memory yet, which is what makes `applyMerchantConfirmation` insert the
+row with `veces_confirmado = 1, veces_corregido = 0`. Verified in the scratch database
+after a green run — `tipo = Limpieza` (the user's correction, not the model's
+`Supermercado`), `origen = receipt`, `confianza = 0.90`, and the merchant memory holding
+`Limpieza`.
+
+### 6. Step 5 (real provider, real photo) is still outstanding
+
+Not automated and not verified here. The unit tests prove the race excludes text-only
+models and prefers the first vision model; nothing in this run proves a provider accepts
+an image. That needs a real receipt photo against a real free model, checked via
+`X-Model-Used` and a `200` with `parsedData.cantidad > 0`.
+
+---
+
 ## Definition of done
 
 - [ ] `pnpm check`, `pnpm test`, `pnpm knip`, `pnpm audit`, `pnpm build` and `pnpm test:e2e` all pass.

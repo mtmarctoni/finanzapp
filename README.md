@@ -30,6 +30,7 @@ FinanzApp is a comprehensive personal finance management application built with 
 - **Responsive Design**: Optimized for both desktop and mobile devices.
 - **Secure Authentication**: Protect your data with NextAuth.js.
 - **Search & Filter**: Quickly find transactions using advanced filtering options.
+- **Receipt Capture**: Upload a receipt photo or screenshot; a vision model reads it, prefills the form, and remembers the category for that shop.
 
 ---
 
@@ -174,6 +175,10 @@ The application uses the following main tables:
 - `plataforma_pago` - Payment method/platform
 - `cantidad` - Amount
 - `detalle1`, `detalle2` - Additional details
+- `merchant_id` - Learned merchant this entry came from (nullable)
+- `content_hash` - SHA-256 of the uploaded image, for duplicate detection (nullable)
+- `origen` - How the entry was created: `manual`, `ai_text` or `receipt`
+- `confianza` - Model confidence in a parsed amount, 0–1 (nullable)
 - `created_at`, `updated_at` - Timestamps
 
 ### `recurring_records`
@@ -197,6 +202,17 @@ The application uses the following main tables:
 - `name` - Human-friendly name for the integration
 - `is_active` - Whether the key can still be used
 - `last_used_at` - Last successful authenticated request timestamp
+
+### `merchants`
+
+- `id` - Unique identifier (UUID)
+- `user_id` - Owner of the memory
+- `canonical_name` - Merchant name as first read
+- `normalized_name` - Folded key used to match the same shop (unique per user)
+- `tipo` - Category learned for this merchant
+- `plataforma_pago` - Payment method last seen here
+- `veces_visto`, `veces_confirmado`, `veces_corregido` - Counters that decide whether the memory is trusted
+- `created_at`, `updated_at` - Timestamps
 
 ---
 
@@ -261,6 +277,26 @@ curl -X POST http://localhost:3000/api/v1/entries \
     ]
   }'
 ```
+
+---
+
+### Receipt capture
+
+`POST /api/ai/parse-receipt` takes `multipart/form-data` with a single
+`image` field (JPEG, PNG, WebP, HEIC or HEIF, up to 4 MiB) and **never
+writes the bytes anywhere**: the image is hashed, checked for a previous
+identical upload, read by a vision model, and discarded. The response
+prefills `/new`; nothing is saved until the user confirms the form.
+
+The order matters: the file is validated on its magic bytes before
+anything else, an identical re-upload is answered from the SHA-256 without
+spending a model call, and only then is the image read. Receipts use
+vision-capable free models only, so an unreadable amount or merchant
+returns a field-level error instead of a zero-value entry.
+
+Merchant memory is what makes the second receipt cheaper than the first:
+a category the user has confirmed or corrected for that merchant outranks
+whatever the model proposes, and it is never applied to other users.
 
 ---
 
