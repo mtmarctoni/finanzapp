@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { QuickEntryBar } from '@/components/ai/QuickEntryBar';
+import { ReceiptUpload } from '@/components/ai/ReceiptUpload';
 import FinanceTable from '@/components/finance-table';
+import { MerchantMemoryCard } from '@/components/merchants/MerchantMemoryCard';
 import { SearchFilter } from '@/components/search-filter';
 import { TableSkeleton } from '@/components/table-skeleton';
 import { Button } from '@/components/ui/button';
@@ -63,6 +65,14 @@ export default async function RecordsPage({
 
       <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
         <QuickEntryBar />
+      </Suspense>
+
+      <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
+        <ReceiptUpload />
+      </Suspense>
+
+      <Suspense fallback={<Skeleton className="h-32 w-full rounded-lg" />}>
+        <MerchantMemoryCard />
       </Suspense>
 
       <div className="border-t pt-6">
