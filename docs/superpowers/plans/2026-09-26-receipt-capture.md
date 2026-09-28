@@ -5780,6 +5780,52 @@ git commit -m "feat(receipts): let users review and forget learned merchants"
 
 ---
 
+## Deferred follow-up: `finance-form.tsx` calendar-day slip (pre-existing, not fixed here)
+
+Found while implementing Task 12. **Not fixed in this PR** — it is a pre-existing bug that
+changes the stored day for _every_ entry created through the form, manual and AI alike, and
+fixing it is a separate decision from receipt capture.
+
+`components/finance-form.tsx:223-224`:
+
+```ts
+const dateWithTime = new Date(values.fecha); // "2026-01-01" is parsed as UTC midnight
+dateWithTime.setHours(values.hora, values.minuto); // setHours is LOCAL
+```
+
+`new Date('2026-01-01')` is `2026-01-01T00:00:00Z`, which in any non-UTC zone is a
+_different local calendar day_; `setHours` then pins the local time to that already-shifted
+day. Reproduced (`2026-01-01`, stored day shown):
+
+| Timezone             | hour=0         | hour=1         | hour=9         | hour=12        | hour=21 | hour=23 |
+| -------------------- | -------------- | -------------- | -------------- | -------------- | ------- | ------- |
+| `UTC`                | ok             | ok             | ok             | ok             | ok      | ok      |
+| `Europe/Madrid`      | **2025-12-31** | ok             | ok             | ok             | ok      | ok      |
+| `America/New_York`   | **2025-12-31** | **2025-12-31** | **2025-12-31** | **2025-12-31** | ok      | ok      |
+| `Asia/Tokyo`         | **2025-12-31** | **2025-12-31** | ok             | ok             | ok      | ok      |
+| `Pacific/Kiritimati` | **2025-12-31** | **2025-12-31** | **2025-12-31** | **2025-12-31** | ok      | ok      |
+
+Task 3 added `buildEntryFecha` to `lib/entries/normalize.ts` precisely to fix this, but the
+form **cannot** use it: `.dependency-cruiser.js:116-144` fails closed and does not
+allow-list `lib/entries/normalize.ts`, while Global Constraints forbid editing that file.
+So the helper exists, is fully tested, and is unwired.
+
+Options for whoever picks this up:
+
+1. **Local fix, no config change** — build the string in the form instead of via `Date`
+   object mutation, which is what `buildEntryFecha` does internally:
+   `new Date(\`${values.fecha}T${pad(hora)}:${pad(minuto)}:00\`)`. Two lines, no new imports,
+   no depcruise edit, at the cost of duplicating the padding logic.
+2. **Allow-list the module** — add `^lib/entries/normalize\.ts$` to the client-safe
+   allow-list. It is genuinely isomorphic (string math, `new Date`, and the already-allowed
+   `lib/logger`), so this is not a weakening of the rule, but it does edit a file the plan
+   declares off-limits.
+3. **Move the helper** into an already-allow-listed module such as `lib/utils.ts`.
+
+Note that until one of these lands, the `buildEntryFecha` docstring in
+`lib/entries/normalize.ts:112-122` is accurate: it does still describe the form as
+"deliberately different" — and that difference is the bug.
+
 ## Task 15: End-to-end coverage, docs, and the full gate
 
 **Files:**
