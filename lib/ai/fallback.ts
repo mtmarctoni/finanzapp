@@ -22,43 +22,82 @@ const opencode = process.env.OPENCODE_API_KEY
     })
   : null;
 
-// Free model configurations by provider
-export const FREE_MODELS = [
+export interface FreeModelConfig {
+  provider: 'groq' | 'openrouter' | 'opencode';
+  modelId: string;
+  name: string;
+  timeoutMs: number;
+  /**
+   * True when the model accepts image parts. Verified against
+   * `~/.cache/opencode/models.json` `modalities.input` for the opencode
+   * entries and against each provider's model card for the others.
+   *
+   * `big-pickle` is deliberately first — it is the preferred free model —
+   * and deliberately NOT flagged: it is text-only, so it can never be
+   * selected for a receipt.
+   */
+  requiresVision?: boolean;
+}
+
+/**
+ * Free model configurations, in preference order.
+ *
+ * `raceFreeProviders` awaits every model and then takes the first success in
+ * this order, so index 0 is the preferred model for text work and the first
+ * `requiresVision` entry is preferred for images. Vision timeouts are larger
+ * because a model has to encode the image before it can answer.
+ */
+export const FREE_MODELS: FreeModelConfig[] = [
   {
-    provider: 'groq' as const,
+    provider: 'opencode',
+    modelId: 'big-pickle',
+    name: 'Big Pickle (Opencode Zen Free)',
+    timeoutMs: 10000,
+  },
+  {
+    provider: 'opencode',
+    modelId: 'mimo-v2.5-free',
+    name: 'MiMo V2.5 (Opencode Zen Free Vision)',
+    timeoutMs: 25000,
+    requiresVision: true,
+  },
+  {
+    provider: 'groq',
     modelId: 'llama-3.3-70b-versatile',
     name: 'Llama 3.3 70B (Groq)',
     timeoutMs: 8000,
   },
   {
-    provider: 'groq' as const,
+    provider: 'groq',
     modelId: 'gemma2-9b-it',
     name: 'Gemma 2 9B (Groq)',
     timeoutMs: 6000,
   },
   {
-    provider: 'openrouter' as const,
+    provider: 'groq',
+    modelId: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    name: 'Llama 4 Scout 17B (Groq Vision)',
+    timeoutMs: 25000,
+    requiresVision: true,
+  },
+  {
+    provider: 'openrouter',
     modelId: 'meta-llama/llama-3.3-70b-instruct:free',
     name: 'Llama 3.3 70B (OpenRouter Free)',
     timeoutMs: 10000,
   },
   {
-    provider: 'openrouter' as const,
+    provider: 'openrouter',
     modelId: 'google/gemma-3-27b-it:free',
     name: 'Gemma 3 27B (OpenRouter Free)',
     timeoutMs: 8000,
   },
   {
-    provider: 'openrouter' as const,
+    provider: 'openrouter',
     modelId: 'openrouter/free',
     name: 'Auto-Router (OpenRouter Free)',
-    timeoutMs: 12000,
-  },
-  {
-    provider: 'opencode' as const,
-    modelId: 'big-pickle',
-    name: 'Big Pickle (Opencode Zen Free)',
-    timeoutMs: 10000,
+    timeoutMs: 25000,
+    requiresVision: true,
   },
 ];
 
@@ -151,9 +190,19 @@ export function getRecentCosts(limit: number = 10): CostEntry[] {
   return [...costHistory].reverse().slice(0, limit);
 }
 
+/**
+ * The models eligible for a request, before the "is this provider
+ * configured" filter. Pure, so the modality rules are testable without
+ * any API keys present.
+ */
+export function selectFreeModels(visionOnly: boolean): FreeModelConfig[] {
+  if (!visionOnly) return FREE_MODELS;
+  return FREE_MODELS.filter((config) => config.requiresVision === true);
+}
+
 // Get available free models based on configured providers
-function getAvailableFreeModels(): typeof FREE_MODELS {
-  return FREE_MODELS.filter((config) => {
+function getAvailableFreeModels(visionOnly: boolean): FreeModelConfig[] {
+  return selectFreeModels(visionOnly).filter((config) => {
     switch (config.provider) {
       case 'groq':
         return groq !== null;
@@ -174,7 +223,7 @@ export function isPaidFallbackAvailable(): boolean {
 
 // Create model instance
 function createModel(
-  provider: (typeof FREE_MODELS)[number]['provider'],
+  provider: FreeModelConfig['provider'],
   modelId: string,
 ): LanguageModel | null {
   switch (provider) {
@@ -202,6 +251,7 @@ export async function raceFreeProviders<T>(
   options: {
     timeoutMs?: number;
     endpoint?: string;
+    visionOnly?: boolean;
   } = {},
 ): Promise<
   | {
@@ -215,7 +265,7 @@ export async function raceFreeProviders<T>(
     }
   | { success: false; error: string; attempts: string[] }
 > {
-  const availableModels = getAvailableFreeModels();
+  const availableModels = getAvailableFreeModels(options.visionOnly === true);
 
   if (availableModels.length === 0) {
     return {
@@ -240,9 +290,13 @@ export async function raceFreeProviders<T>(
         return null;
       }
 
-      // Create timeout promise
+      // Create timeout promise. The handle is kept so the timer can be
+      // cancelled as soon as the race settles: a fast model must not leave
+      // an armed timer behind (Jest would then warn about open handles and
+      // the process would linger for the full timeout).
+      let timer: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        timer = setTimeout(() => {
           reject(
             new Error(
               `Tiempo de espera agotado después de ${config.timeoutMs}ms`,
@@ -255,7 +309,9 @@ export async function raceFreeProviders<T>(
       const { result, usage } = await Promise.race([
         operation(model, config),
         timeoutPromise,
-      ]);
+      ]).finally(() => {
+        if (timer !== undefined) clearTimeout(timer);
+      });
 
       const duration = Date.now() - startTime;
       const inputTokens = usage?.inputTokens ?? 0;
