@@ -1,184 +1,126 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { ChevronRight, Repeat } from 'lucide-react';
 
+import { CategoryTile } from '@/components/quick-add/category-icon';
 import { frequencyLabel } from '@/components/recurring/constants';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
+  amountTone,
+  formatNextDate,
+  nextOccurrence,
+  signedAmount,
+} from '@/components/recurring/utils';
 import { cn, formatCurrency } from '@/lib/utils';
 import { type RecurringRecord } from '@/types/finance';
 
 interface RecordsListProps {
   records: RecurringRecord[];
   selectedRecordId: string | null;
-  loading: boolean;
+  /** Highlight the selected row (desktop, where the detail sits beside it). */
+  showSelection: boolean;
   onSelectRecord: (id: string) => void;
-  onEditRecord: (record: RecurringRecord) => void;
-  onDeleteRecord: (id: string) => void;
 }
 
-function RecordPreview({ record }: { record: RecurringRecord }) {
-  return (
-    <div className="space-y-2">
-      <p className="font-semibold">{record.name}</p>
-      <p className="text-sm text-muted-foreground">
-        {record.accion} · {record.tipo}
-      </p>
-      <div className="text-sm grid gap-1">
-        <p>
-          <span className="font-medium">Monto:</span>{' '}
-          {formatCurrency(record.amount)}
-        </p>
-        <p>
-          <span className="font-medium">Frecuencia:</span>{' '}
-          {frequencyLabel[record.frequency]}
-        </p>
-        <p>
-          <span className="font-medium">Día:</span> {record.dia}
-        </p>
-        <p>
-          <span className="font-medium">Plataforma:</span>{' '}
-          {record.plataforma_pago}
-        </p>
-        {record.detalle1 ? (
-          <p>
-            <span className="font-medium">Detalle 1:</span> {record.detalle1}
-          </p>
-        ) : null}
-        {record.detalle2 ? (
-          <p>
-            <span className="font-medium">Detalle 2:</span> {record.detalle2}
-          </p>
-        ) : null}
-        <p>
-          <span className="font-medium">Quién:</span> {record.quien || 'Yo'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function RecordItem({
+function RecordRow({
   record,
   isSelected,
-  loading,
-  onSelectRecord,
-  onEditRecord,
-  onDeleteRecord,
+  onSelect,
 }: {
   record: RecurringRecord;
   isSelected: boolean;
-  loading: boolean;
-  onSelectRecord: (id: string) => void;
-  onEditRecord: (record: RecurringRecord) => void;
-  onDeleteRecord: (id: string) => void;
+  onSelect: () => void;
 }) {
+  const subtitle = [
+    frequencyLabel[record.frequency],
+    `día ${record.dia}`,
+    record.plataforma_pago && record.plataforma_pago !== 'any'
+      ? record.plataforma_pago
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
-    <HoverCard openDelay={120} closeDelay={100}>
-      <HoverCardTrigger asChild>
-        <button
-          type="button"
-          onClick={() => onSelectRecord(record.id)}
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={isSelected}
+      aria-label={`Ver ${record.name}`}
+      className={cn(
+        'group -mx-2 flex h-16 w-[calc(100%+1rem)] items-center gap-3 rounded-[14px] px-2 text-left transition-colors hover:bg-surface-2/60',
+        isSelected && 'bg-surface-2 hover:bg-surface-2',
+      )}
+    >
+      <CategoryTile
+        name={record.tipo || record.name}
+        className={cn(!record.active && 'opacity-40 grayscale')}
+      />
+      <span className="min-w-0 flex-1">
+        <span
           className={cn(
-            'w-full text-left rounded-lg border px-3 py-3 transition-all',
-            isSelected
-              ? 'border-primary bg-primary/10 shadow-sm'
-              : 'border-border hover:border-primary/40 hover:bg-muted/30',
+            'block truncate text-[15px] font-semibold tracking-[-0.01em]',
+            !record.active && 'text-subtle',
           )}
-          aria-pressed={isSelected}
-          aria-label={`Seleccionar ${record.name}`}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h4 className="font-medium truncate">{record.name}</h4>
-                <Badge variant={record.active ? 'default' : 'secondary'}>
-                  {record.active ? 'Activo' : 'Inactivo'}
-                </Badge>
-                <Badge variant="outline">
-                  {frequencyLabel[record.frequency]}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1 truncate">
-                {record.accion} · {record.tipo} · Día {record.dia} ·{' '}
-                {record.plataforma_pago} · {record.quien || 'Yo'}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 sm:justify-end">
-              <span className="font-semibold">
-                {formatCurrency(record.amount)}
-              </span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditRecord(record);
-                  }}
-                  disabled={loading}
-                  aria-label={`Editar ${record.name}`}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteRecord(record.id);
-                  }}
-                  disabled={loading}
-                  aria-label={`Eliminar ${record.name}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </button>
-      </HoverCardTrigger>
-
-      <HoverCardContent align="start" className="w-80">
-        <RecordPreview record={record} />
-      </HoverCardContent>
-    </HoverCard>
+          {record.name}
+        </span>
+        <span className="block truncate text-[13px] text-subtle">
+          {subtitle}
+        </span>
+      </span>
+      <span className="shrink-0 text-right">
+        <span
+          className={cn(
+            'num block text-[15px] font-semibold',
+            record.active ? amountTone(record.accion) : 'text-faint',
+          )}
+        >
+          {record.accion === 'Ingreso' ? '+' : ''}
+          {formatCurrency(signedAmount(record))}
+        </span>
+        <span className="block text-[12px] text-faint">
+          {record.active
+            ? formatNextDate(nextOccurrence(record.dia))
+            : 'Pausado'}
+        </span>
+      </span>
+      <ChevronRight className="hidden h-4 w-4 shrink-0 text-faint lg:block" />
+    </button>
   );
 }
 
 export function RecordsList({
   records,
   selectedRecordId,
-  loading,
+  showSelection,
   onSelectRecord,
-  onEditRecord,
-  onDeleteRecord,
 }: RecordsListProps) {
   if (records.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        No se encontraron registros para este filtro.
+      <div className="flex flex-col items-center rounded-[20px] border border-hairline bg-surface px-6 py-12 text-center">
+        <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-surface-3 text-subtle">
+          <Repeat className="h-5 w-5" />
+        </span>
+        <p className="mt-4 text-[15px] font-semibold">Nada por aquí</p>
+        <p className="mt-1 text-[13px] text-subtle">
+          No hay recurrentes que coincidan con este filtro.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="lg:col-span-2 rounded-xl border bg-card p-3 sm:p-4 space-y-2 max-h-155 overflow-y-auto">
-      {records.map((record) => (
-        <RecordItem
+    <ul className="rounded-[20px] border border-hairline bg-surface px-4 py-1">
+      {records.map((record, index) => (
+        <li
           key={record.id}
-          record={record}
-          isSelected={record.id === selectedRecordId}
-          loading={loading}
-          onSelectRecord={onSelectRecord}
-          onEditRecord={onEditRecord}
-          onDeleteRecord={onDeleteRecord}
-        />
+          className={cn(index > 0 && 'border-t border-hairline')}
+        >
+          <RecordRow
+            record={record}
+            isSelected={showSelection && record.id === selectedRecordId}
+            onSelect={() => onSelectRecord(record.id)}
+          />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
