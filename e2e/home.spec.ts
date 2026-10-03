@@ -60,11 +60,8 @@ test.describe('Home Page', () => {
   test('should filter entries by type', async ({ page }) => {
     await page.goto('/records');
 
-    await page.getByRole('combobox').nth(0).click();
-
-    await page.getByRole('option', { name: 'Ingresos' }).click();
-
-    await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+    // Type filters are chips that apply on tap.
+    await page.getByRole('button', { name: 'Ingresos', exact: true }).click();
 
     await expect(page).toHaveURL(/.*accion=Ingreso.*/);
     await page.waitForLoadState('networkidle');

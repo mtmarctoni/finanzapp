@@ -1,21 +1,40 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Inter_Tight } from 'next/font/google';
 import type React from 'react';
 
 import './globals.css';
 import { ChatWidget } from '@/components/ai/ChatWidget';
 import AuthProvider from '@/components/context/AuthProvider';
 import { MobileNav } from '@/components/mobile-nav';
-import { Navbar } from '@/components/navbar';
+import { QuickAddProvider } from '@/components/quick-add/quick-add-context';
 import { Sidebar } from '@/components/sidebar';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 
-const inter = Inter({ subsets: ['latin'] });
+const interTight = Inter_Tight({
+  subsets: ['latin'],
+  variable: '--font-inter-tight',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Finanzas Personales',
   description: 'Aplicación para gestionar finanzas personales',
+  appleWebApp: {
+    capable: true,
+    title: 'Finanzas',
+    statusBarStyle: 'black-translucent',
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+    { media: '(prefers-color-scheme: light)', color: '#f2f2f7' },
+  ],
 };
 
 export default function RootLayout({
@@ -25,26 +44,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} bg-background text-foreground`}>
+      <body className={`${interTight.variable} font-sans`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <AuthProvider>
-            <div className="flex min-h-screen flex-col lg:flex-row">
-              <Sidebar />
-              <div className="flex-1 flex flex-col">
-                <Navbar />
-                <main className="flex-1 px-4 pb-24 pt-4 md:px-6 md:pb-6 lg:pt-6 safe-bottom">
-                  <div className="mx-auto w-full max-w-7xl">{children}</div>
-                </main>
-                <MobileNav />
+            <QuickAddProvider>
+              <div className="flex min-h-dvh">
+                <Sidebar />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-safe pb-tabbar md:px-8 md:pb-12">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
-            <Toaster />
-            <ChatWidget />
+              <MobileNav />
+              <Toaster />
+              <ChatWidget />
+            </QuickAddProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
