@@ -96,11 +96,20 @@ Ask "what kind of change is this?" and let the type answer:
   footer → major.
 - Everything else → one of the silent types above.
 
-Because a redesign like PR #122 is a `feat`, it will correctly land as a
-minor. Reach for `BREAKING CHANGE` only when something genuinely stops working
-that used to work — in this codebase that means a ledger schema change, a
-removed API field, or a changed calculation. Renaming a component or restyling
-the UI is **not** breaking, no matter how large the diff.
+Reach for `BREAKING CHANGE` only when something that used to work stops
+working the way users rely on it. In this codebase that means:
+
+- a ledger schema change, a removed API field, or a changed calculation;
+- a change to how users get around and operate the app: navigation replaced,
+  a default they relied on changed (such as the theme no longer following the
+  system), or a route now landing somewhere else.
+
+The size of the diff is not the test. Restyling, renaming a component, or
+rebuilding a page that still works the same way is a `feat` or `refactor`, no
+matter how large. PR #122 is the reference case: its many restyle commits are
+plain `feat`, and only `feat(shell)`, which replaced the navbar, made the app
+dark-only and sent `/` to the dashboard, carries the `BREAKING CHANGE` footer
+that makes it a major release.
 
 ## Conventional Commit Convention
 
