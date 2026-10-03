@@ -1,52 +1,89 @@
-import { CircleDollarSign, Clock3, Repeat, Sparkles } from 'lucide-react';
-
-import { formatCurrency } from '@/lib/utils';
+import { Money } from '@/components/dashboard/money';
+import { formatNextDate } from '@/components/recurring/utils';
+import { cn } from '@/lib/utils';
 
 interface SummaryCardsProps {
-  totalRecords: number;
   activeRecords: number;
   inactiveRecords: number;
+  monthlyCommitted: number;
+  monthlyIncome: number;
   monthlyEstimate: number;
+  nextCharge: { name: string; date: Date } | null;
 }
 
 export function SummaryCards({
-  totalRecords,
   activeRecords,
   inactiveRecords,
+  monthlyCommitted,
+  monthlyIncome,
   monthlyEstimate,
+  nextCharge,
 }: SummaryCardsProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Repeat className="h-4 w-4" />
-          Registros
-        </div>
-        <p className="mt-2 text-2xl font-semibold">{totalRecords}</p>
-      </div>
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Sparkles className="h-4 w-4" />
-          Activos
-        </div>
-        <p className="mt-2 text-2xl font-semibold">{activeRecords}</p>
-      </div>
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <Clock3 className="h-4 w-4" />
-          Inactivos
-        </div>
-        <p className="mt-2 text-2xl font-semibold">{inactiveRecords}</p>
-      </div>
-      <div className="rounded-xl border bg-card p-4">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm">
-          <CircleDollarSign className="h-4 w-4" />
-          Estimado mensual
-        </div>
-        <p className="mt-2 text-2xl font-semibold">
-          {formatCurrency(monthlyEstimate)}
+    <section
+      aria-label="Resumen"
+      className="grid grid-cols-2 gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]"
+    >
+      <div className="col-span-2 rounded-[20px] border border-hairline bg-surface p-5 lg:col-span-1">
+        <p className="text-[13px] font-medium text-subtle">
+          Comprometido al mes
+        </p>
+        <p className="mt-3">
+          <Money
+            amount={monthlyCommitted}
+            className="display-num text-[44px] font-semibold md:text-[56px]"
+            tailClassName="text-[26px] font-medium text-faint md:text-[32px]"
+          />
+        </p>
+        <p className="mt-3 text-[13px] text-subtle">
+          {activeRecords}{' '}
+          {activeRecords === 1 ? 'cargo activo' : 'cargos activos'}
+          {inactiveRecords > 0 && (
+            <span className="text-faint">
+              {' '}
+              · {inactiveRecords}{' '}
+              {inactiveRecords === 1 ? 'pausado' : 'pausados'}
+            </span>
+          )}
+          <span className="text-faint"> · neto </span>
+          <span
+            className={cn(
+              'num font-medium',
+              monthlyEstimate > 0 ? 'text-positive' : 'text-foreground',
+            )}
+          >
+            <Money
+              amount={monthlyEstimate}
+              signed
+              tailClassName="text-inherit"
+            />
+          </span>
         </p>
       </div>
-    </div>
+
+      <div className="flex flex-col rounded-[20px] border border-hairline bg-surface p-4">
+        <p className="text-[13px] font-medium text-subtle">Ingresos fijos</p>
+        <p className="mt-auto pt-3 text-[22px] font-semibold tracking-[-0.03em] text-positive lg:text-[28px]">
+          <Money
+            amount={monthlyIncome}
+            signed
+            tailClassName="text-[15px] text-positive/60"
+          />
+        </p>
+      </div>
+      <div className="flex min-w-0 flex-col rounded-[20px] border border-hairline bg-surface p-4">
+        <p className="text-[13px] font-medium text-subtle">Próximo cargo</p>
+        {nextCharge ? (
+          <div className="mt-auto pt-3">
+            <p className="truncate text-[22px] font-semibold tracking-[-0.03em] lg:text-[28px]">
+              {formatNextDate(nextCharge.date)}
+            </p>
+            <p className="truncate text-[12px] text-faint">{nextCharge.name}</p>
+          </div>
+        ) : (
+          <p className="mt-2 text-[22px] font-semibold text-faint">—</p>
+        )}
+      </div>
+    </section>
   );
 }

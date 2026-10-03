@@ -24,12 +24,12 @@ export type RecurringFormData = {
 
 export const INITIAL_RECURRING_FORM: RecurringFormData = {
   name: '',
-  accion: '',
+  accion: 'Gasto',
   tipo: '',
   detalle1: '',
   detalle2: '',
   quien: 'Yo',
-  amount: '0',
+  amount: '',
   frequency: 'monthly',
   active: true,
   dia: 1,

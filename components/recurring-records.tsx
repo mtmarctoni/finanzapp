@@ -1,10 +1,18 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { RecordDetailPanel } from '@/components/recurring/record-detail-panel';
+import { PageHeader } from '@/components/page-header';
+import {
+  RecordDetail,
+  RecordDetailPanel,
+} from '@/components/recurring/record-detail-panel';
 import { RecordForm } from '@/components/recurring/record-form';
-import { RecordsControls } from '@/components/recurring/records-controls';
+import {
+  GenerateCard,
+  RecordsControls,
+} from '@/components/recurring/records-controls';
 import { RecordsList } from '@/components/recurring/records-list';
 import { SummaryCards } from '@/components/recurring/summary-cards';
 import {
@@ -13,13 +21,16 @@ import {
   type RecurringFormData,
   type SortState,
 } from '@/components/recurring/types';
+import { useIsWide } from '@/components/recurring/use-is-wide';
 import { useRecurringRecords } from '@/components/recurring/use-recurring-records';
-import { calculateMonthlyEstimate } from '@/components/recurring/utils';
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+  calculateMonthlyCommitted,
+  calculateMonthlyEstimate,
+  calculateMonthlyIncome,
+  nextOccurrence,
+} from '@/components/recurring/utils';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { type RecurringRecord } from '@/types/finance';
 
@@ -46,6 +57,8 @@ export default function RecurringRecords() {
   const [search, setSearch] = useState('');
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [generateDate, setGenerateDate] = useState(new Date());
+  const [detailOpen, setDetailOpen] = useState(false);
+  const isWide = useIsWide();
 
   const resetForm = () => {
     setEditingRecord(null);
@@ -98,6 +111,7 @@ export default function RecurringRecords() {
   };
 
   const handleEditRecord = (record: RecurringRecord) => {
+    setDetailOpen(false);
     setEditingRecord(record);
     setFormOpen(true);
     setFormData({
@@ -107,7 +121,7 @@ export default function RecurringRecords() {
       detalle1: record.detalle1 || '',
       detalle2: record.detalle2 || '',
       quien: record.quien || 'Yo',
-      amount: record.amount.toString(),
+      amount: String(record.amount),
       frequency: record.frequency,
       active: record.active,
       dia: record.dia,
@@ -126,22 +140,40 @@ export default function RecurringRecords() {
   };
 
   const handleDeleteRecord = async (id: string) => {
-    await deleteRecord(id);
+    const ok = await deleteRecord(id);
+    if (ok) setDetailOpen(false);
   };
 
   const handleGenerateRecords = async () => {
     await generateRecords(generateDate);
   };
 
-  const totalRecords = recurringRecords.length;
   const activeRecords = recurringRecords.filter(
     (record) => record.active,
   ).length;
-  const inactiveRecords = totalRecords - activeRecords;
+  const inactiveRecords = recurringRecords.length - activeRecords;
   const monthlyEstimate = useMemo(
     () => calculateMonthlyEstimate(recurringRecords),
     [recurringRecords],
   );
+  const monthlyCommitted = useMemo(
+    () => calculateMonthlyCommitted(recurringRecords),
+    [recurringRecords],
+  );
+  const monthlyIncome = useMemo(
+    () => calculateMonthlyIncome(recurringRecords),
+    [recurringRecords],
+  );
+  const nextCharge = useMemo(() => {
+    const upcoming = recurringRecords
+      .filter((record) => record.active && record.accion !== 'Ingreso')
+      .map((record) => ({
+        name: record.name,
+        date: nextOccurrence(record.dia),
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+    return upcoming[0] ?? null;
+  }, [recurringRecords]);
 
   const filteredRecords = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -170,7 +202,8 @@ export default function RecurringRecords() {
 
     return [...bySearch].sort((left, right) => {
       if (sortBy === 'name') return left.name.localeCompare(right.name);
-      if (sortBy === 'amount') return right.amount - left.amount;
+      if (sortBy === 'amount')
+        return Number(right.amount) - Number(left.amount);
       return left.dia - right.dia;
     });
   }, [filter, recurringRecords, search, sortBy]);
@@ -180,74 +213,131 @@ export default function RecurringRecords() {
   const hasActiveFilters =
     search.trim().length > 0 || filter !== 'all' || sortBy !== 'day';
 
+  const openNewForm = () => {
+    resetForm();
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    resetForm();
+    setFormOpen(false);
+  };
+
   return (
-    <div className="space-y-6">
-      <SummaryCards
-        totalRecords={totalRecords}
-        activeRecords={activeRecords}
-        inactiveRecords={inactiveRecords}
-        monthlyEstimate={monthlyEstimate}
+    <>
+      <PageHeader
+        title="Recurrentes"
+        eyebrow="Cargos e ingresos fijos"
+        actions={
+          <Button size="sm" onClick={openNewForm} className="h-10 px-4">
+            <Plus />
+            Nuevo
+          </Button>
+        }
       />
 
-      <Collapsible open={formOpen} onOpenChange={setFormOpen}>
-        <RecordsControls
-          loading={loading}
-          formOpen={formOpen}
-          isEditing={Boolean(editingRecord)}
-          generateDate={generateDate}
-          search={search}
-          filter={filter}
-          sortBy={sortBy}
-          resultsCount={filteredRecords.length}
-          hasActiveFilters={hasActiveFilters}
-          onGenerateDateChange={setGenerateDate}
-          onGenerateRecords={handleGenerateRecords}
-          onToggleForm={() => setFormOpen((prev) => !prev)}
-          onSearchChange={setSearch}
-          onFilterChange={setFilter}
-          onSortChange={setSortBy}
-          onClearFilters={() => {
-            setSearch('');
-            setFilter('all');
-            setSortBy('day');
-          }}
+      <div className="space-y-6">
+        <SummaryCards
+          activeRecords={activeRecords}
+          inactiveRecords={inactiveRecords}
+          monthlyCommitted={monthlyCommitted}
+          monthlyIncome={monthlyIncome}
+          monthlyEstimate={monthlyEstimate}
+          nextCharge={nextCharge}
         />
 
-        <CollapsibleTrigger className="sr-only">
-          Alternar formulario de registro recurrente
-        </CollapsibleTrigger>
-        <CollapsibleContent>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="min-w-0 space-y-3">
+            <h2 className="px-1 text-[17px] font-semibold tracking-[-0.02em]">
+              Tus recurrentes
+            </h2>
+            <RecordsControls
+              search={search}
+              filter={filter}
+              sortBy={sortBy}
+              resultsCount={filteredRecords.length}
+              hasActiveFilters={hasActiveFilters}
+              onSearchChange={setSearch}
+              onFilterChange={setFilter}
+              onSortChange={setSortBy}
+              onClearFilters={() => {
+                setSearch('');
+                setFilter('all');
+                setSortBy('day');
+              }}
+            />
+            <RecordsList
+              records={filteredRecords}
+              selectedRecordId={selectedRecordId}
+              showSelection={isWide}
+              onSelectRecord={(id) => {
+                setSelectedRecordId(id);
+                if (!isWide) setDetailOpen(true);
+              }}
+            />
+          </section>
+
+          <div className="space-y-4 lg:pt-10">
+            {isWide && (
+              <RecordDetailPanel
+                record={selectedRecord}
+                loading={loading}
+                onEdit={handleEditRecord}
+                onDelete={handleDeleteRecord}
+              />
+            )}
+            <GenerateCard
+              loading={loading}
+              generateDate={generateDate}
+              onGenerateDateChange={setGenerateDate}
+              onGenerateRecords={handleGenerateRecords}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Dialog
+        open={!isWide && detailOpen && Boolean(selectedRecord)}
+        onOpenChange={setDetailOpen}
+      >
+        <DialogContent
+          aria-describedby={undefined}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
+          {selectedRecord && (
+            <RecordDetail
+              record={selectedRecord}
+              loading={loading}
+              onEdit={handleEditRecord}
+              onDelete={handleDeleteRecord}
+              titleAs={DialogTitle}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={formOpen}
+        onOpenChange={(open) => (open ? setFormOpen(true) : closeForm())}
+      >
+        <DialogContent
+          aria-describedby={undefined}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="sm:max-w-xl"
+        >
+          <DialogTitle className="sr-only">
+            {editingRecord ? 'Editar recurrente' : 'Nuevo recurrente'}
+          </DialogTitle>
           <RecordForm
             formData={formData}
             loading={loading}
             isEditing={Boolean(editingRecord)}
             onChange={setFormData}
-            onCancel={() => {
-              resetForm();
-              setFormOpen(false);
-            }}
+            onCancel={closeForm}
             onSubmit={editingRecord ? handleUpdateRecord : handleAddRecord}
           />
-        </CollapsibleContent>
-      </Collapsible>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <RecordsList
-          records={filteredRecords}
-          selectedRecordId={selectedRecordId}
-          loading={loading}
-          onSelectRecord={setSelectedRecordId}
-          onEditRecord={handleEditRecord}
-          onDeleteRecord={handleDeleteRecord}
-        />
-
-        <RecordDetailPanel
-          record={selectedRecord}
-          loading={loading}
-          onEdit={handleEditRecord}
-          onDelete={handleDeleteRecord}
-        />
-      </div>
-    </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

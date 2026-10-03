@@ -1,30 +1,55 @@
 import { format } from 'date-fns';
-import { CalendarDays, Plus, Search } from 'lucide-react';
+import { CalendarDays, Search, X } from 'lucide-react';
 
 import { type FilterState, type SortState } from '@/components/recurring/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+const FILTERS: { value: FilterState; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'active', label: 'Activos' },
+  { value: 'inactive', label: 'Pausados' },
+];
+
+const SORTS: { value: SortState; label: string }[] = [
+  { value: 'day', label: 'Por día' },
+  { value: 'amount', label: 'Por importe' },
+  { value: 'name', label: 'Por nombre' },
+];
+
+function Pill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'h-9 shrink-0 rounded-full px-4 text-[13px] font-semibold transition-colors',
+        active
+          ? 'bg-foreground text-background'
+          : 'bg-surface-2 text-subtle hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 interface RecordsControlsProps {
-  loading: boolean;
-  formOpen: boolean;
-  isEditing: boolean;
-  generateDate: Date;
   search: string;
   filter: FilterState;
   sortBy: SortState;
   resultsCount: number;
   hasActiveFilters: boolean;
-  onGenerateDateChange: (date: Date) => void;
-  onGenerateRecords: () => void;
-  onToggleForm: () => void;
   onSearchChange: (value: string) => void;
   onFilterChange: (value: FilterState) => void;
   onSortChange: (value: SortState) => void;
@@ -32,100 +57,130 @@ interface RecordsControlsProps {
 }
 
 export function RecordsControls({
-  loading,
-  formOpen,
-  isEditing,
-  generateDate,
   search,
   filter,
   sortBy,
   resultsCount,
   hasActiveFilters,
-  onGenerateDateChange,
-  onGenerateRecords,
-  onToggleForm,
   onSearchChange,
   onFilterChange,
   onSortChange,
   onClearFilters,
 }: RecordsControlsProps) {
   return (
-    <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-          <Input
-            type="date"
-            value={format(generateDate, 'yyyy-MM-dd')}
-            onChange={(e) => onGenerateDateChange(new Date(e.target.value))}
-            className="w-full sm:w-48"
-          />
-          <Button onClick={onGenerateRecords} disabled={loading}>
-            <CalendarDays className="mr-2 h-4 w-4" />
-            Generar registros
-          </Button>
-        </div>
-
-        <Button
-          variant={formOpen ? 'secondary' : 'default'}
-          onClick={onToggleForm}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {isEditing ? 'Editando registro' : 'Nuevo registro'}
-        </Button>
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
+        <Input
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Buscar recurrentes"
+          aria-label="Buscar recurrentes"
+          className="rounded-xl border-transparent pl-10"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => onSearchChange('')}
+            aria-label="Borrar búsqueda"
+            className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-faint hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <div className="relative sm:col-span-2">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar por nombre, categoría, plataforma o detalle..."
-            className="pl-9"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={filter}
-            onValueChange={(value) => onFilterChange(value as FilterState)}
+      <div className="rail -mx-4 px-4 md:mx-0 md:px-0 md:[-webkit-mask-image:none] md:[mask-image:none]">
+        {FILTERS.map((item) => (
+          <Pill
+            key={item.value}
+            active={filter === item.value}
+            onClick={() => onFilterChange(item.value)}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="active">Activos</SelectItem>
-              <SelectItem value="inactive">Inactivos</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={sortBy}
-            onValueChange={(value) => onSortChange(value as SortState)}
+            {item.label}
+          </Pill>
+        ))}
+        <span
+          aria-hidden
+          className="mx-1 my-2 w-px shrink-0 bg-hairline-strong"
+        />
+        {SORTS.map((item) => (
+          <Pill
+            key={item.value}
+            active={sortBy === item.value}
+            onClick={() => onSortChange(item.value)}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Ordenar" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="day">Día</SelectItem>
-              <SelectItem value="amount">Monto</SelectItem>
-              <SelectItem value="name">Nombre</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            {item.label}
+          </Pill>
+        ))}
       </div>
 
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
-          {resultsCount} registros encontrados
+      <div className="flex h-6 items-center justify-between px-1 text-[13px]">
+        <span className="text-faint">
+          {resultsCount} {resultsCount === 1 ? 'recurrente' : 'recurrentes'}
         </span>
         {hasActiveFilters ? (
-          <Button variant="ghost" size="sm" onClick={onClearFilters}>
+          <button
+            type="button"
+            onClick={onClearFilters}
+            className="font-medium text-subtle hover:text-foreground"
+          >
             Limpiar filtros
-          </Button>
+          </button>
         ) : null}
       </div>
     </div>
+  );
+}
+
+interface GenerateCardProps {
+  loading: boolean;
+  generateDate: Date;
+  onGenerateDateChange: (date: Date) => void;
+  onGenerateRecords: () => void;
+}
+
+/** Turns the active recurring records into real movements for a month. */
+export function GenerateCard({
+  loading,
+  generateDate,
+  onGenerateDateChange,
+  onGenerateRecords,
+}: GenerateCardProps) {
+  return (
+    <section className="rounded-[20px] border border-hairline bg-surface p-4">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-3 text-subtle">
+          <CalendarDays className="h-[18px] w-[18px]" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[15px] font-semibold tracking-[-0.01em]">
+            Generar movimientos
+          </h2>
+          <p className="mt-0.5 text-[13px] text-subtle">
+            Crea los registros del mes a partir de los recurrentes activos.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Input
+          type="date"
+          aria-label="Fecha de generación"
+          value={format(generateDate, 'yyyy-MM-dd')}
+          onChange={(e) => {
+            if (e.target.value) onGenerateDateChange(new Date(e.target.value));
+          }}
+          className="sm:w-48"
+        />
+        <Button
+          variant="secondary"
+          onClick={onGenerateRecords}
+          disabled={loading}
+          className="sm:flex-1"
+        >
+          Generar registros
+        </Button>
+      </div>
+    </section>
   );
 }
