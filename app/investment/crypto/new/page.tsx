@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function NewCryptoTransactionPage() {
   return (
-    <div className="container mx-auto py-6 max-w-2xl">
+    <div className="mx-auto max-w-2xl">
       <CryptoTransactionForm />
     </div>
   );

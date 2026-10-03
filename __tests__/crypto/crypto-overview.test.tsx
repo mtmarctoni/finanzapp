@@ -46,7 +46,7 @@ describe('CryptoOverview', () => {
     mockGetCryptoOverview.mockReset();
   });
 
-  it('renders stat cards and the holdings table with P/L formatting', async () => {
+  it('renders stat cards and the holdings list with P/L formatting', async () => {
     mockGetCryptoOverview.mockResolvedValue(overviewFixture);
 
     render(<CryptoOverview />);
@@ -59,10 +59,10 @@ describe('CryptoOverview', () => {
     expect(screen.getByText('P/L no realizado')).toBeInTheDocument();
     expect(screen.getByText('P/L realizado')).toBeInTheDocument();
 
-    const btcRow = screen.getByText('BTC').closest('tr');
+    const btcRow = screen.getByText('BTC').closest('li');
     expect(btcRow).toHaveTextContent('0,5');
     expect(btcRow).toHaveTextContent('+15.000,00 €');
-    expect(btcRow).toHaveTextContent('(100.0%)');
+    expect(btcRow).toHaveTextContent('+100,0 %');
   });
 
   it('warns about symbols without CoinGecko prices', async () => {
