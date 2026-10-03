@@ -1,39 +1,43 @@
 'use client';
 
 import {
+  ArrowDown,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  ArrowUp,
+  ArrowUpDown,
+  ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Edit,
+  Copy,
+  Flag,
+  Gift,
+  type LucideIcon,
+  Pencil,
+  Percent,
+  Receipt,
+  Repeat2,
   Trash2,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useTransition, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 
-import { Badge } from '@/components/ui/badge';
+import {
+  openCryptoForm,
+  useCryptoChanged,
+} from '@/components/crypto/crypto-form-sheet';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ITEMS_PER_PAGE } from '@/config';
 import {
   getCryptoTransactions,
   deleteCryptoTransaction,
   duplicateCryptoTransaction,
 } from '@/lib/crypto-data';
-import { formatDate } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import type { CryptoTransaction } from '@/types/finance';
 
 interface CryptoTransactionsResponse {
@@ -43,21 +47,83 @@ interface CryptoTransactionsResponse {
   currentPage: number;
 }
 
-const TRANSACTION_TYPE_LABELS: Record<
+/**
+ * Direction drives the amount's sign: what enters the portfolio is +, what
+ * leaves it is -, and moves between your own wallets carry no sign.
+ */
+const TRANSACTION_TYPES: Record<
   string,
-  {
-    label: string;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
-  }
+  { label: string; icon: LucideIcon; direction: 'in' | 'out' | 'move' }
 > = {
-  deposit: { label: 'Depósito', variant: 'default' },
-  withdrawal: { label: 'Retiro', variant: 'destructive' },
-  wallet_transfer: { label: 'Transferencia', variant: 'secondary' },
-  exchange: { label: 'Intercambio', variant: 'outline' },
-  staking: { label: 'Staking', variant: 'default' },
-  airdrop: { label: 'Airdrop', variant: 'default' },
-  fee: { label: 'Comisión', variant: 'destructive' },
+  deposit: { label: 'Depósito', icon: ArrowDownLeft, direction: 'in' },
+  withdrawal: { label: 'Retiro', icon: ArrowUpRight, direction: 'out' },
+  wallet_transfer: {
+    label: 'Transferencia',
+    icon: ArrowLeftRight,
+    direction: 'move',
+  },
+  exchange: { label: 'Intercambio', icon: Repeat2, direction: 'move' },
+  staking: { label: 'Staking', icon: Percent, direction: 'in' },
+  airdrop: { label: 'Airdrop', icon: Gift, direction: 'in' },
+  fee: { label: 'Comisión', icon: Receipt, direction: 'out' },
+  genesis: { label: 'Génesis', icon: Flag, direction: 'in' },
 };
+
+function typeInfo(type: string) {
+  return (
+    TRANSACTION_TYPES[type] ?? {
+      label: type,
+      icon: ArrowLeftRight,
+      direction: 'move' as const,
+    }
+  );
+}
+
+const shortDate = new Intl.DateTimeFormat('es-ES', {
+  day: 'numeric',
+  month: 'short',
+  year: '2-digit',
+});
+
+function formatShortDate(value: string) {
+  return shortDate.format(new Date(value)).replace('.', '');
+}
+
+function formatCryptoAmount(amount: number, symbol: string) {
+  return `${Number(amount).toLocaleString('es-ES', { maximumFractionDigits: 8 })} ${symbol}`;
+}
+
+const CHECKBOX =
+  'h-[18px] w-[18px] rounded-[5px] border-hairline-strong data-[state=checked]:border-foreground data-[state=checked]:bg-foreground data-[state=checked]:text-background';
+
+function TypeTile({ type }: { type: string }) {
+  const { icon: Icon, direction } = typeInfo(type);
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'grid h-10 w-10 shrink-0 place-items-center rounded-xl',
+        direction === 'in'
+          ? 'bg-invest/15 text-invest'
+          : 'bg-surface-3 text-subtle',
+      )}
+    >
+      <Icon className="h-[18px] w-[18px]" />
+    </span>
+  );
+}
+
+function signedAmount(transaction: CryptoTransaction) {
+  const { direction } = typeInfo(transaction.transactionType);
+  const sign = direction === 'in' ? '+' : direction === 'out' ? '-' : '';
+  return `${sign}${formatCryptoAmount(transaction.amount, transaction.cryptoSymbol)}`;
+}
+
+function walletRoute(transaction: CryptoTransaction) {
+  const { fromWallet, toWallet } = transaction;
+  if (fromWallet && toWallet) return `${fromWallet} → ${toWallet}`;
+  return fromWallet ?? toWallet ?? null;
+}
 
 export default function CryptoTransactionTable({
   searchParams,
@@ -110,27 +176,27 @@ export default function CryptoTransactionTable({
     rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc',
   );
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      const result = await getCryptoTransactions({
-        search,
-        transactionType,
-        cryptoSymbol,
-        from,
-        to,
-        page: currentPage,
-        itemsPerPage,
-        sortBy,
-        sortOrder,
-      });
-      setTransactions({
-        data: result.data ?? [],
-        total: result.total ?? 0,
-        totalPages: result.totalPages ?? 0,
-        currentPage: result.currentPage ?? currentPage,
-      });
-    };
-    fetchTransactions();
+  const [activeTransaction, setActiveTransaction] =
+    useState<CryptoTransaction | null>(null);
+
+  const fetchTransactions = useCallback(async () => {
+    const result = await getCryptoTransactions({
+      search,
+      transactionType,
+      cryptoSymbol,
+      from,
+      to,
+      page: currentPage,
+      itemsPerPage,
+      sortBy,
+      sortOrder,
+    });
+    setTransactions({
+      data: result.data ?? [],
+      total: result.total ?? 0,
+      totalPages: result.totalPages ?? 0,
+      currentPage: result.currentPage ?? currentPage,
+    });
   }, [
     search,
     transactionType,
@@ -142,6 +208,17 @@ export default function CryptoTransactionTable({
     sortBy,
     sortOrder,
   ]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-change of the URL filters
+    void fetchTransactions();
+  }, [fetchTransactions]);
+
+  useCryptoChanged(
+    useCallback(() => {
+      void fetchTransactions();
+    }, [fetchTransactions]),
+  );
 
   const allSelected =
     transactions.data.length > 0 &&
@@ -175,6 +252,7 @@ export default function CryptoTransactionTable({
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar esta transacción?')) return;
+    setActiveTransaction(null);
 
     startTransition(async () => {
       const success = await deleteCryptoTransaction(id);
@@ -210,6 +288,29 @@ export default function CryptoTransactionTable({
     });
   };
 
+  const handleDuplicate = async (id: string) => {
+    if (!session?.user.id) {
+      alert('Debes iniciar sesión para duplicar transacciones');
+      return;
+    }
+
+    try {
+      await duplicateCryptoTransaction(id, {
+        user: { id: session.user.id },
+      });
+      setActiveTransaction(null);
+      await fetchTransactions();
+    } catch (error) {
+      console.error('Error duplicating transaction:', error);
+      alert('Error al duplicar la transacción');
+    }
+  };
+
+  const handleEdit = (transaction: CryptoTransaction) => {
+    setActiveTransaction(null);
+    openCryptoForm(transaction);
+  };
+
   const totalPages = transactions.totalPages;
 
   const createPageUrl = (page: number) => {
@@ -218,324 +319,454 @@ export default function CryptoTransactionTable({
     return `/investment/crypto?${params.toString()}`;
   };
 
-  const formatCryptoAmount = (amount: number, symbol: string) => {
-    return `${amount.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 8 })} ${symbol}`;
+  const sortHeader = (
+    field: 'transaction_date' | 'crypto_symbol' | 'amount' | 'transaction_type',
+    label: string,
+    align: 'left' | 'right' = 'left',
+  ) => {
+    const active = sortBy === field;
+    const Icon = !active
+      ? ArrowUpDown
+      : sortOrder === 'asc'
+        ? ArrowUp
+        : ArrowDown;
+    return (
+      <th
+        key={field}
+        scope="col"
+        aria-sort={
+          active ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'
+        }
+        className={cn(
+          'px-3 py-3 font-semibold',
+          align === 'right' && 'text-right',
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => handleSort(field)}
+          className={cn(
+            'inline-flex items-center gap-1 uppercase tracking-[0.06em] transition-colors hover:text-foreground',
+            active && 'text-subtle',
+          )}
+        >
+          {label}
+          <Icon className={cn('h-3 w-3', !active && 'opacity-50')} />
+        </button>
+      </th>
+    );
   };
 
+  const empty = transactions.data.length === 0;
+
   return (
-    <div className="rounded-md border w-full overflow-x-auto">
-      {selectedIds.length > 0 && (
-        <div className="flex items-center justify-between p-3 animate-in fade-in zoom-in-95">
-          <div className="text-sm text-muted-foreground">
-            {selectedIds.length} seleccionados
-          </div>
-          <Button
-            variant="destructive"
-            size="sm"
+    <section className="space-y-3">
+      <div className="flex min-h-9 items-center justify-between px-1">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em]">
+          Movimientos
+        </h2>
+        {selectedIds.length > 0 ? (
+          <button
+            type="button"
             onClick={handleDeleteMany}
-            disabled={isPending || selectedIds.length === 0}
+            disabled={isPending}
             aria-label="Eliminar transacciones seleccionadas"
+            className="hidden h-9 items-center gap-1.5 rounded-full bg-negative/10 px-3 text-[13px] font-semibold text-negative md:inline-flex"
           >
-            Eliminar seleccionados
-          </Button>
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar {selectedIds.length}
+          </button>
+        ) : (
+          <span className="text-[13px] text-faint">
+            {transactions.total}{' '}
+            {transactions.total === 1 ? 'movimiento' : 'movimientos'}
+          </span>
+        )}
+      </div>
+
+      {empty ? (
+        <div className="rounded-[20px] border border-hairline bg-surface px-6 py-12 text-center text-[15px] text-subtle">
+          No hay transacciones
         </div>
-      )}
-      <Table className="w-full">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10">
-              <Checkbox
-                checked={allSelected}
-                onCheckedChange={toggleAll}
-                aria-label="Seleccionar todas las filas"
-              />
-            </TableHead>
-            <TableHead
-              className="w-25 group cursor-pointer select-none"
-              onClick={() => handleSort('transaction_date')}
-              role="columnheader"
-              tabIndex={0}
-            >
-              <span className="inline-flex items-center gap-1">
-                Fecha
-                {sortBy === 'transaction_date' ? (
-                  sortOrder === 'asc' ? (
-                    <ArrowUp className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4 text-primary" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70" />
-                )}
-              </span>
-            </TableHead>
-            <TableHead
-              className="group cursor-pointer select-none"
-              onClick={() => handleSort('transaction_type')}
-              role="columnheader"
-              tabIndex={0}
-            >
-              <span className="inline-flex items-center gap-1">
-                Tipo
-                {sortBy === 'transaction_type' ? (
-                  sortOrder === 'asc' ? (
-                    <ArrowUp className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4 text-primary" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70" />
-                )}
-              </span>
-            </TableHead>
-            <TableHead
-              className="group cursor-pointer select-none"
-              onClick={() => handleSort('crypto_symbol')}
-              role="columnheader"
-              tabIndex={0}
-            >
-              <span className="inline-flex items-center gap-1">
-                Cripto
-                {sortBy === 'crypto_symbol' ? (
-                  sortOrder === 'asc' ? (
-                    <ArrowUp className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4 text-primary" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70" />
-                )}
-              </span>
-            </TableHead>
-            <TableHead
-              className="group cursor-pointer select-none text-right"
-              onClick={() => handleSort('amount')}
-              role="columnheader"
-              tabIndex={0}
-            >
-              <span className="inline-flex items-center gap-1 justify-end">
-                Cantidad
-                {sortBy === 'amount' ? (
-                  sortOrder === 'asc' ? (
-                    <ArrowUp className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowDown className="h-4 w-4 text-primary" />
-                  )
-                ) : (
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground/70" />
-                )}
-              </span>
-            </TableHead>
-            <TableHead>Desde</TableHead>
-            <TableHead>Hacia</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead className="w-[100px]">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
-                No hay transacciones
-              </TableCell>
-            </TableRow>
-          ) : (
-            transactions.data.map((transaction) => {
-              const typeInfo =
-                transaction.transactionType in TRANSACTION_TYPE_LABELS
-                  ? TRANSACTION_TYPE_LABELS[transaction.transactionType]
-                  : {
-                      label: transaction.transactionType,
-                      variant: 'outline' as const,
-                    };
-
+      ) : (
+        <>
+          {/* Mobile: rows */}
+          <ul className="rounded-[20px] border border-hairline bg-surface px-4 md:hidden">
+            {transactions.data.map((transaction, index) => {
+              const info = typeInfo(transaction.transactionType);
+              const route = walletRoute(transaction);
               return (
-                <TableRow
+                <li
                   key={transaction.id}
-                  data-state={
-                    selectedIds.includes(transaction.id)
-                      ? 'selected'
-                      : undefined
-                  }
+                  className={cn(index > 0 && 'border-t border-hairline')}
                 >
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.includes(transaction.id)}
-                      onCheckedChange={() => toggleOne(transaction.id)}
-                      aria-label={`Seleccionar transacción ${transaction.id}`}
-                    />
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {formatDate(transaction.transactionDate)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {transaction.cryptoSymbol}
-                    {transaction.transactionType === 'exchange' &&
-                      transaction.toCryptoSymbol && (
-                        <span className="text-muted-foreground">
-                          {' '}
-                          → {transaction.toCryptoSymbol}
-                        </span>
-                      )}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatCryptoAmount(
-                      transaction.amount,
-                      transaction.cryptoSymbol,
-                    )}
-                    {transaction.transactionType === 'exchange' &&
-                      transaction.toAmount && (
-                        <div className="text-sm text-muted-foreground">
-                          →{' '}
-                          {formatCryptoAmount(
-                            transaction.toAmount,
-                            transaction.toCryptoSymbol ?? '',
+                  <button
+                    type="button"
+                    onClick={() => setActiveTransaction(transaction)}
+                    className="flex min-h-16 w-full items-center gap-3 py-3 text-left"
+                  >
+                    <TypeTile type={transaction.transactionType} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-semibold">
+                        {info.label} · {transaction.cryptoSymbol}
+                        {transaction.transactionType === 'exchange' &&
+                          transaction.toCryptoSymbol && (
+                            <span className="text-subtle">
+                              {' '}
+                              → {transaction.toCryptoSymbol}
+                            </span>
                           )}
-                        </div>
-                      )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {transaction.fromWallet ?? '-'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {transaction.toWallet ?? '-'}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {transaction.priceAtTransaction
-                      ? `€${transaction.priceAtTransaction.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`
-                      : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link
-                          href={`/investment/crypto/edit/${transaction.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Editar</span>
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={async () => handleDelete(transaction.id)}
-                        disabled={isPending}
+                      </span>
+                      <span className="block truncate text-[13px] text-subtle">
+                        {route ?? transaction.notes ?? 'Sin wallet'}
+                      </span>
+                    </span>
+                    <span className="max-w-[45%] shrink-0 text-right">
+                      <span
+                        className={cn(
+                          'num block truncate text-[15px] font-semibold',
+                          info.direction === 'in' && 'text-invest',
+                        )}
                       >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Eliminar</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Duplicar"
-                        onClick={async () => {
-                          if (!session?.user.id) {
-                            alert(
-                              'Debes iniciar sesión para duplicar transacciones',
-                            );
-                            return;
-                          }
-
-                          try {
-                            await duplicateCryptoTransaction(transaction.id, {
-                              user: { id: session.user.id },
-                            });
-                            // Refresh the table after duplication
-                            const result = await getCryptoTransactions({
-                              search,
-                              transactionType,
-                              cryptoSymbol,
-                              from,
-                              to,
-                              page: currentPage,
-                              itemsPerPage,
-                              sortBy,
-                              sortOrder,
-                            });
-                            setTransactions({
-                              data: result.data ?? [],
-                              total: result.total ?? 0,
-                              totalPages: result.totalPages ?? 0,
-                              currentPage: result.currentPage ?? currentPage,
-                            });
-                          } catch (error) {
-                            console.error(
-                              'Error duplicating transaction:',
-                              error,
-                            );
-                            alert('Error al duplicar la transacción');
-                          }
-                        }}
-                      >
-                        Duplicar
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                        {signedAmount(transaction)}
+                      </span>
+                      <span className="block text-[12px] text-faint">
+                        {formatShortDate(transaction.transactionDate)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
               );
-            })
-          )}
-        </TableBody>
-      </Table>
+            })}
+          </ul>
 
-      {/* Pagination */}
+          {/* Desktop: table */}
+          <div className="hidden overflow-hidden rounded-[20px] border border-hairline bg-surface md:block">
+            <table className="w-full text-[14px]">
+              <thead className="border-b border-hairline text-left text-[11px] text-faint">
+                <tr>
+                  <th scope="col" className="w-10 py-3 pl-4">
+                    <Checkbox
+                      className={CHECKBOX}
+                      checked={allSelected}
+                      onCheckedChange={toggleAll}
+                      aria-label="Seleccionar todas las filas"
+                    />
+                  </th>
+                  {sortHeader('transaction_date', 'Fecha')}
+                  {sortHeader('transaction_type', 'Tipo')}
+                  {sortHeader('crypto_symbol', 'Cripto')}
+                  {sortHeader('amount', 'Cantidad', 'right')}
+                  <th
+                    scope="col"
+                    className="px-3 py-3 font-semibold uppercase tracking-[0.06em]"
+                  >
+                    Wallets
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-right font-semibold uppercase tracking-[0.06em]"
+                  >
+                    Precio
+                  </th>
+                  <th scope="col" className="w-[132px] py-3 pr-4">
+                    <span className="sr-only">Acciones</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.data.map((transaction) => {
+                  const info = typeInfo(transaction.transactionType);
+                  const selected = selectedIds.includes(transaction.id);
+                  return (
+                    <tr
+                      key={transaction.id}
+                      data-state={selected ? 'selected' : undefined}
+                      className="group border-t border-hairline first:border-t-0 transition-colors hover:bg-surface-2/50 data-[state=selected]:bg-surface-2"
+                    >
+                      <td className="py-2.5 pl-4">
+                        <Checkbox
+                          className={CHECKBOX}
+                          checked={selected}
+                          onCheckedChange={() => toggleOne(transaction.id)}
+                          aria-label={`Seleccionar transacción ${transaction.id}`}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-subtle">
+                        {formatShortDate(transaction.transactionDate)}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex items-center gap-2.5">
+                          <TypeTile type={transaction.transactionType} />
+                          <span className="font-medium">{info.label}</span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 font-semibold">
+                        {transaction.cryptoSymbol}
+                        {transaction.transactionType === 'exchange' &&
+                          transaction.toCryptoSymbol && (
+                            <span className="font-normal text-subtle">
+                              {' '}
+                              → {transaction.toCryptoSymbol}
+                            </span>
+                          )}
+                      </td>
+                      <td className="num px-3 py-2.5 text-right">
+                        <span
+                          className={cn(
+                            'font-semibold',
+                            info.direction === 'in' && 'text-invest',
+                          )}
+                        >
+                          {signedAmount(transaction)}
+                        </span>
+                        {transaction.transactionType === 'exchange' &&
+                          transaction.toAmount && (
+                            <span className="block text-[12px] text-subtle">
+                              →{' '}
+                              {formatCryptoAmount(
+                                transaction.toAmount,
+                                transaction.toCryptoSymbol ?? '',
+                              )}
+                            </span>
+                          )}
+                      </td>
+                      <td className="max-w-[220px] truncate px-3 py-2.5 text-subtle">
+                        {walletRoute(transaction) ?? '—'}
+                      </td>
+                      <td className="num px-3 py-2.5 text-right text-subtle">
+                        {transaction.priceAtTransaction
+                          ? formatCurrency(
+                              Number(transaction.priceAtTransaction),
+                            )
+                          : '—'}
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <span className="flex justify-end gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => handleEdit(transaction)}
+                            aria-label="Editar"
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={async () =>
+                              handleDuplicate(transaction.id)
+                            }
+                            aria-label="Duplicar"
+                            title="Duplicar"
+                          >
+                            <Copy />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 hover:text-negative"
+                            onClick={async () => handleDelete(transaction.id)}
+                            disabled={isPending}
+                            aria-label="Eliminar"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t">
-          <div className="text-sm text-muted-foreground">
-            Mostrando {(currentPage - 1) * itemsPerPage + 1} a{' '}
+        <nav
+          aria-label="Paginación"
+          className="flex items-center justify-between px-1"
+        >
+          <span className="text-[13px] text-faint">
+            {(currentPage - 1) * itemsPerPage + 1}–
             {Math.min(currentPage * itemsPerPage, transactions.total)} de{' '}
             {transactions.total}
-          </div>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              asChild
+          </span>
+          <span className="flex items-center gap-1">
+            <PageLink
+              href={createPageUrl(currentPage - 1)}
               disabled={currentPage <= 1}
+              label="Página anterior"
             >
-              <Link href={createPageUrl(1)}>
-                <ChevronsLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              asChild
-              disabled={currentPage <= 1}
-            >
-              <Link href={createPageUrl(currentPage - 1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Link>
-            </Button>
-            <span className="flex items-center px-3 text-sm">
+              <ChevronLeft className="h-4 w-4" />
+            </PageLink>
+            <span className="num px-2 text-[13px] text-subtle">
               {currentPage} / {totalPages}
             </span>
-            <Button
-              variant="outline"
-              size="icon"
-              asChild
+            <PageLink
+              href={createPageUrl(currentPage + 1)}
               disabled={currentPage >= totalPages}
+              label="Página siguiente"
             >
-              <Link href={createPageUrl(currentPage + 1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              asChild
-              disabled={currentPage >= totalPages}
-            >
-              <Link href={createPageUrl(totalPages)}>
-                <ChevronsRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
+              <ChevronRight className="h-4 w-4" />
+            </PageLink>
+          </span>
+        </nav>
       )}
+
+      <Dialog
+        open={activeTransaction !== null}
+        onOpenChange={(open) => !open && setActiveTransaction(null)}
+      >
+        <DialogContent aria-describedby={undefined}>
+          {activeTransaction && (
+            <TransactionSheet
+              transaction={activeTransaction}
+              pending={isPending}
+              onEdit={() => handleEdit(activeTransaction)}
+              onDuplicate={async () => handleDuplicate(activeTransaction.id)}
+              onDelete={async () => handleDelete(activeTransaction.id)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </section>
+  );
+}
+
+function PageLink({
+  href,
+  disabled,
+  label,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const className =
+    'grid h-11 w-11 place-items-center rounded-full bg-surface-2 text-subtle transition-colors hover:text-foreground';
+  if (disabled) {
+    return (
+      <span aria-disabled className={cn(className, 'opacity-40')}>
+        {children}
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+  return (
+    <Link href={href} className={className} aria-label={label}>
+      {children}
+    </Link>
+  );
+}
+
+function SheetRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex min-h-12 items-center justify-between gap-4 border-t border-hairline py-2 first:border-t-0">
+      <span className="text-[15px] text-subtle">{label}</span>
+      <span className="num min-w-0 truncate text-right text-[15px] font-medium">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** Mobile detail for one movement, with its three actions. */
+function TransactionSheet({
+  transaction,
+  pending,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: {
+  transaction: CryptoTransaction;
+  pending: boolean;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const info = typeInfo(transaction.transactionType);
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3 pr-10">
+        <TypeTile type={transaction.transactionType} />
+        <div className="min-w-0">
+          <DialogTitle className="truncate text-[22px] font-semibold tracking-[-0.03em]">
+            {info.label} · {transaction.cryptoSymbol}
+          </DialogTitle>
+          <p className="text-[13px] text-subtle">
+            {formatShortDate(transaction.transactionDate)}
+          </p>
+        </div>
+      </div>
+
+      <p
+        className={cn(
+          'display-num text-[36px] font-semibold',
+          info.direction === 'in' && 'text-invest',
+        )}
+      >
+        {signedAmount(transaction)}
+      </p>
+
+      <div className="rounded-[16px] bg-surface-2 px-4">
+        {transaction.transactionType === 'exchange' && transaction.toAmount && (
+          <SheetRow
+            label="Recibido"
+            value={formatCryptoAmount(
+              transaction.toAmount,
+              transaction.toCryptoSymbol ?? '',
+            )}
+          />
+        )}
+        <SheetRow label="Desde" value={transaction.fromWallet ?? '—'} />
+        <SheetRow label="Hacia" value={transaction.toWallet ?? '—'} />
+        <SheetRow
+          label="Precio"
+          value={
+            transaction.priceAtTransaction
+              ? formatCurrency(Number(transaction.priceAtTransaction))
+              : '—'
+          }
+        />
+        {Number(transaction.fee) > 0 && (
+          <SheetRow
+            label="Comisión"
+            value={formatCryptoAmount(
+              transaction.fee,
+              transaction.feeCrypto ?? transaction.cryptoSymbol,
+            )}
+          />
+        )}
+        {transaction.notes && (
+          <SheetRow label="Notas" value={transaction.notes} />
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <Button variant="secondary" onClick={onEdit}>
+          <Pencil />
+          Editar
+        </Button>
+        <Button variant="secondary" onClick={onDuplicate}>
+          <Copy />
+          Duplicar
+        </Button>
+        <Button
+          variant="secondary"
+          className="text-negative hover:text-negative"
+          onClick={onDelete}
+          disabled={pending}
+        >
+          <Trash2 />
+          Eliminar
+        </Button>
+      </div>
     </div>
   );
 }

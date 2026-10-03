@@ -45,7 +45,7 @@ describe('CryptoTransactionForm', () => {
     render(<CryptoTransactionForm />);
 
     await waitFor(() => {
-      expect(screen.getByText('Nueva Transacción Cripto')).toBeInTheDocument();
+      expect(screen.getByText('Nueva transacción cripto')).toBeInTheDocument();
     });
   });
 });

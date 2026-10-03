@@ -7,8 +7,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Form,
@@ -80,10 +80,16 @@ type CryptoFormValues = z.infer<typeof formSchema>;
 
 interface CryptoTransactionFormProps {
   transaction?: CryptoTransaction;
+  /** 'page' for the /new and /edit routes, 'sheet' inside the page's sheet. */
+  variant?: 'page' | 'sheet';
+  /** Sheet only: called after a save (true) or on cancel (false). */
+  onDone?: (saved: boolean) => void;
 }
 
 export function CryptoTransactionForm({
   transaction,
+  variant = 'page',
+  onDone,
 }: CryptoTransactionFormProps) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -253,12 +259,15 @@ export function CryptoTransactionForm({
         transactionDate: new Date(values.transactionDate).toISOString(),
       };
 
-      if (transaction) {
-        await updateCryptoTransaction(transaction.id, data);
-      } else {
-        await createCryptoTransaction(data);
-      }
+      const saved = transaction
+        ? await updateCryptoTransaction(transaction.id, data)
+        : await createCryptoTransaction(data);
+      if (!saved) throw new Error('Save failed');
 
+      if (onDone) {
+        onDone(true);
+        return;
+      }
       router.push('/investment/crypto');
       router.refresh();
     } catch (error) {
@@ -269,300 +278,202 @@ export function CryptoTransactionForm({
     }
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {transaction ? 'Editar Transacción' : 'Nueva Transacción Cripto'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Date */}
-              <FormField
-                control={form.control}
-                name="transactionDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fecha</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+  const title = transaction ? 'Editar transacción' : 'Nueva transacción cripto';
 
-              {/* Transaction Type */}
-              <FormField
-                control={form.control}
-                name="transactionType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Transacción</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {transactionTypes.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+  const body = (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-4">
+          {/* Date */}
+          <FormField
+            control={form.control}
+            name="transactionDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Fecha
+                </FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* Crypto Symbol */}
-              <FormField
-                control={form.control}
-                name="cryptoSymbol"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Criptomoneda</FormLabel>
-                    <FormControl>
-                      <Combobox
-                        options={cryptoSymbols}
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Seleccionar cripto..."
-                        loading={optionsLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {/* Transaction Type */}
+          <FormField
+            control={form.control}
+            name="transactionType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Tipo
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tipo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {transactionTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* Amount */}
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cantidad</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.00000001" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          {/* Crypto Symbol */}
+          <FormField
+            control={form.control}
+            name="cryptoSymbol"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Criptomoneda
+                </FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={cryptoSymbols}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar cripto..."
+                    loading={optionsLoading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* Price at Transaction (for deposits/withdrawals/genesis) */}
-              {showPriceField && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
-                    <FormField
-                      control={form.control}
-                      name="priceAtTransaction"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Precio por unidad (EUR)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              {...field}
-                              value={field.value ?? ''}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value
-                                    ? parseFloat(e.target.value)
-                                    : null,
-                                )
-                              }
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            {impliedTotal !== null && (
-                              <>≈ Total: €{formatEur(impliedTotal)}. </>
-                            )}
-                            {marketPriceEur !== null &&
-                              cryptoSymbol &&
-                              `Mercado hoy: €${formatEur(marketPriceEur, 6)}/${cryptoSymbol}`}
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+          {/* Amount */}
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Cantidad
+                </FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.00000001" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
+          {/* Price at Transaction (for deposits/withdrawals/genesis) */}
+          {showPriceField && (
+            <>
+              <div className="col-span-2 grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="priceAtTransaction"
+                  render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total (EUR)</FormLabel>
+                      <FormLabel className="px-1 text-[13px] text-subtle">
+                        Precio por unidad (EUR)
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="number"
                           step="0.01"
-                          value={shownTotal}
-                          onChange={(e) => handleTotalChange(e.target.value)}
-                          onFocus={() => setIsTotalFocused(true)}
-                          onBlur={() => setIsTotalFocused(false)}
-                          placeholder={
-                            Number(amountValue) > 0
-                              ? 'Introduce el total y derivamos el precio'
-                              : 'Introduce primero la cantidad'
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value
+                                ? parseFloat(e.target.value)
+                                : null,
+                            )
                           }
-                          disabled={!Number(amountValue)}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Lo que pagaste en total; calcula el precio por unidad.
+                      <FormDescription className="px-1 text-[12px] text-faint">
+                        {impliedTotal !== null && (
+                          <>≈ Total: €{formatEur(impliedTotal)}. </>
+                        )}
+                        {marketPriceEur !== null &&
+                          cryptoSymbol &&
+                          `Mercado hoy: €${formatEur(marketPriceEur, 6)}/${cryptoSymbol}`}
                       </FormDescription>
+                      <FormMessage />
                     </FormItem>
-                  </div>
-
-                  {marketPriceEur !== null && priceSanity.level !== 'ok' && (
-                    <p
-                      className={
-                        priceSanity.level === 'warn'
-                          ? 'md:col-span-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400'
-                          : 'md:col-span-2 text-sm text-muted-foreground'
-                      }
-                    >
-                      {priceSanity.reason === 'stablecoin' &&
-                        `${cryptoSymbol} es una stablecoin y debería cotizar cerca de su paridad (mercado actual: €${formatEur(marketPriceEur, 4)}). El precio introducido difiere un ${priceSanity.deviationPercent}%: comprueba que no hayas escrito el total pagado en lugar del precio por unidad.`}
-                      {priceSanity.reason === 'recent-deviation' &&
-                        `El precio difiere un ${priceSanity.deviationPercent}% del mercado actual (€${formatEur(marketPriceEur, 6)}/${cryptoSymbol}). Si pagaste un total fijo en euros, introdúcelo en el campo Total y se calculará el precio por unidad.`}
-                      {priceSanity.reason === 'historical-deviation' &&
-                        `El precio difiere un ${priceSanity.deviationPercent}% del mercado actual (€${formatEur(marketPriceEur, 6)}/${cryptoSymbol}). Puede ser correcto si la compra es antigua, pero revísalo.`}
-                    </p>
                   )}
-                </>
-              )}
+                />
 
-              {/* Exchange Fields */}
-              {showExchangeFields && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="toCryptoSymbol"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cripto destino</FormLabel>
-                        <FormControl>
-                          <Combobox
-                            options={cryptoSymbols}
-                            value={field.value ?? ''}
-                            onChange={field.onChange}
-                            placeholder="Seleccionar cripto destino..."
-                            loading={optionsLoading}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="toAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cantidad recibida</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.00000001"
-                            {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value
-                                  ? parseFloat(e.target.value)
-                                  : null,
-                              )
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
+                <FormItem>
+                  <FormLabel className="px-1 text-[13px] text-subtle">
+                    Total (EUR)
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={shownTotal}
+                      onChange={(e) => handleTotalChange(e.target.value)}
+                      onFocus={() => setIsTotalFocused(true)}
+                      onBlur={() => setIsTotalFocused(false)}
+                      placeholder={
+                        Number(amountValue) > 0
+                          ? 'Total pagado'
+                          : 'Primero la cantidad'
+                      }
+                      disabled={!Number(amountValue)}
+                    />
+                  </FormControl>
+                  <FormDescription className="px-1 text-[12px] text-faint">
+                    Lo que pagaste en total; calcula el precio por unidad.
+                  </FormDescription>
+                </FormItem>
+              </div>
 
-              {/* Wallet Fields */}
-              {showWalletFields && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="fromWallet"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Desde Wallet</FormLabel>
-                        <FormControl>
-                          <Combobox
-                            options={wallets}
-                            value={field.value ?? ''}
-                            onChange={field.onChange}
-                            placeholder="Seleccionar wallet origen..."
-                            loading={optionsLoading}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="toWallet"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>A Wallet</FormLabel>
-                        <FormControl>
-                          <Combobox
-                            options={wallets}
-                            value={field.value ?? ''}
-                            onChange={field.onChange}
-                            placeholder="Seleccionar wallet destino..."
-                            loading={optionsLoading}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
+              {marketPriceEur !== null && priceSanity.level !== 'ok' && (
+                <p
+                  className={
+                    priceSanity.level === 'warn'
+                      ? 'col-span-2 rounded-[14px] bg-negative/10 px-4 py-3 text-[13px] text-negative'
+                      : 'col-span-2 px-1 text-[13px] text-subtle'
+                  }
+                >
+                  {priceSanity.reason === 'stablecoin' &&
+                    `${cryptoSymbol} es una stablecoin y debería cotizar cerca de su paridad (mercado actual: €${formatEur(marketPriceEur, 4)}). El precio introducido difiere un ${priceSanity.deviationPercent}%: comprueba que no hayas escrito el total pagado en lugar del precio por unidad.`}
+                  {priceSanity.reason === 'recent-deviation' &&
+                    `El precio difiere un ${priceSanity.deviationPercent}% del mercado actual (€${formatEur(marketPriceEur, 6)}/${cryptoSymbol}). Si pagaste un total fijo en euros, introdúcelo en el campo Total y se calculará el precio por unidad.`}
+                  {priceSanity.reason === 'historical-deviation' &&
+                    `El precio difiere un ${priceSanity.deviationPercent}% del mercado actual (€${formatEur(marketPriceEur, 6)}/${cryptoSymbol}). Puede ser correcto si la compra es antigua, pero revísalo.`}
+                </p>
               )}
+            </>
+          )}
 
-              {/* Fee */}
+          {/* Exchange Fields */}
+          {showExchangeFields && (
+            <>
               <FormField
                 control={form.control}
-                name="fee"
+                name="toCryptoSymbol"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Comisión</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.00000001" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Fee Crypto */}
-              <FormField
-                control={form.control}
-                name="feeCrypto"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cripto de comisión</FormLabel>
+                    <FormLabel className="px-1 text-[13px] text-subtle">
+                      Cripto destino
+                    </FormLabel>
                     <FormControl>
                       <Combobox
                         options={cryptoSymbols}
                         value={field.value ?? ''}
                         onChange={field.onChange}
-                        placeholder="Seleccionar cripto..."
+                        placeholder="Seleccionar cripto destino..."
                         loading={optionsLoading}
                       />
                     </FormControl>
@@ -570,65 +481,202 @@ export function CryptoTransactionForm({
                   </FormItem>
                 )}
               />
-
-              {/* External TX ID */}
               <FormField
                 control={form.control}
-                name="externalTxId"
+                name="toAmount"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>TX ID / Order ID</FormLabel>
+                  <FormItem>
+                    <FormLabel className="px-1 text-[13px] text-subtle">
+                      Cantidad recibida
+                    </FormLabel>
                     <FormControl>
                       <Input
+                        type="number"
+                        step="0.00000001"
                         {...field}
                         value={field.value ?? ''}
-                        placeholder="ID de transacción blockchain o exchange"
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? parseFloat(e.target.value) : null,
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </>
+          )}
 
-              {/* Notes */}
+          {/* Wallet Fields */}
+          {showWalletFields && (
+            <>
               <FormField
                 control={form.control}
-                name="notes"
+                name="fromWallet"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
-                    <FormLabel>Notas</FormLabel>
+                  <FormItem>
+                    <FormLabel className="px-1 text-[13px] text-subtle">
+                      Desde wallet
+                    </FormLabel>
                     <FormControl>
-                      <Textarea
-                        {...field}
+                      <Combobox
+                        options={wallets}
                         value={field.value ?? ''}
-                        placeholder="Notas adicionales..."
+                        onChange={field.onChange}
+                        placeholder="Seleccionar wallet origen..."
+                        loading={optionsLoading}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+              <FormField
+                control={form.control}
+                name="toWallet"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="px-1 text-[13px] text-subtle">
+                      A wallet
+                    </FormLabel>
+                    <FormControl>
+                      <Combobox
+                        options={wallets}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar wallet destino..."
+                        loading={optionsLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
 
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? 'Guardando...'
-                  : transaction
-                    ? 'Actualizar'
-                    : 'Guardar'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+          {/* Fee */}
+          <FormField
+            control={form.control}
+            name="fee"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Comisión
+                </FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.00000001" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Fee Crypto */}
+          <FormField
+            control={form.control}
+            name="feeCrypto"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Cripto de la comisión
+                </FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={cryptoSymbols}
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    placeholder="Seleccionar cripto..."
+                    loading={optionsLoading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* External TX ID */}
+          <FormField
+            control={form.control}
+            name="externalTxId"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  ID de transacción u orden
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={field.value ?? ''}
+                    placeholder="ID de transacción blockchain o exchange"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Notes */}
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel className="px-1 text-[13px] text-subtle">
+                  Notas
+                </FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    value={field.value ?? ''}
+                    placeholder="Notas adicionales..."
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => (onDone ? onDone(false) : router.back())}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isSubmitting} className="sm:min-w-32">
+            {isSubmitting
+              ? 'Guardando...'
+              : transaction
+                ? 'Actualizar'
+                : 'Guardar'}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+
+  if (variant === 'sheet') {
+    return (
+      <div className="space-y-5">
+        <h2 className="pr-10 text-[22px] font-semibold tracking-[-0.03em]">
+          {title}
+        </h2>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader title={title} eyebrow="Cripto" />
+      <div className="rounded-[20px] border border-hairline bg-surface p-5">
+        {body}
+      </div>
+    </>
   );
 }

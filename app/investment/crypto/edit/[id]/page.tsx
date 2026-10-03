@@ -33,7 +33,7 @@ export default async function EditCryptoTransactionPage({
   }
 
   return (
-    <div className="container mx-auto py-6 max-w-2xl">
+    <div className="mx-auto max-w-2xl">
       <CryptoTransactionForm transaction={transaction} />
     </div>
   );

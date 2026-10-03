@@ -1,10 +1,11 @@
 'use client';
 
-import { Search, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -14,21 +15,55 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getCryptoOptions } from '@/lib/crypto-data';
+import { cn } from '@/lib/utils';
+
+type Filters = {
+  search: string;
+  transactionType: string;
+  cryptoSymbol: string;
+  from: string;
+  to: string;
+};
+
+function Pill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'h-9 shrink-0 rounded-full px-4 text-[13px] font-semibold transition-colors',
+        active
+          ? 'bg-foreground text-background'
+          : 'bg-surface-2 text-subtle hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function CryptoSearchFilter() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get('search') ?? '');
-  const [transactionType, setTransactionType] = useState(
+  const [filters, setFilters] = useState<Filters>({
+    search: searchParams.get('search') ?? '',
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty URL param must fall back to 'all'
-    searchParams.get('transactionType') || 'all',
-  );
-  const [cryptoSymbol, setCryptoSymbol] = useState(
-    searchParams.get('cryptoSymbol') ?? '',
-  );
-  const [from, setFrom] = useState(searchParams.get('from') ?? '');
-  const [to, setTo] = useState(searchParams.get('to') ?? '');
+    transactionType: searchParams.get('transactionType') || 'all',
+    cryptoSymbol: searchParams.get('cryptoSymbol') ?? '',
+    from: searchParams.get('from') ?? '',
+    to: searchParams.get('to') ?? '',
+  });
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const [cryptoSymbols, setCryptoSymbols] = useState<string[]>([]);
   const [transactionTypes, setTransactionTypes] = useState<
@@ -39,118 +74,185 @@ export function CryptoSearchFilter() {
     const fetchOptions = async () => {
       const options = await getCryptoOptions();
       setCryptoSymbols(options.cryptoSymbols);
-      setTransactionTypes(options.transactionTypes);
+      const types = options.transactionTypes;
+      setTransactionTypes(
+        types.some((type) => type.value === 'genesis')
+          ? types
+          : [...types, { value: 'genesis', label: 'Génesis' }],
+      );
     };
     fetchOptions();
   }, []);
 
-  const applyFilters = () => {
+  const applyFilters = (next: Filters = filters) => {
+    setFilters(next);
     const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (transactionType && transactionType !== 'all')
-      params.set('transactionType', transactionType);
-    if (cryptoSymbol) params.set('cryptoSymbol', cryptoSymbol);
-    if (from) params.set('from', from);
-    if (to) params.set('to', to);
+    if (next.search) params.set('search', next.search);
+    if (next.transactionType && next.transactionType !== 'all')
+      params.set('transactionType', next.transactionType);
+    if (next.cryptoSymbol && next.cryptoSymbol !== 'all')
+      params.set('cryptoSymbol', next.cryptoSymbol);
+    if (next.from) params.set('from', next.from);
+    if (next.to) params.set('to', next.to);
     params.set('page', '1');
     router.push(`/investment/crypto?${params.toString()}`);
   };
 
   const clearFilters = () => {
-    setSearch('');
-    setTransactionType('all');
-    setCryptoSymbol('');
-    setFrom('');
-    setTo('');
+    setFilters({
+      search: '',
+      transactionType: 'all',
+      cryptoSymbol: '',
+      from: '',
+      to: '',
+    });
+    setSheetOpen(false);
     router.push('/investment/crypto');
   };
 
-  const hasFilters =
-    search ||
-    (transactionType && transactionType !== 'all') ||
-    cryptoSymbol ||
-    from ||
-    to;
+  const advancedCount = [
+    filters.cryptoSymbol && filters.cryptoSymbol !== 'all',
+    filters.from,
+    filters.to,
+  ].filter(Boolean).length;
 
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-end">
-      {/* Search */}
-      <div className="flex-1">
-        <label className="text-sm font-medium mb-1 block">Buscar</label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <form
+          role="search"
+          className="relative flex-1"
+          onSubmit={(event) => {
+            event.preventDefault();
+            applyFilters();
+          }}
+        >
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
           <Input
             placeholder="Buscar en notas, wallets..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-            className="pl-9"
+            aria-label="Buscar transacciones"
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            className="border-transparent pl-10"
           />
-        </div>
+          {filters.search && (
+            <button
+              type="button"
+              aria-label="Borrar búsqueda"
+              onClick={() => applyFilters({ ...filters, search: '' })}
+              className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-faint hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </form>
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-label="Más filtros"
+          className={cn(
+            'relative grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-colors',
+            advancedCount > 0
+              ? 'bg-foreground text-background'
+              : 'bg-surface-2 text-subtle hover:text-foreground',
+          )}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          {advancedCount > 0 && (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-surface-4 px-1 text-[11px] font-semibold text-foreground">
+              {advancedCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Transaction Type */}
-      <div className="w-full md:w-[180px]">
-        <label className="text-sm font-medium mb-1 block">Tipo</label>
-        <Select value={transactionType} onValueChange={setTransactionType}>
-          <SelectTrigger>
-            <SelectValue placeholder="Todos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {transactionTypes.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {type.label}
-              </SelectItem>
-            ))}
-            <SelectItem value="genesis">Génesis (Origen)</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="rail -mx-4 px-4 md:mx-0 md:px-0 md:[-webkit-mask-image:none] md:[mask-image:none] md:flex-wrap">
+        <Pill
+          active={filters.transactionType === 'all'}
+          onClick={() => applyFilters({ ...filters, transactionType: 'all' })}
+        >
+          Todos
+        </Pill>
+        {transactionTypes.map((type) => (
+          <Pill
+            key={type.value}
+            active={filters.transactionType === type.value}
+            onClick={() =>
+              applyFilters({ ...filters, transactionType: type.value })
+            }
+          >
+            {type.label}
+          </Pill>
+        ))}
       </div>
 
-      {/* Crypto Symbol */}
-      <div className="w-full md:w-[140px]">
-        <label className="text-sm font-medium mb-1 block">Cripto</label>
-        <Select value={cryptoSymbol} onValueChange={setCryptoSymbol}>
-          <SelectTrigger>
-            <SelectValue placeholder="Todas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {cryptoSymbols.slice(0, 20).map((symbol) => (
-              <SelectItem key={symbol} value={symbol}>
-                {symbol}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Date From */}
-      <div className="w-full md:w-[150px]">
-        <label className="text-sm font-medium mb-1 block">Desde</label>
-        <Input
-          type="date"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-        />
-      </div>
-
-      {/* Date To */}
-      <div className="w-full md:w-[150px]">
-        <label className="text-sm font-medium mb-1 block">Hasta</label>
-        <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-2">
-        <Button onClick={applyFilters}>Filtrar</Button>
-        {hasFilters && (
-          <Button variant="outline" size="icon" onClick={clearFilters}>
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      <Dialog open={sheetOpen} onOpenChange={setSheetOpen}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogTitle className="text-[22px] font-semibold tracking-[-0.03em]">
+            Filtros
+          </DialogTitle>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1.5">
+              <span className="block px-1 text-[13px] font-medium text-subtle">
+                Cripto
+              </span>
+              <Select
+                value={filters.cryptoSymbol || 'all'}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, cryptoSymbol: value })
+                }
+              >
+                <SelectTrigger aria-label="Cripto">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {cryptoSymbols.slice(0, 20).map((symbol) => (
+                    <SelectItem key={symbol} value={symbol}>
+                      {symbol}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="space-y-1.5">
+              <span className="block px-1 text-[13px] font-medium text-subtle">
+                Desde
+              </span>
+              <Input
+                type="date"
+                value={filters.from}
+                onChange={(e) =>
+                  setFilters({ ...filters, from: e.target.value })
+                }
+              />
+            </label>
+            <label className="space-y-1.5">
+              <span className="block px-1 text-[13px] font-medium text-subtle">
+                Hasta
+              </span>
+              <Input
+                type="date"
+                value={filters.to}
+                onChange={(e) => setFilters({ ...filters, to: e.target.value })}
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            <Button variant="secondary" onClick={clearFilters}>
+              Limpiar
+            </Button>
+            <Button
+              onClick={() => {
+                setSheetOpen(false);
+                applyFilters();
+              }}
+            >
+              Aplicar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

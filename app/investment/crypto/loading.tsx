@@ -1,17 +1,20 @@
+import { Skeleton } from '@/components/ui/skeleton';
+
 export default function CryptoLoading() {
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <div className="h-9 w-64 bg-muted animate-pulse rounded" />
-          <div className="h-5 w-96 bg-muted animate-pulse rounded" />
-        </div>
-        <div className="h-10 w-40 bg-muted animate-pulse rounded" />
+    <div aria-busy="true" aria-label="Cargando cartera">
+      <div className="pb-4 pt-4 md:pt-8">
+        <Skeleton className="mb-2 h-4 w-16 rounded-md" />
+        <Skeleton className="h-9 w-36 rounded-lg" />
       </div>
-
-      <div className="h-20 w-full bg-muted animate-pulse rounded" />
-
-      <div className="h-96 w-full bg-muted animate-pulse rounded" />
+      <div className="space-y-3">
+        <Skeleton className="h-[168px] w-full rounded-[20px]" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-24 rounded-[20px]" />
+          <Skeleton className="h-24 rounded-[20px]" />
+        </div>
+        <Skeleton className="h-64 w-full rounded-[20px]" />
+      </div>
     </div>
   );
 }
