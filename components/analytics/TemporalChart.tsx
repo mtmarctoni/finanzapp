@@ -1,3 +1,5 @@
+'use client';
+
 import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
@@ -6,20 +8,29 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend,
+  Legend as ChartLegend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  themedBarOptions,
+  useChartTheme,
+  withAlpha,
+} from '@/components/analytics/chart-theme';
+import {
+  ChartLoading,
+  EmptyState,
+  Legend,
+  Section,
+} from '@/components/analytics/kit';
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
   Title,
   Tooltip,
-  Legend,
+  ChartLegend,
 );
 
 interface TemporalChartProps {
@@ -28,25 +39,54 @@ interface TemporalChartProps {
   loading: boolean;
 }
 
+/** Income vs. expenses per period: grey for money out, one hue for money in. */
 export function TemporalChart({ data, options, loading }: TemporalChartProps) {
+  const theme = useChartTheme();
+  const labels = (data.labels ?? []) as string[];
+  const colorFor: Record<string, string> = {
+    Ingreso: theme.positive,
+    Gasto: withAlpha(theme.subtle, 0.55),
+  };
+  const themed: ChartData<'bar', number[], string> = {
+    labels,
+    datasets: ['Ingreso', 'Gasto']
+      .map((label) => data.datasets.find((d) => d.label === label))
+      .filter((d) => d !== undefined)
+      .map((d) => ({
+        ...d,
+        backgroundColor: colorFor[d.label ?? ''],
+        hoverBackgroundColor: colorFor[d.label ?? ''],
+        borderWidth: 0,
+        borderDash: undefined,
+      })),
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Evolución Temporal</CardTitle>
-      </CardHeader>
-      <CardContent className="h-80">
+    <Section
+      title="Ingresos y gastos"
+      legend={
+        <Legend
+          items={[
+            { label: 'Ingresos', color: theme.positive },
+            { label: 'Gastos', color: withAlpha(theme.subtle, 0.55) },
+          ]}
+        />
+      }
+    >
+      <div className="h-56 md:h-64">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : (data.labels?.length ?? 0) > 0 ? (
-          <Bar data={data} options={options} />
+          <ChartLoading />
+        ) : labels.length > 0 ? (
+          <Bar
+            data={themed}
+            options={themedBarOptions(theme, labels, options)}
+          />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
+          <EmptyState className="h-full">
             No hay datos disponibles para el rango seleccionado
-          </div>
+          </EmptyState>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
@@ -8,25 +10,33 @@ import {
   Filler,
   Title,
   Tooltip,
-  Legend,
+  Legend as ChartLegend,
 } from 'chart.js';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  themedLineOptions,
+  useChartTheme,
+} from '@/components/analytics/chart-theme';
+import {
+  ActionBadge,
+  Amount,
+  ChartLoading,
+  EmptyState,
+  Legend,
+  PillSelect,
+  RankedBars,
+  Section,
+} from '@/components/analytics/kit';
+import { CategoryTile } from '@/components/quick-add/category-icon';
 import {
   type CategoryTemporalDatum,
   type TypeTemporalDatum,
   type TipoQueDatum,
 } from '@/lib/analytics-charts';
+import { cn } from '@/lib/utils';
 
 ChartJS.register(
   CategoryScale,
@@ -36,7 +46,7 @@ ChartJS.register(
   Filler,
   Title,
   Tooltip,
-  Legend,
+  ChartLegend,
 );
 
 interface TrendExplorerProps {
@@ -65,6 +75,8 @@ interface TrendExplorerProps {
   getLineChartOptions: () => ChartOptions<'line'>;
   selectedTipo?: string;
   onTipoChange?: (tipo: string) => void;
+  /** Hide the per-category ranking when the page already shows one. */
+  showBreakdown?: boolean;
 }
 
 export function TrendExplorer({
@@ -79,13 +91,17 @@ export function TrendExplorer({
   getLineChartOptions,
   selectedTipo: selectedTipoProp,
   onTipoChange,
+  showBreakdown = true,
 }: TrendExplorerProps) {
+  const theme = useChartTheme();
   const [internalTipo, setInternalTipo] = useState<string>('');
   const [selectedQue, setSelectedQue] = useState<string>('__all__');
 
   const isControlled =
     selectedTipoProp !== undefined && onTipoChange !== undefined;
-  const selectedTipo = isControlled ? selectedTipoProp : internalTipo;
+  const selectedTipo = isControlled
+    ? selectedTipoProp
+    : internalTipo || types[0] || '';
 
   // Build tipo → que mapping
   const tipoToQueMap = useMemo(() => {
@@ -126,8 +142,6 @@ export function TrendExplorer({
     : isQue
       ? getCategoryTrendData(categoryTemporalData, selectedQue, groupBy)
       : null;
-
-  const chartOptions = getLineChartOptions();
 
   const trendSlope = chartData?.trendSlope ?? 0;
   const trendDirection =
@@ -172,195 +186,188 @@ export function TrendExplorer({
 
   const tipoTotal = queBreakdown.reduce((sum, d) => sum + d.total, 0);
 
+  const labels = (chartData?.labels ?? []) as string[];
+  const seriesColor: Partial<Record<string, string>> = {
+    Gasto: theme.foreground,
+    Ingreso: theme.positive,
+    Tendencia: theme.faint,
+  };
+  const legendLabel: Partial<Record<string, string>> = {
+    Gasto: 'Gastos',
+    Ingreso: 'Ingresos',
+    Tendencia: 'Tendencia',
+  };
+  const visibleDatasets = (chartData?.datasets ?? []).filter(
+    (d) =>
+      d.label === 'Tendencia' ||
+      (d.data as number[]).some((v) => Number(v) !== 0),
+  );
+  const themedData: ChartData<'line', number[], string> = {
+    labels,
+    datasets: visibleDatasets.map((d) => {
+      const color = seriesColor[d.label ?? ''] ?? theme.subtle;
+      const isTrend = d.label === 'Tendencia';
+      return {
+        ...d,
+        borderColor: color,
+        backgroundColor: color,
+        pointBackgroundColor: color,
+        fill: false,
+        borderWidth: isTrend ? 1.5 : 2,
+        borderDash: isTrend ? [4, 4] : undefined,
+        pointRadius: isTrend ? 0 : undefined,
+      };
+    }),
+  };
+
+  const unit = groupBy === 'year' ? 'año' : 'mes';
+  const stats = [
+    {
+      label: 'Tendencia',
+      value:
+        trendDirection === 'up'
+          ? 'Subiendo'
+          : trendDirection === 'down'
+            ? 'Bajando'
+            : 'Estable',
+      icon:
+        trendDirection === 'up'
+          ? TrendingUp
+          : trendDirection === 'down'
+            ? TrendingDown
+            : Minus,
+      tone: trendDirection === 'down' ? 'text-positive' : '',
+      sub: `${trendSlope > 0 ? '+' : ''}${trendSlope.toFixed(0)} €/${unit} de media`,
+    },
+    {
+      label: 'Total gastado',
+      value: <Amount amount={totalSpend} />,
+    },
+    {
+      label: `Media por ${unit}`,
+      value: <Amount amount={avgPerPeriod} />,
+    },
+    {
+      label: 'Periodos con datos',
+      value: String(dataPoints),
+    },
+  ];
+
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <CardTitle>Tendencias</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Evolución temporal de{' '}
-            {selectedQue || selectedTipo || 'todas las categorías'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={selectedTipo} onValueChange={handleTipoChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tipo (general)" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {types.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
+    <Section
+      title="Tendencias"
+      description={`Evolución de ${
+        selectedQue !== '__all__'
+          ? selectedQue
+          : selectedTipo || 'todas las categorías'
+      }`}
+      legend={
+        labels.length > 0 && (
+          <Legend
+            items={visibleDatasets.map((d) => ({
+              label: legendLabel[d.label ?? ''] ?? d.label ?? '',
+              color: seriesColor[d.label ?? ''] ?? theme.subtle,
+              dashed: d.label === 'Tendencia',
+            }))}
+          />
+        )
+      }
+      action={
+        <>
+          {!isControlled && (
+            <PillSelect
+              ariaLabel="Tipo"
+              value={selectedTipo}
+              onValueChange={handleTipoChange}
+              placeholder="Tipo (general)"
+              options={types}
+            />
+          )}
+          <PillSelect
+            ariaLabel="Categoría"
             value={selectedQue}
             onValueChange={setSelectedQue}
             disabled={!selectedTipo}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue
-                placeholder={
-                  selectedTipo
-                    ? 'Categoría (específica)'
-                    : 'Selecciona tipo primero'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
-              {availableQue.map((q) => (
-                <SelectItem key={q} value={q}>
-                  {q}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder={
+              selectedTipo
+                ? 'Categoría (específica)'
+                : 'Selecciona tipo primero'
+            }
+            allOption={{ value: '__all__', label: 'Todas las categorías' }}
+            options={availableQue}
+          />
+        </>
+      }
+    >
+      <div className="grid gap-4 lg:grid-cols-4">
+        <div className="h-56 min-w-0 md:h-64 lg:col-span-3">
+          {loading ? (
+            <ChartLoading />
+          ) : chartData && labels.length > 0 ? (
+            <Line
+              data={themedData}
+              options={themedLineOptions(theme, labels, getLineChartOptions())}
+            />
+          ) : (
+            <EmptyState className="h-full">
+              Selecciona un tipo o categoría para ver la tendencia
+            </EmptyState>
+          )}
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 h-80">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : chartData && (chartData.labels?.length ?? 0) > 0 ? (
-              <Line data={chartData} options={chartOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Selecciona un tipo o categoría para ver la tendencia
-              </div>
-            )}
-          </div>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">
-                Tendencia
-              </div>
-              <div className="flex items-center gap-2">
-                {trendDirection === 'up' ? (
-                  <>
-                    <TrendingUp className="h-5 w-5 text-red-500" />
-                    <span className="text-lg font-bold text-red-500">
-                      Subiendo
-                    </span>
-                  </>
-                ) : trendDirection === 'down' ? (
-                  <>
-                    <TrendingDown className="h-5 w-5 text-green-500" />
-                    <span className="text-lg font-bold text-green-500">
-                      Bajando
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Minus className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-lg font-bold text-muted-foreground">
-                      Estable
-                    </span>
-                  </>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-hairline pt-4 lg:grid-cols-1 lg:content-start lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div key={stat.label} className="min-w-0">
+                <dt className="text-[12px] text-faint">{stat.label}</dt>
+                <dd
+                  className={cn(
+                    'num mt-0.5 flex items-center gap-1.5 truncate text-[17px] font-semibold tracking-[-0.02em]',
+                    stat.tone,
+                  )}
+                >
+                  {Icon && <Icon className="h-4 w-4 shrink-0" />}
+                  {stat.value}
+                </dd>
+                {stat.sub && (
+                  <dd className="num mt-0.5 text-[12px] text-faint">
+                    {stat.sub}
+                  </dd>
                 )}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {trendSlope > 0 ? '+' : ''}
-                {trendSlope.toFixed(0)} €/{groupBy === 'year' ? 'año' : 'mes'}{' '}
-                de media
-              </div>
-            </div>
+            );
+          })}
+        </dl>
+      </div>
 
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">
-                Total gastado
-              </div>
-              <div className="text-xl font-bold">
-                {totalSpend.toLocaleString('es-ES', {
-                  style: 'currency',
-                  currency: 'EUR',
-                })}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">
-                Media por {groupBy === 'year' ? 'año' : 'mes'}
-              </div>
-              <div className="text-xl font-bold">
-                {avgPerPeriod.toLocaleString('es-ES', {
-                  style: 'currency',
-                  currency: 'EUR',
-                })}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-lg bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">
-                Periodos con datos
-              </div>
-              <div className="text-xl font-bold">{dataPoints}</div>
-            </div>
-          </div>
+      {/* Que breakdown when a whole tipo is selected */}
+      {showBreakdown && isTipoOnly && queBreakdown.length > 0 && (
+        <div className="mt-5 border-t border-hairline pt-4">
+          <h3 className="mb-1 text-[13px] font-semibold text-subtle">
+            Categorías dentro de {selectedTipo}
+          </h3>
+          <RankedBars
+            ariaLabel={`Categorías dentro de ${selectedTipo}`}
+            shareLabel="del tipo"
+            limit={5}
+            items={queBreakdown.map((item) => ({
+              key: `${item.category}-${item.action}`,
+              label: item.category,
+              value: item.total,
+              pct: tipoTotal > 0 ? (item.total / tipoTotal) * 100 : 0,
+              count: item.count,
+              icon: <CategoryTile name={item.category} />,
+              badge: <ActionBadge action={item.action} />,
+              tone:
+                item.action === 'Ingreso'
+                  ? 'positive'
+                  : item.action === 'Inversión'
+                    ? 'invest'
+                    : 'neutral',
+            }))}
+          />
         </div>
-
-        {/* Sub-table: que breakdown when tipo is selected */}
-        {isTipoOnly && queBreakdown.length > 0 && (
-          <div className="mt-6 border-t pt-6">
-            <h4 className="text-sm font-medium text-muted-foreground mb-3">
-              Desglose de categorías dentro de {selectedTipo}
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {queBreakdown.map((item) => {
-                const pct = tipoTotal > 0 ? (item.total / tipoTotal) * 100 : 0;
-                const isExpense =
-                  item.action === 'Gasto' || item.action === 'Inversión';
-                return (
-                  <div
-                    key={`${item.category}-${item.action}`}
-                    className="p-3 rounded-lg border"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">
-                        {item.category}
-                      </span>
-                      <span
-                        className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          isExpense
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-green-100 text-green-700'
-                        }`}
-                      >
-                        {item.action}
-                      </span>
-                    </div>
-                    <div className="text-lg font-bold">
-                      {item.total.toLocaleString('es-ES', {
-                        style: 'currency',
-                        currency: 'EUR',
-                      })}
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2 mt-2">
-                      <div
-                        className={`h-2 rounded-full ${isExpense ? 'bg-red-400' : 'bg-green-400'}`}
-                        style={{ width: `${Math.min(pct, 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {pct.toFixed(1)}%
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {item.count} mov.
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </Section>
   );
 }

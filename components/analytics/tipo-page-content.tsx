@@ -1,32 +1,45 @@
 'use client';
 
-import { Chart as ChartJS, ArcElement, Legend, Tooltip } from 'chart.js';
+import { CalendarDays, ChevronDown, TrendingUp } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
-import { Doughnut } from 'react-chartjs-2';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { SavingsRateCard } from '@/components/analytics/SavingsRateCard';
 import { SpendingVelocity } from '@/components/analytics/SpendingVelocity';
 import { TipoExplorer } from '@/components/analytics/TipoExplorer';
 import { TrendExplorer } from '@/components/analytics/TrendExplorer';
 import { AnalyticsSubnav } from '@/components/analytics/analytics-subnav';
+import {
+  Amount,
+  ChartLoading,
+  EmptyState,
+  FigureGrid,
+  HeroAmount,
+  Pill,
+  pillClass,
+  RankedBars,
+  Section,
+} from '@/components/analytics/kit';
 import { TipoEntriesTable } from '@/components/analytics/tipo-entries-table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
+import { CategoryTile } from '@/components/quick-add/category-icon';
+import { Card } from '@/components/ui/card';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { useAnalyticsData } from '@/hooks/use-analytics-data';
 import {
   computeMonthlyAverages,
   computeSpendingVelocity,
   getCategoryTrendData,
-  getDoughnutChartOptions,
   getLineChartOptions,
-  getTipoExplorerChartOptions,
   getTipoExplorerData,
   getTipoQueDoughnutData,
   getTipoTrendData,
 } from '@/lib/analytics-charts';
 import { cn, formatCurrency } from '@/lib/utils';
-
-ChartJS.register(ArcElement, Tooltip, Legend);
 
 const MONTHS = [
   'Ene',
@@ -47,61 +60,6 @@ type ActionKey = 'Ingreso' | 'Gasto' | 'Inversión';
 
 function lastDayOfMonth(year: number, monthIndex: number) {
   return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-}
-
-interface FilterChipProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  active?: boolean;
-  tone?: 'primary' | 'neutral';
-}
-
-function FilterChip({
-  active = false,
-  tone = 'neutral',
-  className,
-  ...props
-}: FilterChipProps) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      {...props}
-      className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
-        active
-          ? 'bg-primary text-primary-foreground shadow-sm'
-          : tone === 'primary'
-            ? 'text-foreground hover:bg-muted/70'
-            : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
-        className,
-      )}
-    />
-  );
-}
-
-interface FilterGroupProps {
-  label: string;
-  children: React.ReactNode;
-}
-
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/90 select-none">
-      {children}
-    </span>
-  );
-}
-
-function FilterGroup({ label, children }: FilterGroupProps) {
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className="flex flex-wrap items-center gap-2"
-    >
-      <GroupLabel>{label}</GroupLabel>
-      {children}
-    </div>
-  );
 }
 
 export default function TipoPageContent() {
@@ -150,6 +108,16 @@ export default function TipoPageContent() {
   );
 
   const [selectedQue, setSelectedQue] = useState<string>('todos');
+
+  // Keep the active tipo visible in the horizontally scrolling rail.
+  const tipoRail = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const active = tipoRail.current?.querySelector<HTMLElement>(
+      '[aria-pressed="true"]',
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- jsdom has no scrollIntoView
+    active?.scrollIntoView?.({ inline: 'center', block: 'nearest' });
+  }, [selectedTipo, tipos.length]);
 
   const years = useMemo(() => {
     if (data.availableYears.length > 0) {
@@ -214,17 +182,10 @@ export default function TipoPageContent() {
     perAction.Gasto.amount -
     perAction.Inversión.amount;
 
-  const doughnutData = getTipoQueDoughnutData(data.tipoQueData, selectedTipo);
-  const doughnutOptions = getDoughnutChartOptions(
-    doughnutData.total,
-    doughnutData.labels.map((label, index) => ({
-      category: label,
-      action: 'Gasto',
-      total: doughnutData.datasets[0].data[index],
-      count: 0,
-    })),
+  const categoryBreakdown = getTipoQueDoughnutData(
+    data.tipoQueData,
+    selectedTipo,
   );
-
   const queVelocities = computeSpendingVelocity(
     data.categoryTemporalData.filter((d) => d.type === selectedTipo),
     'Gasto',
@@ -265,222 +226,314 @@ export default function TipoPageContent() {
     to: toStr || undefined,
   };
 
-  const summaryCards = [
+  const metrics = [
     {
+      key: 'Gasto',
       label: 'Gastos',
       amount: perAction.Gasto.amount,
-      count: perAction.Gasto.count,
-      accent: 'text-destructive',
+      count: perAction.Gasto.count as number | null,
+      sign: '-' as const,
+      tone: undefined,
       average: hasAverage ? (averageByAction.get('Gasto') ?? 0) : null,
     },
     {
-      label: 'Inversión',
-      amount: perAction.Inversión.amount,
-      count: perAction.Inversión.count,
-      accent: 'text-blue-600',
-      average: hasAverage ? (averageByAction.get('Inversión') ?? 0) : null,
-    },
-    {
+      key: 'Ingreso',
       label: 'Ingresos',
       amount: perAction.Ingreso.amount,
-      count: perAction.Ingreso.count,
-      accent: 'text-green-600',
+      count: perAction.Ingreso.count as number | null,
+      sign: '+' as const,
+      tone: 'positive' as const,
       average: hasAverage ? (averageByAction.get('Ingreso') ?? 0) : null,
     },
     {
+      key: 'Inversión',
+      label: 'Inversión',
+      amount: perAction.Inversión.amount,
+      count: perAction.Inversión.count as number | null,
+      sign: '' as const,
+      tone: 'invest' as const,
+      average: hasAverage ? (averageByAction.get('Inversión') ?? 0) : null,
+    },
+  ];
+  // The hero is whichever side of the ledger dominates this tipo (rent is
+  // an expense, a salary is income); the rest become compact tiles.
+  const hero = metrics.reduce((a, b) => (b.amount > a.amount ? b : a));
+  const tiles = [
+    ...metrics.filter((m) => m !== hero),
+    {
+      key: 'Neto',
       label: 'Neto',
       amount: Math.abs(net),
       count: null,
-      accent: net >= 0 ? 'text-green-600' : 'text-destructive',
+      sign: (net >= 0 ? '+' : '-') as '+' | '-',
+      tone: net >= 0 ? ('positive' as const) : undefined,
       average: netAverage,
     },
   ];
 
+  const periodLabel = !fromStr
+    ? 'Todo'
+    : isFullYear
+      ? fromStr.slice(0, 4)
+      : `${MONTHS[activeMonth - 1] ?? ''} ${fromStr.slice(0, 4)}`.trim();
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Analíticas por Tipo</h1>
-      <div className="mb-6">
-        <AnalyticsSubnav />
-      </div>
-
-      <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5 space-y-4">
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-          <FilterGroup label="Tipo">
-            {tipos.map((tipo) => (
-              <FilterChip
-                key={tipo}
-                tone="primary"
-                className="px-4 py-2"
-                active={selectedTipo === tipo}
-                onClick={() => handleTipoChange(tipo)}
-              >
-                {tipo}
-              </FilterChip>
-            ))}
-          </FilterGroup>
-
-          {queOptions.length > 0 && (
-            <FilterGroup label="Que">
-              <FilterChip
-                className="px-3 py-1.5"
-                active={selectedQue === 'todos'}
-                onClick={() => setSelectedQue('todos')}
-              >
-                Todos
-              </FilterChip>
-              {queOptions.map((que) => (
-                <FilterChip
-                  key={que}
-                  className="px-3 py-1.5"
-                  active={selectedQue === que}
-                  onClick={() => setSelectedQue(que)}
-                >
-                  {que}
-                </FilterChip>
-              ))}
-            </FilterGroup>
-          )}
-        </div>
-
-        <div className="h-px bg-border/70" aria-hidden />
-
-        {years.length > 0 && (
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <GroupLabel>Periodo</GroupLabel>
-              <FilterChip
-                className="ml-1 px-3 py-1.5"
-                active={!fromStr}
-                onClick={() => handlePeriod(null, null)}
-              >
-                Todo
-              </FilterChip>
-              {years.map((year) => {
-                const isSelectedYear = activeYear === year;
-                return (
-                  <FilterChip
-                    key={year}
-                    className={cn(
-                      'px-3 py-1.5',
-                      isSelectedYear &&
-                        !isFullYear &&
-                        'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30 hover:bg-primary/15',
-                    )}
-                    active={Boolean(isFullYear) && isSelectedYear}
-                    onClick={() =>
-                      handlePeriod(`${year}-01-01`, `${year}-12-31`)
-                    }
-                  >
-                    {year}
-                  </FilterChip>
-                );
-              })}
-            </div>
-
-            <div className="mt-3 grid grid-cols-6 gap-1 rounded-xl bg-muted/40 p-1 sm:grid-cols-12">
-              {MONTHS.map((month, index) => (
+    <div className="min-w-0">
+      <PageHeader
+        title="Análisis"
+        actions={
+          years.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
                 <button
-                  key={month}
                   type="button"
-                  aria-pressed={activeMonth === index + 1}
-                  onClick={() => {
-                    const pad = String(index + 1).padStart(2, '0');
-                    handlePeriod(
-                      `${activeYear}-${pad}-01`,
-                      `${activeYear}-${pad}-${String(lastDayOfMonth(activeYear, index)).padStart(2, '0')}`,
-                    );
-                  }}
-                  className={cn(
-                    'rounded-lg py-2 text-xs font-medium transition-all duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    activeMonth === index + 1
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-card hover:text-foreground',
-                  )}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-3.5 text-[13px] font-semibold"
+                  aria-label={`Periodo: ${periodLabel}`}
                 >
-                  {month}
+                  <CalendarDays className="h-4 w-4 text-subtle" />
+                  {periodLabel}
+                  <ChevronDown className="h-4 w-4 text-subtle" />
                 </button>
-              ))}
-            </div>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                className="w-[min(20rem,calc(100vw-2rem))] space-y-3 p-3"
+              >
+                <div
+                  role="group"
+                  aria-label="Año"
+                  className="flex flex-wrap gap-1.5"
+                >
+                  <Pill
+                    active={!fromStr}
+                    onClick={() => handlePeriod(null, null)}
+                  >
+                    Todo
+                  </Pill>
+                  {years.map((year) => (
+                    <Pill
+                      key={year}
+                      active={Boolean(isFullYear) && activeYear === year}
+                      onClick={() =>
+                        handlePeriod(`${year}-01-01`, `${year}-12-31`)
+                      }
+                    >
+                      {year}
+                    </Pill>
+                  ))}
+                </div>
+                <div className="border-t border-hairline pt-3">
+                  <p className="mb-2 text-[12px] text-faint">
+                    Meses de {activeYear}
+                  </p>
+                  <div
+                    role="group"
+                    aria-label="Mes"
+                    className="grid grid-cols-4 gap-1.5"
+                  >
+                    {MONTHS.map((month, index) => (
+                      <Pill
+                        key={month}
+                        active={activeMonth === index + 1}
+                        className="px-0"
+                        onClick={() => {
+                          const pad = String(index + 1).padStart(2, '0');
+                          handlePeriod(
+                            `${activeYear}-${pad}-01`,
+                            `${activeYear}-${pad}-${String(lastDayOfMonth(activeYear, index)).padStart(2, '0')}`,
+                          );
+                        }}
+                      >
+                        {month}
+                      </Pill>
+                    ))}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )
+        }
+      />
+      <AnalyticsSubnav />
+
+      <div className="mt-3 space-y-2">
+        <div
+          ref={tipoRail}
+          role="group"
+          aria-label="Tipo"
+          className="rail -mx-4 px-4 py-0.5 md:mx-0 md:flex-wrap md:px-0 md:[mask-image:none]"
+        >
+          {tipos.map((tipo) => (
+            <Pill
+              key={tipo}
+              active={selectedTipo === tipo}
+              onClick={() => handleTipoChange(tipo)}
+            >
+              {tipo}
+            </Pill>
+          ))}
+        </div>
+        {queOptions.length > 0 && (
+          <div
+            role="group"
+            aria-label="Que"
+            className="rail -mx-4 px-4 py-0.5 md:mx-0 md:flex-wrap md:px-0 md:[mask-image:none]"
+          >
+            <span className="flex shrink-0 items-center pr-1 text-[12px] font-medium text-faint">
+              Que
+            </span>
+            {[
+              { key: 'todos', label: 'Todos' },
+              ...queOptions.map((q) => ({ key: q, label: q })),
+            ].map((q) => (
+              <button
+                key={q.key}
+                type="button"
+                aria-pressed={selectedQue === q.key}
+                onClick={() => setSelectedQue(q.key)}
+                className={cn(
+                  pillClass(selectedQue === q.key),
+                  'h-9 px-3.5 font-medium',
+                )}
+              >
+                {q.label}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {summaryCards.map((card) => (
-          <Card key={card.label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={cn('text-2xl font-bold', card.accent)}>
-                {formatCurrency(card.amount)}
-              </div>
-              {card.count !== null && (
-                <div className="text-sm text-muted-foreground">
-                  {card.count} mov.
-                </div>
-              )}
-              {card.average !== null && (
-                <div
-                  className="text-sm text-muted-foreground"
+      <div className="mt-5 space-y-3 md:space-y-4">
+        <div className="grid gap-3 lg:grid-cols-4">
+          <Card
+            data-metric={hero.key}
+            className="flex flex-col justify-between gap-4 p-5 lg:col-span-2"
+          >
+            <div>
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-subtle">
+                {hero.key === 'Inversión' && (
+                  <TrendingUp aria-hidden className="h-3.5 w-3.5 text-invest" />
+                )}
+                {hero.label}
+              </p>
+              <HeroAmount
+                amount={hero.amount}
+                sign={hero.amount > 0 ? hero.sign : ''}
+                className={cn(
+                  'mt-2 block',
+                  hero.tone === 'positive' && 'text-positive',
+                )}
+              />
+            </div>
+            <p className="num text-[13px] text-subtle">
+              {hero.count} mov.
+              {hero.average !== null && (
+                <span
+                  className="text-faint"
                   title="Promedio por mes de calendario entre el primer y el último movimiento; los meses sin movimientos cuentan como 0."
                 >
-                  {formatCurrency(card.average)}/mes
-                </div>
+                  {' · '}
+                  {formatCurrency(hero.average)}/mes
+                </span>
               )}
-            </CardContent>
+            </p>
           </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Gasto por Categoría</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            ) : doughnutData.labels.length > 0 ? (
-              <Doughnut data={doughnutData} options={doughnutOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No hay datos disponibles
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-6">
-          <SavingsRateCard
-            income={perAction.Ingreso.amount}
-            expenses={perAction.Gasto.amount}
-          />
-          <SpendingVelocity
-            velocities={queVelocities}
-            loading={loading}
-            title={`Velocidad de Gasto en ${selectedTipo}`}
+          <FigureGrid
+            className="lg:col-span-2 lg:auto-rows-fr"
+            items={tiles.map((t) => ({
+              key: t.key,
+              label: t.label,
+              icon:
+                t.key === 'Inversión' ? (
+                  <TrendingUp aria-hidden className="h-3.5 w-3.5 text-invest" />
+                ) : undefined,
+              value: (
+                <Amount
+                  amount={t.amount}
+                  sign={t.amount > 0 ? t.sign : ''}
+                  className={cn(t.tone === 'positive' && 'text-positive')}
+                />
+              ),
+              sub: (
+                <>
+                  {t.count !== null && <p className="num">{t.count} mov.</p>}
+                  {t.average !== null && (
+                    <p
+                      className="num truncate"
+                      title="Promedio por mes de calendario entre el primer y el último movimiento; los meses sin movimientos cuentan como 0."
+                    >
+                      {formatCurrency(t.average)}/mes
+                    </p>
+                  )}
+                </>
+              ),
+            }))}
           />
         </div>
-      </div>
 
-      <div className="mb-6">
+        <div className="grid gap-3 md:gap-4 lg:grid-cols-2">
+          <Section
+            title="Gasto por categoría"
+            description={
+              categoryBreakdown.total > 0 ? (
+                <span className="num">
+                  {formatCurrency(categoryBreakdown.total)} en {selectedTipo}
+                </span>
+              ) : undefined
+            }
+          >
+            {loading ? (
+              <ChartLoading className="h-48" />
+            ) : categoryBreakdown.labels.length > 0 ? (
+              <RankedBars
+                ariaLabel="Gasto por categoría"
+                shareLabel="del gasto"
+                limit={6}
+                items={categoryBreakdown.labels.map((label, index) => {
+                  const value = Number(
+                    categoryBreakdown.datasets[0].data[index] ?? 0,
+                  );
+                  return {
+                    key: label,
+                    label,
+                    value,
+                    pct:
+                      categoryBreakdown.total > 0
+                        ? (value / categoryBreakdown.total) * 100
+                        : 0,
+                    icon: <CategoryTile name={label} />,
+                  };
+                })}
+              />
+            ) : (
+              <EmptyState>No hay datos disponibles</EmptyState>
+            )}
+          </Section>
+
+          <div className="grid content-start gap-3 md:gap-4">
+            {perAction.Ingreso.amount > 0 && (
+              <SavingsRateCard
+                income={perAction.Ingreso.amount}
+                expenses={perAction.Gasto.amount}
+              />
+            )}
+            <SpendingVelocity
+              velocities={queVelocities}
+              loading={loading}
+              title={`Velocidad de gasto en ${selectedTipo}`}
+            />
+          </div>
+        </div>
+
         <TipoExplorer
           tipoQueData={data.tipoQueData}
           types={tipos}
           getChartData={getTipoExplorerData}
-          getChartOptions={getTipoExplorerChartOptions}
           loading={loading}
           selectedTipo={selectedTipo}
           onTipoChange={handleTipoChange}
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 mb-6">
         <TrendExplorer
           categoryTemporalData={data.categoryTemporalData}
           typeTemporalData={data.typeTemporalData}
@@ -493,10 +546,9 @@ export default function TipoPageContent() {
           getLineChartOptions={getLineChartOptions}
           selectedTipo={selectedTipo}
           onTipoChange={handleTipoChange}
+          showBreakdown={false}
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-6">
         <TipoEntriesTable {...tableFilters} />
       </div>
     </div>

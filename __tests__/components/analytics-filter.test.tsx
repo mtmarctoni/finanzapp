@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import {
   AnalyticsFilter,
+  AnalyticsFilterChips,
   type AnalyticsFilterProps,
 } from '@/components/analytics-filter';
 
@@ -29,7 +30,11 @@ function renderFilter(props: Partial<AnalyticsFilterProps> = {}) {
   return render(<AnalyticsFilter {...propsWithDefaults} />);
 }
 
+// The fields live in a sheet behind the "Filtros" pill.
 function openSelect(placeholderText: string) {
+  if (!screen.queryByRole('dialog')) {
+    fireEvent.click(screen.getByRole('button', { name: /Filtros/ }));
+  }
   fireEvent.click(screen.getByText(placeholderText));
 }
 
@@ -97,5 +102,24 @@ describe('AnalyticsFilter', () => {
     expect(
       screen.getByRole('option', { name: 'Hipoteca' }),
     ).toBeInTheDocument();
+  });
+
+  it('shows active filters as chips that clear only their own field', () => {
+    const onChange = jest.fn();
+    const value = { actions: ['Gasto'], platforms: ['Tarjeta'] };
+    renderFilter({ value, onChange });
+    render(<AnalyticsFilterChips value={value} onChange={onChange} />);
+
+    expect(screen.getByRole('button', { name: /Filtros/ })).toHaveTextContent(
+      '2',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar filtro Tarjeta' }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith({
+      actions: ['Gasto'],
+      platforms: [],
+    });
   });
 });

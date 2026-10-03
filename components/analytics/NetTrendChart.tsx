@@ -1,3 +1,5 @@
+'use client';
+
 import { type ChartData, type ChartOptions } from 'chart.js';
 import {
   Chart as ChartJS,
@@ -8,13 +10,22 @@ import {
   Filler,
   Title,
   Tooltip,
-  Legend,
+  Legend as ChartLegend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  themedLineOptions,
+  useChartTheme,
+  withAlpha,
+} from '@/components/analytics/chart-theme';
+import {
+  ChartLoading,
+  EmptyState,
+  Legend,
+  Section,
+} from '@/components/analytics/kit';
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -23,34 +34,60 @@ ChartJS.register(
   Filler,
   Title,
   Tooltip,
-  Legend,
+  ChartLegend,
 );
 
 interface NetTrendChartProps {
+  /** First dataset is the headline series (one hue), the rest stay grey. */
   data: ChartData<'line', number[], string>;
   options: ChartOptions<'line'>;
   loading: boolean;
 }
 
 export function NetTrendChart({ data, options, loading }: NetTrendChartProps) {
+  const theme = useChartTheme();
+  const labels = (data.labels ?? []) as string[];
+  const colors = data.datasets.map((_, i) =>
+    i === 0 ? theme.foreground : theme.subtle,
+  );
+  const themed: ChartData<'line', number[], string> = {
+    labels,
+    datasets: data.datasets.map((d, i) => ({
+      ...d,
+      borderColor: colors[i],
+      backgroundColor: i === 0 ? withAlpha(theme.foreground, 0.05) : colors[i],
+      pointBackgroundColor: colors[i],
+      fill: i === 0 ? 'origin' : false,
+      borderWidth: i === 0 ? 2 : 1.5,
+      borderDash: i === 0 ? undefined : [4, 4],
+    })),
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tendencia Neta</CardTitle>
-      </CardHeader>
-      <CardContent className="h-80">
+    <Section
+      title="Tendencia neta"
+      legend={
+        <Legend
+          items={data.datasets.map((d, i) => ({
+            label: d.label ?? '',
+            color: colors[i],
+            dashed: i > 0,
+          }))}
+        />
+      }
+    >
+      <div className="h-56 md:h-64">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : (data.labels?.length ?? 0) > 0 ? (
-          <Line data={data} options={options} />
+          <ChartLoading />
+        ) : labels.length > 0 ? (
+          <Line
+            data={themed}
+            options={themedLineOptions(theme, labels, options)}
+          />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            No hay datos disponibles
-          </div>
+          <EmptyState className="h-full">No hay datos disponibles</EmptyState>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
