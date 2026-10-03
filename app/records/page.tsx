@@ -1,11 +1,8 @@
-import { PlusCircle, FileDown } from 'lucide-react';
-import Link from 'next/link';
+import { FileDown } from 'lucide-react';
 import { Suspense } from 'react';
 
-import { QuickEntryBar } from '@/components/ai/QuickEntryBar';
-import { ReceiptUpload } from '@/components/ai/ReceiptUpload';
 import FinanceTable from '@/components/finance-table';
-import { MerchantMemoryCard } from '@/components/merchants/MerchantMemoryCard';
+import { PageHeader } from '@/components/page-header';
 import { SearchFilter } from '@/components/search-filter';
 import { TableSkeleton } from '@/components/table-skeleton';
 import { Button } from '@/components/ui/button';
@@ -24,6 +21,8 @@ export default async function RecordsPage({
     to?: string;
     page?: string;
     itemsPerPage?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }>;
 }) {
   const {
@@ -33,9 +32,20 @@ export default async function RecordsPage({
     to = '',
     page = '1',
     itemsPerPage = String(ITEMS_PER_PAGE),
+    sortBy,
+    sortOrder,
   } = (await searchParams) ?? {};
 
-  const filterParams = { search, accion, from, to, page, itemsPerPage };
+  const filterParams = {
+    search,
+    accion,
+    from,
+    to,
+    page,
+    itemsPerPage,
+    ...(sortBy ? { sortBy } : {}),
+    ...(sortOrder ? { sortOrder } : {}),
+  };
 
   const exportParams = new URLSearchParams();
   if (search) exportParams.set('search', search);
@@ -44,51 +54,40 @@ export default async function RecordsPage({
   if (accion && accion !== 'todos') exportParams.set('tipo', accion);
 
   return (
-    <main className="container mx-auto py-10 space-y-6">
-      <div className="flex flex-wrap justify-between items-center">
-        <h1 className="text-3xl font-bold">Registros</h1>
-        <div className="flex gap-2">
-          <Link href="/new">
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Entrada
-            </Button>
-          </Link>
-          <Link href={`/api/export?${exportParams.toString()}`} target="_blank">
-            <Button variant="outline">
-              <FileDown className="mr-2 h-4 w-4" />
-              Exportar Excel
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <>
+      <PageHeader
+        title="Registros"
+        actions={
+          <Button
+            asChild
+            variant="secondary"
+            size="icon"
+            className="border border-hairline"
+          >
+            <a
+              href={`/api/export?${exportParams.toString()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Exportar Excel"
+              title="Exportar Excel"
+            >
+              <FileDown className="!size-[18px]" />
+            </a>
+          </Button>
+        }
+      />
 
-      <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
-        <QuickEntryBar />
+      <Suspense
+        fallback={<Skeleton className="mb-4 h-[104px] w-full rounded-[20px]" />}
+      >
+        <SearchFilter />
       </Suspense>
 
-      <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
-        <ReceiptUpload />
-      </Suspense>
-
-      <Suspense fallback={<Skeleton className="h-32 w-full rounded-lg" />}>
-        <MerchantMemoryCard />
-      </Suspense>
-
-      <div className="border-t pt-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-lg font-semibold text-muted-foreground">
-            Buscar y Filtrar
-          </h2>
-        </div>
-        <Suspense fallback={<Skeleton className="h-10 w-full" />}>
-          <SearchFilter />
+      <div className="pt-5 md:pt-0">
+        <Suspense fallback={<TableSkeleton />}>
+          <FinanceTable searchParams={filterParams} />
         </Suspense>
       </div>
-
-      <Suspense fallback={<TableSkeleton />}>
-        <FinanceTable searchParams={filterParams} />
-      </Suspense>
-    </main>
+    </>
   );
 }
