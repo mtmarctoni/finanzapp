@@ -7,7 +7,6 @@ import { useState } from 'react';
 
 import { downscaleImageFile } from '@/components/ai/imageDownscale';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 
 type UploadStatus = 'idle' | 'working' | 'error' | 'duplicate';
 
@@ -103,54 +102,61 @@ export function ReceiptUpload() {
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6 flex flex-wrap items-center gap-3">
-        <div>
-          <label
-            htmlFor="receipt-image"
-            className="text-sm font-medium block mb-1"
-          >
-            Sube una foto de un recibo
-          </label>
-          <input
-            id="receipt-image"
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] ?? null);
-              setUploadStatus('idle');
-              setMessage('');
-            }}
-            className="text-sm"
-          />
-        </div>
+    <div className="space-y-3">
+      <label
+        htmlFor="receipt-image"
+        className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-[20px] border border-dashed border-hairline-strong bg-surface-2 px-4 py-6 text-center transition-colors active:bg-surface-3"
+      >
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-surface-3">
+          <Camera className="h-6 w-6" />
+        </span>
+        <span className="text-[15px] font-semibold tracking-[-0.01em]">
+          {file ? file.name : 'Hacer foto o elegir imagen'}
+        </span>
+        <span className="text-xs text-faint">
+          {file ? 'Toca para cambiarla' : 'JPG, PNG, WEBP o HEIC'}
+        </span>
+        <input
+          id="receipt-image"
+          type="file"
+          aria-label="Sube una foto de un recibo"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+          capture="environment"
+          onChange={(event) => {
+            setFile(event.target.files?.[0] ?? null);
+            setUploadStatus('idle');
+            setMessage('');
+          }}
+          className="sr-only"
+        />
+      </label>
 
-        <Button
-          onClick={handleAnalyze}
-          disabled={!file || uploadStatus === 'working'}
-          className="mt-5"
-        >
-          {uploadStatus === 'working' ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Camera className="mr-2 h-4 w-4" />
-          )}
-          Analizar recibo
-        </Button>
-
-        {message && (
-          <p
-            role="status"
-            className={
-              uploadStatus === 'error'
-                ? 'w-full text-sm text-destructive'
-                : 'w-full text-sm text-muted-foreground'
-            }
-          >
-            {message}
-          </p>
+      <Button
+        onClick={handleAnalyze}
+        disabled={!file || uploadStatus === 'working'}
+        size="lg"
+        className="w-full"
+      >
+        {uploadStatus === 'working' ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Camera className="h-4 w-4" />
         )}
-      </CardContent>
-    </Card>
+        Analizar recibo
+      </Button>
+
+      {message && (
+        <p
+          role="status"
+          className={
+            uploadStatus === 'error'
+              ? 'text-center text-sm text-negative'
+              : 'text-center text-sm text-subtle'
+          }
+        >
+          {message}
+        </p>
+      )}
+    </div>
   );
 }

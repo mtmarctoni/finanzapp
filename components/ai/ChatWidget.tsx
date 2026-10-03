@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
 import { ChatMessage } from './ChatMessage';
 import { PaidFallbackDialog } from './PaidFallbackDialog';
+import { OPEN_CHAT_EVENT } from './chat-events';
 
 import { Button } from '@/components/ui/button';
 import { logger } from '@/lib/logger';
@@ -33,6 +34,14 @@ export function ChatWidget() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical hydration-detect pattern
   useEffect(() => setMounted(true), []);
+
+  // Opened from the sidebar or the mobile "Más" sheet; there is no floating
+  // launcher, so the add button is the only floating action on screen.
+  useEffect(() => {
+    const open = () => setIsOpen(true);
+    window.addEventListener(OPEN_CHAT_EVENT, open);
+    return () => window.removeEventListener(OPEN_CHAT_EVENT, open);
+  }, []);
 
   const transport = useMemo(
     () =>
@@ -210,24 +219,19 @@ export function ChatWidget() {
         modelName={fallbackError?.fallbackModel ?? 'Kimi K2.5'}
       />
 
-      {/* Floating trigger button */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-20 right-4 z-50 lg:bottom-6 lg:right-6 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors flex items-center justify-center"
-          aria-label="Abrir chat asistente"
-        >
-          <MessageSquare className="h-5 w-5" />
-        </button>
-      )}
-
       {/* Chat panel */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 z-50 lg:bottom-6 lg:right-6 w-[calc(100vw-2rem)] max-w-sm h-[28rem] bg-background border border-border rounded-lg shadow-xl flex flex-col">
+        <div
+          role="dialog"
+          aria-label="Asistente financiero"
+          className="glass-sheet fixed inset-x-0 bottom-0 top-[calc(env(safe-area-inset-top)+12px)] z-[70] flex flex-col overflow-hidden rounded-t-[28px] border-t border-hairline-strong pb-safe shadow-2xl animate-sheet-in md:inset-x-auto md:bottom-6 md:right-6 md:top-auto md:h-[32rem] md:w-[400px] md:rounded-[24px] md:border md:pb-0"
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="flex h-14 shrink-0 items-center justify-between border-b border-hairline px-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold">Asistente financiero</h3>
+              <h3 className="text-[15px] font-semibold tracking-[-0.01em]">
+                Asistente financiero
+              </h3>
               {paidSessionActive && (
                 <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />
@@ -248,7 +252,7 @@ export function ChatWidget() {
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                className="grid h-9 w-9 place-items-center rounded-full bg-surface-2 text-subtle transition-colors hover:text-foreground"
                 aria-label="Cerrar chat"
               >
                 <X className="h-4 w-4" />
@@ -298,7 +302,7 @@ export function ChatWidget() {
           </div>
 
           {/* Input area */}
-          <div className="border-t border-border p-3">
+          <div className="border-t border-hairline p-3">
             {paidSessionActive && (
               <div className="mb-2 text-xs text-muted-foreground flex items-center justify-between">
                 <span className="text-yellow-600 dark:text-yellow-400">
@@ -318,13 +322,13 @@ export function ChatWidget() {
                 type="text"
                 placeholder="Escribe un mensaje..."
                 disabled={isLoading}
-                className="flex-1 bg-muted rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+                className="h-11 flex-1 rounded-full bg-surface-2 px-4 text-base outline-none placeholder:text-faint focus:ring-2 focus:ring-ring/30 disabled:opacity-50 md:text-sm"
               />
               <Button
                 type="submit"
                 size="sm"
                 disabled={isLoading}
-                className="h-9 w-9 p-0"
+                className="h-11 w-11 rounded-full p-0"
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

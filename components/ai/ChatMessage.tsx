@@ -25,16 +25,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={cn(
-        'flex w-full mb-3',
+        'mb-2 flex w-full',
         isUser ? 'justify-end' : 'justify-start',
       )}
     >
       <div
         className={cn(
-          'max-w-[85%] rounded-lg px-3 py-2 text-sm',
+          'max-w-[85%] rounded-[20px] px-4 py-2.5 text-[15px] leading-snug',
           isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-muted-foreground',
+            ? 'rounded-br-[6px] bg-foreground text-background'
+            : 'rounded-bl-[6px] bg-surface-2 text-foreground',
         )}
       >
         {textContent && (
@@ -42,7 +42,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         {toolParts.length > 0 && (
-          <div className="mt-1 space-y-1">
+          <div className={cn('space-y-1', textContent && 'mt-2')}>
             {toolParts.map((part) => {
               if (!isToolUIPart(part)) return null;
 
@@ -52,7 +52,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   return (
                     <div
                       key={part.toolCallId}
-                      className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 rounded px-2 py-1"
+                      className="rounded-[10px] bg-positive/10 px-2.5 py-1.5 text-[13px] font-medium text-positive"
                     >
                       {String(result.message)}
                     </div>
@@ -62,7 +62,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   return (
                     <div
                       key={part.toolCallId}
-                      className="text-xs bg-red-500/10 text-red-700 dark:text-red-400 rounded px-2 py-1"
+                      className="rounded-[10px] bg-negative/10 px-2.5 py-1.5 text-[13px] font-medium text-negative"
                     >
                       {String(result.message)}
                     </div>
@@ -74,7 +74,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 return (
                   <div
                     key={part.toolCallId}
-                    className="text-xs bg-red-500/10 text-red-700 dark:text-red-400 rounded px-2 py-1"
+                    className="rounded-[10px] bg-negative/10 px-2.5 py-1.5 text-[13px] font-medium text-negative"
                   >
                     Error al ejecutar herramienta.
                   </div>
@@ -86,10 +86,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 part.state === 'input-streaming'
               ) {
                 return (
-                  <div
-                    key={part.toolCallId}
-                    className="text-xs text-muted-foreground/60 italic"
-                  >
+                  <div key={part.toolCallId} className="text-[13px] text-faint">
                     Procesando...
                   </div>
                 );

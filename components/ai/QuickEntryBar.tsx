@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles, Loader2, AlertCircle, Wand2, Lightbulb } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, Wand2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
@@ -8,14 +8,13 @@ import { useEffect, useState } from 'react';
 import { PaidFallbackDialog } from './PaidFallbackDialog';
 
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+
+const EXAMPLES = [
+  '50 € cena ayer',
+  '12,40 € Mercadona con tarjeta',
+  'Nómina 2.500 € el día 1',
+];
 
 type QuickEntryStatus = 'idle' | 'loading' | 'needs-confirmation' | 'error';
 
@@ -174,70 +173,58 @@ export function QuickEntryBar() {
         modelName={fallbackError?.fallbackModel ?? 'Kimi K2.5'}
       />
 
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Wand2 className="h-5 w-5 text-primary" />
-            Crear entrada con IA
-          </CardTitle>
-          <CardDescription className="flex items-start gap-2">
-            <Lightbulb className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>
-              Describe tu gasto o ingreso en lenguaje natural. Ejemplos:{' '}
-              <span className="font-medium text-primary">
-                &ldquo;50€ cena ayer&rdquo;
-              </span>
-              ,{' '}
-              <span className="font-medium text-primary">
-                &ldquo;1000€ iPhone con tarjeta&rdquo;
-              </span>
-              ,{' '}
-              <span className="font-medium text-primary">
-                &ldquo;Sueldo 2500€ el 1 de marzo&rdquo;
-              </span>
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <div className="relative flex-1">
-              <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-              <Input
-                type="text"
-                placeholder="Describe tu entrada en lenguaje natural..."
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                disabled={status === 'loading'}
-                className="pl-10 bg-background"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={status === 'loading' || !text.trim()}
-              className="gap-2"
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="relative">
+          <Sparkles className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+          <Input
+            type="text"
+            aria-label="Describe tu entrada"
+            placeholder="50 € cena ayer con tarjeta"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={status === 'loading'}
+            autoFocus
+            enterKeyHint="go"
+            className="h-12 rounded-[14px] pl-10 text-base"
+          />
+        </div>
+        <div className="rail -mx-4 px-4">
+          {EXAMPLES.map((example) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => setText(example)}
+              className="h-9 shrink-0 rounded-full bg-surface-3 px-3.5 text-[13px] font-medium text-subtle"
             >
-              {status === 'loading' ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="h-4 w-4" />
-                  Usar IA
-                </>
-              )}
-            </Button>
-          </form>
-
-          {status === 'error' && message && (
-            <div className="mt-3 text-sm flex items-center gap-1.5 text-destructive">
-              <AlertCircle className="h-4 w-4" />
-              {message}
-            </div>
+              {example}
+            </button>
+          ))}
+        </div>
+        <Button
+          type="submit"
+          size="lg"
+          disabled={status === 'loading' || !text.trim()}
+          className="w-full"
+        >
+          {status === 'loading' ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Procesando...
+            </>
+          ) : (
+            <>
+              <Wand2 className="h-4 w-4" />
+              Usar IA
+            </>
           )}
-        </CardContent>
-      </Card>
+        </Button>
+        {status === 'error' && message && (
+          <p className="flex items-center justify-center gap-1.5 text-sm text-negative">
+            <AlertCircle className="h-4 w-4" />
+            {message}
+          </p>
+        )}
+      </form>
     </>
   );
 }
