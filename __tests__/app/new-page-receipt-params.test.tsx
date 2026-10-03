@@ -38,7 +38,7 @@ describe('/new with a receipt prefill', () => {
   it('passes nothing for a plain manual visit', () => {
     render(<NewEntryPage />);
     expect(mockCaptured.parsedData).toBeUndefined();
-    expect(screen.getByText('Añadir Nueva Entrada')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo registro')).toBeInTheDocument();
   });
 
   it('recognises rcpt as an AI prefill', () => {
@@ -55,7 +55,7 @@ describe('/new with a receipt prefill', () => {
 
     render(<NewEntryPage />);
 
-    expect(screen.getByText('Revisar Entrada (IA)')).toBeInTheDocument();
+    expect(screen.getByText('Revisar entrada')).toBeInTheDocument();
     expect(mockCaptured.parsedData).toMatchObject({
       fecha: '2026-09-20',
       tipo: 'Supermercado',

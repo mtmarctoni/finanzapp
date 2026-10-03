@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { FinanceForm } from '@/components/finance-form';
+import { PageHeader } from '@/components/page-header';
 import { getEntryById } from '@/lib/server-data';
 
 export default async function EditEntryPage({
@@ -28,9 +29,9 @@ export default async function EditEntryPage({
   }
 
   return (
-    <main className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Editar Entrada</h1>
+    <div className="mx-auto w-full max-w-2xl">
+      <PageHeader title="Editar registro" />
       <FinanceForm entry={entry} />
-    </main>
+    </div>
   );
 }
