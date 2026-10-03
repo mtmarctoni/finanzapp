@@ -1,6 +1,6 @@
 {
   "name": "finanzapp",
-  "version": "0.1.0",
+  "version": "0.0.0-development",
   "private": true,
   "packageManager": "pnpm@11.1.3",
   "engines": {
