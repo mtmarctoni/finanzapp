@@ -12,29 +12,16 @@ test.describe('Dashboard Page', () => {
   }) => {
     await page.goto('/dashboard');
 
-    await expect(
-      page.getByRole('heading', { name: 'Panel de Control' }),
-    ).toBeVisible();
-
-    await expect(
-      page.getByText('Total Ingresos', { exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText('Total Gastos', { exact: true })).toBeVisible();
-    await expect(page.getByText('Balance', { exact: true })).toBeVisible();
-    await expect(
-      page.getByText('Balance Final', { exact: true }),
-    ).toBeVisible();
-
-    await expect(page.getByText('Tendencias Mensuales')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByText(/^Balance de /)).toBeVisible();
+    await expect(page.getByText('Ingresos', { exact: true })).toBeVisible();
+    await expect(page.getByText('Gastos', { exact: true })).toBeVisible();
   });
 
-  test('should display charts with financial data', async ({ page }) => {
+  test('should show the recent records', async ({ page }) => {
     await page.goto('/dashboard');
 
-    await expect(page.locator('canvas').first()).toBeVisible();
-    await expect(page.getByText('Flujo mensual')).toBeVisible();
-
-    await page.waitForTimeout(1000);
+    await expect(page.getByText('Últimos registros')).toBeVisible();
   });
 
   test('should navigate to records page', async ({ page }) => {
