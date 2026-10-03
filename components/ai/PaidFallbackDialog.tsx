@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, DollarSign } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 
@@ -75,52 +73,59 @@ export function PaidFallbackDialog({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-yellow-500" />
-            Free AI Providers Unavailable
-          </DialogTitle>
-          <DialogDescription className="pt-2">
-            All our free AI providers are currently experiencing issues. We can
-            use a paid alternative to process your request.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Model</span>
-              <span className="text-sm">{modelName}</span>
+        <div className="space-y-5">
+          <div className="flex items-start gap-3 pr-10">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-3 text-subtle">
+              <Sparkles className="h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <DialogTitle className="text-[17px] font-semibold leading-tight tracking-[-0.02em]">
+                Los modelos gratuitos no responden
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-[13px] leading-relaxed text-subtle">
+                Todos nuestros proveedores de IA gratuitos están fallando ahora
+                mismo. Podemos usar un modelo de pago para procesar tu petición.
+              </DialogDescription>
             </div>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="text-sm font-medium flex items-center gap-1">
-                <DollarSign className="h-4 w-4" />
-                Estimated Cost
+          </div>
+
+          <div className="rounded-[16px] bg-surface-2 px-4">
+            <div className="flex min-h-12 items-center justify-between gap-4">
+              <span className="text-[15px] text-subtle">Modelo</span>
+              <span className="truncate text-[15px] font-medium">
+                {modelName}
               </span>
-              <span className="text-sm font-semibold text-green-600">
+            </div>
+            <div className="flex min-h-12 items-center justify-between gap-4 border-t border-hairline">
+              <span className="text-[15px] text-subtle">Coste estimado</span>
+              <span className="num text-[15px] font-semibold">
                 {estimatedCost}
               </span>
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            This confirmation is valid for 10 minutes. You can view your total
-            spending in the settings panel.
+          <p className="px-1 text-[12px] leading-relaxed text-faint">
+            La confirmación dura 10 minutos. Puedes ver el gasto total en los
+            ajustes.
           </p>
-        </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={handleDecline}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleConfirm} disabled={isLoading}>
-            {isLoading ? 'Confirming...' : 'Use Paid Model'}
-          </Button>
-        </DialogFooter>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleDecline}
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={isLoading}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              {isLoading ? 'Confirmando...' : 'Usar modelo de pago'}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
