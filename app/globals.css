@@ -1,6 +1,20 @@
 @import 'tailwindcss';
 
+/*
+ * Design system: "OLED glass".
+ *
+ * True black canvas, near-black elevated surfaces separated by tone and a
+ * hairline, and glass (blur + translucency) reserved for chrome that floats
+ * over content: the tab bar, sticky headers, sheets and popovers. One accent
+ * (lime) means "primary action" and nothing else; money in / money out has its
+ * own strict pair (positive / negative), and investments their own hue.
+ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
+  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -20,78 +34,299 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Elevation steps above the canvas. */
+  --color-surface: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  /* Text tiers. */
+  --color-subtle: var(--text-2);
+  --color-faint: var(--text-3);
+
+  /* Money semantics. Never reuse the accent for these. */
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-invest: var(--invest);
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #1e1e1e;
+  --background: #f2f2f7;
+  --foreground: #0a0a0c;
   --card: #ffffff;
-  --card-foreground: #1e1e1e;
+  --card-foreground: #0a0a0c;
   --popover: #ffffff;
-  --popover-foreground: #1e1e1e;
-  --primary: #1fb35e;
-  --primary-foreground: #05210f;
-  --secondary: #a4c8e1;
-  --secondary-foreground: #2d2d2d;
-  --muted: #a4c8e1;
-  --muted-foreground: #a3a3a3;
-  --accent: #a4c8e1;
-  --accent-foreground: #2d2d2d;
-  --destructive: #ff4d00;
-  --destructive-foreground: #1e1e1e;
-  --border: #d1d1d1;
-  --input: #d1d1d1;
-  --ring: #1fb35e;
+  --popover-foreground: #0a0a0c;
+  --primary: #0a0a0c;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e9ee;
+  --secondary-foreground: #0a0a0c;
+  --muted: #e9e9ee;
+  --muted-foreground: #6b6b74;
+  --accent: #e9e9ee;
+  --accent-foreground: #0a0a0c;
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: #0a0a0c;
+
+  --surface-1: #ffffff;
+  --surface-2: #ececf1;
+  --surface-3: #e0e0e6;
+  --surface-4: #d4d4dc;
+  --hairline: rgba(0, 0, 0, 0.07);
+  --hairline-strong: rgba(0, 0, 0, 0.12);
+  --text-2: #6b6b74;
+  --text-3: #9b9ba3;
+  --positive: #0f9d63;
+  --negative: #e5484d;
+  --invest: #5b6cf0;
+
+  --glass-bg: rgba(242, 242, 247, 0.72);
+  --sheet-bg: #ffffff;
+  --scrim: rgba(0, 0, 0, 0.32);
 }
 
 .dark {
-  --background: #070b12;
-  --foreground: #e6edf7;
-  --card: #0b111b;
-  --card-foreground: #e6edf7;
-  --popover: #0b111b;
-  --popover-foreground: #e6edf7;
-  --primary: #22c55e;
-  --primary-foreground: #031109;
-  --secondary: #172131;
-  --secondary-foreground: #e2e8f0;
-  --muted: #121a27;
-  --muted-foreground: #9aa8bf;
-  --accent: #1d2a3d;
-  --accent-foreground: #ecf3ff;
-  --destructive: #b91c1c;
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #0e0e10;
+  --card-foreground: #f5f5f7;
+  --popover: #141418;
+  --popover-foreground: #f5f5f7;
+  --primary: #d4ff3a;
+  --primary-foreground: #0a0f00;
+  --secondary: #16161a;
+  --secondary-foreground: #f5f5f7;
+  --muted: #16161a;
+  --muted-foreground: #9a9aa3;
+  --accent: #202026;
+  --accent-foreground: #f5f5f7;
+  --destructive: #ff5f57;
   --destructive-foreground: #ffffff;
-  --border: #263245;
-  --input: #263245;
-  --ring: #22c55e;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: rgba(255, 255, 255, 0.5);
+
+  --surface-1: #0e0e10;
+  --surface-2: #16161a;
+  --surface-3: #202026;
+  --surface-4: #2a2a31;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+  --text-2: #9a9aa3;
+  --text-3: #6a6a74;
+  --positive: #3be29a;
+  --negative: #ff7a70;
+  --invest: #aab6ff;
+
+  --glass-bg: rgba(10, 10, 12, 0.72);
+  --sheet-bg: #121215;
+  --scrim: rgba(0, 0, 0, 0.62);
 }
 
-/* Custom Scrollbar Styles */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    box-sizing: border-box;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11' 1;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Translucent chrome that floats over content. */
+  /* Tailwind's backdrop utilities emit both the standard and -webkit-
+     property; a hand-written pair gets collapsed to the prefixed one. */
+  .glass {
+    background: var(--glass-bg);
+    @apply backdrop-blur-[28px] backdrop-saturate-[1.8];
+  }
+
+  .glass-sheet {
+    background: var(--sheet-bg);
+    @apply backdrop-blur-[40px] backdrop-saturate-[1.6];
+  }
+
+  /* Money: tabular figures, tight tracking. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .display-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.055em;
+    line-height: 1;
+  }
+
+  /* Horizontal chip rail that fades at the right edge instead of clipping. */
+  .rail {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 16px,
+      #000 calc(100% - 28px),
+      transparent
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 16px,
+      #000 calc(100% - 28px),
+      transparent
+    );
+  }
+
+  /* A rail that starts flush against a fixed label: fade the right edge only. */
+  .rail-end {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      #000 calc(100% - 28px),
+      transparent
+    );
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Room for the mobile tab bar (64px) plus the home indicator. */
+  .pb-tabbar {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+.animate-sheet-in {
+  animation: sheet-in 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.animate-sheet-out {
+  animation: sheet-out 220ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.animate-fade-in {
+  animation: fade-in 200ms ease-out;
+}
+.animate-fade-out {
+  animation: fade-out 180ms ease-in forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-in,
+  .animate-sheet-out,
+  .animate-fade-in,
+  .animate-fade-out {
+    animation-duration: 1ms;
+  }
+}
+
+/* Scrollbars (desktop) */
 ::-webkit-scrollbar {
   width: 10px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-background);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--hairline-strong);
   border-radius: 8px;
-  transition: background-color 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-body {
-  box-sizing: border-box;
-  overflow-x: hidden;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }

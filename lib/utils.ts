@@ -29,11 +29,18 @@ export function formatDate(
   return date.toLocaleDateString('es-ES', dateOptions);
 }
 
+/**
+ * es-ES skips the thousands dot on 4-digit numbers ("1234,56 €") by default;
+ * money reads better grouped consistently ("1.234,56 €").
+ */
+const EUR = new Intl.NumberFormat('es-ES', {
+  style: 'currency',
+  currency: 'EUR',
+  useGrouping: 'always',
+});
+
 export function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(amount);
+  return EUR.format(amount);
 }
 
 /**
