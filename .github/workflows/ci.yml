@@ -23,6 +23,28 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
+  commitlint:
+    # Every commit reaches main unchanged (rebase merge), and its type decides
+    # the release, so check each one rather than trusting the local hook.
+    # Dependabot is skipped: its bodies quote release notes past the line limit.
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: >-
+          pnpm exec commitlint
+          --from ${{ github.event.pull_request.base.sha }}
+          --to ${{ github.event.pull_request.head.sha }}
+          --verbose
+
   format:
     runs-on: ubuntu-latest
     steps:
