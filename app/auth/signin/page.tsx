@@ -1,25 +1,28 @@
 'use client';
 
-import { Loader2, Github } from 'lucide-react';
+import { Github, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { getProviders, signIn, useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 
+import { AuthShell, LogoTile } from '@/components/auth/auth-shell';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 export default function SignIn() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [pending, setPending] = useState<'github' | 'credentials' | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // The credentials provider only exists outside production with
+  // DEV_CREDENTIALS set; ask the server instead of guessing.
+  const [hasCredentials, setHasCredentials] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty callbackUrl query param must fall back to '/'
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const { data: session } = useSession();
+  const isLoading = pending !== null;
 
   useEffect(() => {
     if (session?.user) {
@@ -27,8 +30,20 @@ export default function SignIn() {
     }
   }, [session, router, callbackUrl]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getProviders()
+      .then((providers) => {
+        if (!cancelled) setHasCredentials(Boolean(providers?.credentials));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleGithubSignIn = async () => {
-    setIsLoading(true);
+    setPending('github');
     setError(null);
     try {
       await signIn('github', {
@@ -38,7 +53,7 @@ export default function SignIn() {
       console.error('GitHub sign in error:', error);
       setError('Error al iniciar sesión con GitHub');
     } finally {
-      setIsLoading(false);
+      setPending(null);
     }
   };
 
@@ -49,7 +64,7 @@ export default function SignIn() {
       return;
     }
 
-    setIsLoading(true);
+    setPending('credentials');
     setError(null);
 
     try {
@@ -57,6 +72,7 @@ export default function SignIn() {
         redirect: true,
         email,
         password,
+        callbackUrl,
       });
 
       if (result?.error) {
@@ -66,100 +82,108 @@ export default function SignIn() {
       console.error('Sign in error:', error);
       setError('Error al iniciar sesión');
     } finally {
-      setIsLoading(false);
+      setPending(null);
     }
   };
 
-  const isDevelopment = process.env.NODE_ENV !== 'production';
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Bienvenido</h1>
-          <p className="text-muted-foreground">
-            {isDevelopment
-              ? 'Inicia sesión para continuar'
-              : 'Inicia sesión con tu cuenta para continuar'}
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <div className="mb-4 p-3 bg-destructive/10 text-destructive text-sm rounded-md">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleCredentialsSignIn} className="space-y-4 mb-6">
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="usuario@ejemplo.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <span className="text-xs text-muted-foreground">
-                    Usa: test@example.com / password123
-                  </span>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isLoading}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Iniciar sesión
-              </Button>
-            </form>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  {isDevelopment ? 'O continúa con' : 'Inicia sesión con'}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleGithubSignIn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Github className="mr-2 h-4 w-4" />
-                )}
-                GitHub
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+    <AuthShell>
+      <div className="flex flex-col items-center text-center">
+        <LogoTile />
+        <h1 className="mt-6 text-[32px] font-bold leading-[1.1] tracking-[-0.045em]">
+          Bienvenido
+        </h1>
+        <p className="mt-2 text-[15px] text-subtle">
+          Inicia sesión para ver tus finanzas.
+        </p>
       </div>
-    </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-8 rounded-[14px] bg-negative/10 px-4 py-3 text-center text-[13px] font-medium text-negative"
+        >
+          {error}
+        </p>
+      )}
+
+      <Button
+        type="button"
+        size="lg"
+        onClick={handleGithubSignIn}
+        disabled={isLoading}
+        className="mt-8 w-full bg-foreground text-background hover:bg-foreground/90"
+      >
+        {pending === 'github' ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <Github />
+        )}
+        Continuar con GitHub
+      </Button>
+
+      {hasCredentials && (
+        <>
+          <div className="my-7 flex items-center gap-3 text-[12px] text-faint">
+            <span className="h-px flex-1 bg-hairline" />
+            Acceso de desarrollo
+            <span className="h-px flex-1 bg-hairline" />
+          </div>
+
+          <form onSubmit={handleCredentialsSignIn} className="space-y-3">
+            <div className="overflow-hidden rounded-[16px] border border-hairline bg-surface">
+              <label htmlFor="email" className="sr-only">
+                Correo electrónico
+              </label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="Correo electrónico"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                required
+                className="h-12 rounded-none border-0 bg-transparent px-4 focus-visible:ring-0"
+              />
+              <div className="mx-4 h-px bg-hairline" />
+              <label htmlFor="password" className="sr-only">
+                Contraseña
+              </label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                required
+                className="h-12 rounded-none border-0 bg-transparent px-4 focus-visible:ring-0"
+              />
+            </div>
+            <Button
+              type="submit"
+              variant="secondary"
+              size="lg"
+              className="w-full"
+              disabled={isLoading}
+            >
+              {pending === 'credentials' && (
+                <Loader2 className="animate-spin" />
+              )}
+              Iniciar sesión
+            </Button>
+            <p className="text-center text-[12px] text-faint">
+              Usa: test@example.com / password123
+            </p>
+          </form>
+        </>
+      )}
+
+      <p className="mt-10 text-center text-[12px] text-faint">
+        Solo para usuarios autorizados.
+      </p>
+    </AuthShell>
   );
 }
