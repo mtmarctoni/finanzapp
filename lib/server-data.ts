@@ -90,7 +90,8 @@ export async function getSummaryStats(
         [userId],
       ),
       pool.query(
-        `SELECT que AS category, SUM(cantidad) AS total
+        `SELECT que AS category, SUM(cantidad) AS total,
+                MODE() WITHIN GROUP (ORDER BY tipo) AS tipo
            FROM finance_entries
            ${whereSql}
             AND accion = 'Gasto'
@@ -100,7 +101,8 @@ export async function getSummaryStats(
         [...baseParams, breakdownLimit],
       ),
       pool.query(
-        `SELECT que AS category, SUM(cantidad) AS total
+        `SELECT que AS category, SUM(cantidad) AS total,
+                MODE() WITHIN GROUP (ORDER BY tipo) AS tipo
            FROM finance_entries
            ${whereSql}
             AND accion = 'Ingreso'
@@ -155,6 +157,8 @@ export async function getSummaryStats(
         total: totalExpenses,
         categories: expenseCategories.rows.map((row) => ({
           category: row.category as string,
+          // The item's most common category, so the UI can show its icon.
+          tipo: (row.tipo as string | null) ?? null,
           total: Number(row.total),
         })),
         averageMonthly: totalExpenses / 12,
@@ -164,6 +168,7 @@ export async function getSummaryStats(
         total: totalIncome,
         categories: incomeCategories.rows.map((row) => ({
           category: row.category as string,
+          tipo: (row.tipo as string | null) ?? null,
           total: Number(row.total),
         })),
         averageMonthly: totalIncome / 12,
@@ -435,4 +440,59 @@ export async function getFormOptions(session: Session | null = null) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch form options.');
   }
+}
+
+export type EntryHints = {
+  /** Category -> the action it is usually filed under. */
+  tipoAccion: Record<string, string>;
+  /** Lower-cased `que` -> how it was filed the last time it was saved. */
+  byQue: Record<string, { tipo: string; plataforma_pago: string }>;
+};
+
+/**
+ * What the quick-add sheet needs to fill itself in from history: typing
+ * "Mercadona" should pick the category and card used last time, and switching
+ * to "Ingreso" should put income categories first.
+ *
+ * Kept apart from getFormOptions so the dropdown sources keep their own shape
+ * and their one-query-per-field guarantee.
+ */
+export async function getEntryHints(session: Session): Promise<EntryHints> {
+  const pool = getPool();
+
+  const [tipoResult, queResult] = await Promise.all([
+    pool.query(
+      `SELECT tipo, MODE() WITHIN GROUP (ORDER BY accion) AS accion
+         FROM finance_entries
+        WHERE user_id = $1 AND tipo IS NOT NULL AND tipo != ''
+        GROUP BY tipo`,
+      [session.user.id],
+    ),
+    pool.query(
+      `SELECT DISTINCT ON (LOWER(que)) LOWER(que) AS que, tipo, plataforma_pago
+         FROM finance_entries
+        WHERE user_id = $1
+          AND que IS NOT NULL AND que != ''
+          AND tipo IS NOT NULL AND tipo != ''
+          AND plataforma_pago IS NOT NULL AND plataforma_pago != ''
+        ORDER BY LOWER(que), fecha DESC
+        LIMIT 1000`,
+      [session.user.id],
+    ),
+  ]);
+
+  return {
+    tipoAccion: Object.fromEntries(
+      tipoResult.rows.map((row) => [row.tipo as string, row.accion as string]),
+    ),
+    byQue: Object.fromEntries(
+      queResult.rows.map((row) => [
+        row.que as string,
+        {
+          tipo: row.tipo as string,
+          plataforma_pago: row.plataforma_pago as string,
+        },
+      ]),
+    ),
+  };
 }

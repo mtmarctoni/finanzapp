@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { getFormOptions } from '@/lib/server-data';
+import { getEntryHints, getFormOptions } from '@/lib/server-data';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -12,8 +12,15 @@ export async function GET() {
   }
 
   try {
-    const options = await getFormOptions(session);
-    return NextResponse.json(options);
+    const [options, hints] = await Promise.all([
+      getFormOptions(session),
+      // Hints only make the quick-add sheet smarter; never fail the dropdowns.
+      getEntryHints(session).catch((error: unknown) => {
+        console.error('Error fetching entry hints:', error);
+        return null;
+      }),
+    ]);
+    return NextResponse.json({ ...options, hints });
   } catch (error) {
     console.error('Error fetching options:', error);
     return NextResponse.json(
