@@ -1,0 +1,50 @@
+name: Release
+
+# Runs on every push to main. Commits only reach main through a PR whose
+# required checks passed, so this does not wait for CI again. Independent of
+# the Vercel deploy: it tags the pushed commit and deploys nothing.
+on:
+  push:
+    branches: [main]
+  # Lets you re-run a failed release without pushing a dummy commit.
+  workflow_dispatch:
+
+# semantic-release pushes a tag, creates the GitHub Release, and comments on
+# the PRs and issues it shipped.
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+# Never let two releases race each other.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Only the default branch publishes, and never from a fork.
+    if: github.repository == 'mtmarctoni/finanzapp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history is mandatory: semantic-release diffs the last tag
+          # against HEAD to decide the bump.
+          fetch-depth: 0
+          # Required so the tag push succeeds.
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
