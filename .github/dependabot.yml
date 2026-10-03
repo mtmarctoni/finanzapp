@@ -7,8 +7,17 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - dependencies
+    # Gives commits a conventional `chore(deps)` / `chore(deps-dev)` header.
+    # Routine bumps are deliberately silent for semantic-release; a bump that
+    # fixes an advisory users would hit should be committed as `fix(deps)` by
+    # hand instead (see AGENTS.md).
+    commit-message:
+      prefix: chore
+      prefix-development: chore
+      include: scope
     groups:
       production:
+        dependency-type: production
         patterns:
           - '*'
         update-types:
