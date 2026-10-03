@@ -8,14 +8,16 @@ import {
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  Amount,
+  ChartLoading,
+  EmptyState,
+  fmtPct,
+  PillSelect,
+  RankedBars,
+  Section,
+} from '@/components/analytics/kit';
+import { paymentIcon } from '@/components/quick-add/category-icon';
 import {
   type CategoryStatDatum,
   type CategoryPlatformDatum,
@@ -39,7 +41,8 @@ export function IntelligenceExplorer({
   types,
   loading,
 }: IntelligenceExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>('');
+  const [pickedTipo, setSelectedTipo] = useState<string>('');
+  const selectedTipo = pickedTipo || types[0] || '';
   const [selectedQue, setSelectedQue] = useState<string>('__all__');
 
   // Build tipo → que mapping
@@ -83,6 +86,14 @@ export function IntelligenceExplorer({
   }
 
   const expenseStats = stats.find((s) => s.action === 'Gasto');
+
+  // categoryData does not always carry the tipo; fall back to the stats so
+  // the headline total is never a misleading 0.
+  if (totalForSelection === 0) {
+    totalForSelection = stats
+      .filter((s) => s.action === 'Gasto')
+      .reduce((sum, s) => sum + Math.abs(Number(s.avg) * Number(s.count)), 0);
+  }
 
   // Total expenses for percentage
   const totalExpenses = categoryData
@@ -129,212 +140,146 @@ export function IntelligenceExplorer({
   const statCards = [
     {
       label: 'Transacción media',
-      value: expenseStats
-        ? expenseStats.avg.toLocaleString('es-ES', {
-            style: 'currency',
-            currency: 'EUR',
-          })
-        : '—',
+      value: expenseStats ? <Amount amount={Number(expenseStats.avg)} /> : '—',
       icon: CreditCard,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
     },
     {
       label: 'Mayor gasto',
-      value: expenseStats
-        ? expenseStats.max.toLocaleString('es-ES', {
-            style: 'currency',
-            currency: 'EUR',
-          })
-        : '—',
+      value: expenseStats ? <Amount amount={Number(expenseStats.max)} /> : '—',
       icon: TrendingUp,
-      color: 'text-red-600',
-      bg: 'bg-red-50',
     },
     {
       label: 'Menor gasto',
-      value: expenseStats
-        ? expenseStats.min.toLocaleString('es-ES', {
-            style: 'currency',
-            currency: 'EUR',
-          })
-        : '—',
+      value: expenseStats ? <Amount amount={Number(expenseStats.min)} /> : '—',
       icon: Wallet,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
     },
     {
       label: 'Total transacciones',
       value: expenseStats ? `${expenseStats.count}` : '—',
       icon: Hash,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
     },
     {
       label: 'Frecuencia',
       value: expenseStats
-        ? `${transactionsPerPeriod.toFixed(1)} / ${distinctPeriods > 12 ? 'año' : 'mes'}`
+        ? `${transactionsPerPeriod.toLocaleString('es-ES', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} / ${distinctPeriods > 12 ? 'año' : 'mes'}`
         : '—',
       icon: Calendar,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
     },
     {
       label: 'Plataforma principal',
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty platform string from DB must also render as em dash
       value: topPlatform?.platform || '—',
       icon: Store,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50',
     },
   ];
 
+  const selectionLabel = selectedQue !== '__all__' ? selectedQue : selectedTipo;
+
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <CardTitle>Inteligencia Financiera</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Métricas detalladas por tipo o categoría
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={selectedTipo} onValueChange={handleTipoChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tipo (general)" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {types.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
+    <Section
+      title="Inteligencia financiera"
+      description="Métricas detalladas por tipo o categoría"
+      action={
+        <>
+          <PillSelect
+            ariaLabel="Tipo"
+            value={selectedTipo}
+            onValueChange={handleTipoChange}
+            placeholder="Tipo (general)"
+            options={types}
+          />
+          <PillSelect
+            ariaLabel="Categoría"
             value={selectedQue}
             onValueChange={setSelectedQue}
             disabled={!selectedTipo}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue
-                placeholder={
-                  selectedTipo
-                    ? 'Categoría (específica)'
-                    : 'Selecciona tipo primero'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
-              {availableQue.map((q) => (
-                <SelectItem key={q} value={q}>
-                  {q}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            placeholder={
+              selectedTipo
+                ? 'Categoría (específica)'
+                : 'Selecciona tipo primero'
+            }
+            allOption={{ value: '__all__', label: 'Todas las categorías' }}
+            options={availableQue}
+          />
+        </>
+      }
+    >
+      {loading ? (
+        <ChartLoading className="h-48" />
+      ) : selectedTipo ? (
+        <>
+          <div className="flex items-end justify-between gap-4 border-b border-hairline pb-4">
+            <div className="min-w-0">
+              <p className="truncate text-[13px] text-subtle">
+                Total en {selectionLabel}
+              </p>
+              <p className="num mt-0.5 text-[22px] font-semibold tracking-[-0.03em]">
+                <Amount amount={totalForSelection} />
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[13px] text-subtle">Del gasto total</p>
+              <p className="num mt-0.5 text-[22px] font-semibold tracking-[-0.03em]">
+                {fmtPct(pctOfTotal)}
+              </p>
+            </div>
           </div>
-        ) : selectedTipo ? (
-          <>
-            <div className="mb-4 p-3 rounded-lg bg-muted/50 flex items-center justify-between">
-              <div>
-                <div className="text-sm text-muted-foreground">
-                  Total en {selectedQue || selectedTipo}
-                </div>
-                <div className="text-2xl font-bold">
-                  {totalForSelection.toLocaleString('es-ES', {
-                    style: 'currency',
-                    currency: 'EUR',
-                  })}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-muted-foreground">
-                  Del gasto total
-                </div>
-                <div className="text-2xl font-bold">
-                  {pctOfTotal.toFixed(1)}%
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {statCards.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className={`p-3 rounded-lg ${stat.bg} border border-opacity-20`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className={`h-4 w-4 ${stat.color}`} />
-                      <span className="text-xs text-muted-foreground">
-                        {stat.label}
-                      </span>
-                    </div>
-                    <div className={`text-lg font-bold ${stat.color}`}>
-                      {stat.value}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-4 py-4 md:grid-cols-3">
+            {statCards.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="min-w-0">
+                  <dt className="flex items-center gap-1.5 text-[12px] text-faint">
+                    <Icon className="h-3.5 w-3.5" />
+                    {stat.label}
+                  </dt>
+                  <dd className="num mt-0.5 truncate text-[17px] font-semibold tracking-[-0.02em]">
+                    {stat.value}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
 
-            {platformBreakdown.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                  Distribución por plataforma
-                </h4>
-                <div className="space-y-2">
-                  {platformBreakdown.slice(0, 5).map((p) => {
-                    const amount = Math.abs(Number(p.total));
-                    const pct =
+          {platformBreakdown.length > 0 && (
+            <div className="border-t border-hairline pt-4">
+              <h3 className="mb-1 text-[13px] font-semibold text-subtle">
+                Por plataforma
+              </h3>
+              <RankedBars
+                ariaLabel={`Plataformas en ${selectionLabel}`}
+                shareLabel="del total"
+                items={platformBreakdown.slice(0, 5).map((p) => {
+                  const amount = Math.abs(Number(p.total));
+                  const PIcon = paymentIcon(p.platform);
+                  return {
+                    key: p.platform,
+                    label: p.platform,
+                    value: amount,
+                    pct:
                       totalForSelection > 0
                         ? (amount / totalForSelection) * 100
-                        : 0;
-                    return (
-                      <div
-                        key={p.platform}
-                        className="flex items-center gap-3 text-sm"
+                        : 0,
+                    icon: (
+                      <span
+                        aria-hidden
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-3 text-subtle"
                       >
-                        <span className="w-24 truncate text-muted-foreground">
-                          {p.platform}
-                        </span>
-                        <div className="flex-1 bg-muted rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${Math.min(pct, 100)}%` }}
-                          />
-                        </div>
-                        <span className="w-16 text-right font-medium">
-                          {pct.toFixed(0)}%
-                        </span>
-                        <span className="w-20 text-right text-muted-foreground">
-                          {amount.toLocaleString('es-ES', {
-                            style: 'currency',
-                            currency: 'EUR',
-                          })}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-48 text-muted-foreground">
-            Selecciona un tipo para ver su inteligencia financiera
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                        <PIcon className="h-[18px] w-[18px]" />
+                      </span>
+                    ),
+                  };
+                })}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <EmptyState>
+          Selecciona un tipo para ver su inteligencia financiera
+        </EmptyState>
+      )}
+    </Section>
   );
 }

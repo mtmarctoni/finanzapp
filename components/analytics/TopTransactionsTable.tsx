@@ -1,15 +1,7 @@
-import { TrendingUp, TrendingDown } from 'lucide-react';
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { ChartLoading, EmptyState, Section } from '@/components/analytics/kit';
+import { RECORD_COLUMNS, RecordRow } from '@/components/analytics/record-rows';
 import { type TopTransactionDatum } from '@/lib/analytics-charts';
+import { cn } from '@/lib/utils';
 
 interface TopTransactionsTableProps {
   transactions: TopTransactionDatum[];
@@ -21,94 +13,43 @@ export function TopTransactionsTable({
   loading,
 }: TopTransactionsTableProps) {
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader>
-        <CardTitle>Mayores Movimientos</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    <Section title="Mayores movimientos">
+      {loading ? (
+        <ChartLoading className="h-64" />
+      ) : transactions.length > 0 ? (
+        <>
+          <div
+            aria-hidden
+            className={cn(
+              'hidden border-b border-hairline pb-2 text-[11px] font-medium uppercase tracking-wide text-faint',
+              RECORD_COLUMNS,
+            )}
+          >
+            <span className="pl-[52px]">Categoría</span>
+            <span>Acción</span>
+            <span>Plataforma</span>
+            <span>Fecha</span>
+            <span className="text-right">Importe</span>
           </div>
-        ) : transactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Fecha</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Plataforma</TableHead>
-                  <TableHead className="text-right">Importe</TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    Detalle
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((tx) => {
-                  const isIncome = tx.action === 'Ingreso';
-                  const isInvestment = tx.action === 'Inversión';
-                  const amount = Math.abs(Number(tx.amount));
-                  return (
-                    <TableRow key={tx.id}>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(tx.fecha).toLocaleDateString('es-ES')}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {tx.category}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-                            isIncome
-                              ? 'bg-green-100 text-green-700'
-                              : isInvestment
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-red-100 text-red-700'
-                          }`}
-                        >
-                          {isIncome ? (
-                            <TrendingUp className="h-3 w-3" />
-                          ) : (
-                            <TrendingDown className="h-3 w-3" />
-                          )}
-                          {tx.action}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {tx.platform}
-                      </TableCell>
-                      <TableCell
-                        className={`text-right font-semibold ${
-                          isIncome
-                            ? 'text-green-600'
-                            : isInvestment
-                              ? 'text-blue-600'
-                              : 'text-destructive'
-                        }`}
-                      >
-                        {isIncome ? '+' : '-'}
-                        {amount.toLocaleString('es-ES', {
-                          style: 'currency',
-                          currency: 'EUR',
-                        })}
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm text-muted-foreground max-w-[200px] truncate">
-                        {tx.detalle1 ?? tx.detalle2 ?? '—'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-48 text-muted-foreground">
-            No hay transacciones disponibles
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          <ul aria-label="Mayores movimientos">
+            {transactions.map((tx, i) => (
+              <RecordRow
+                key={tx.id}
+                first={i === 0}
+                name={tx.category}
+                sub={[tx.tipo, tx.platform].filter(Boolean).join(' · ')}
+                detail={tx.detalle1 ?? tx.detalle2}
+                action={tx.action}
+                platform={tx.platform}
+                date={tx.fecha}
+                amount={tx.amount}
+              />
+            ))}
+          </ul>
+        </>
+      ) : (
+        <EmptyState>No hay transacciones disponibles</EmptyState>
+      )}
+    </Section>
   );
 }

@@ -18,7 +18,7 @@ describe('IntelligenceExplorer', () => {
         loading={false}
       />,
     );
-    expect(getByText('Inteligencia Financiera')).toBeInTheDocument();
+    expect(getByText('Inteligencia financiera')).toBeInTheDocument();
   });
 
   it('mounts without crashing with real-shaped data before any selection', () => {

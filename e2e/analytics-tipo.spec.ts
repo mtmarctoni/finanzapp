@@ -26,9 +26,7 @@ test.describe('Analytics por Tipo', () => {
     await viviendaRequest;
 
     // Cards and table are scoped to Vivienda.
-    await expect(
-      page.getByRole('heading', { name: 'Analíticas por Tipo' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Análisis' })).toBeVisible();
     await expect(
       page.getByText(/movimientos en Vivienda/).first(),
     ).toBeVisible();

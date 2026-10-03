@@ -190,46 +190,6 @@ export function getTemporalChartData(
   } as ChartData<'bar', number[], string>;
 }
 
-export function getCategoryChartData(data: AnalyticsDataset) {
-  const categoryTotals = data.categoryData.reduce<Record<string, number>>(
-    (acc, item) => {
-      if (!acc[item.category]) acc[item.category] = 0;
-      acc[item.category] += Math.abs(Number(item.total));
-      return acc;
-    },
-    {},
-  );
-  const sortedData = Object.entries(categoryTotals)
-    .map(([category, total]) => ({ category, total }))
-    .sort((a, b) => b.total - a.total);
-  const colors = [
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56',
-    '#4BC0C0',
-    '#9966FF',
-    '#FF9F40',
-    '#8AC24A',
-    '#FF5252',
-    '#607D8B',
-    '#9C27B0',
-  ];
-  const total = sortedData.reduce((sum, item) => sum + item.total, 0);
-  return {
-    labels: sortedData.map((item) => item.category),
-    datasets: [
-      {
-        data: sortedData.map((item) => item.total),
-        backgroundColor: sortedData.map(
-          (_, index) => colors[index % colors.length],
-        ),
-        borderWidth: 1,
-      },
-    ],
-    total,
-  };
-}
-
 export function getTemporalChartOptions(
   temporalData: TemporalDatum[],
 ): ChartOptions<'bar'> {
@@ -336,152 +296,6 @@ export function getDoughnutChartOptions(
   };
 }
 
-export function getPlatformChartData(platformData: PlatformDatum[]) {
-  // Aggregate by platform across all actions (show absolute spending)
-  const platformTotals = platformData.reduce<
-    Record<string, { total: number; count: number }>
-  >((acc, item) => {
-    if (!(item.platform in acc)) acc[item.platform] = { total: 0, count: 0 };
-    acc[item.platform].total += Math.abs(Number(item.total));
-    acc[item.platform].count += Number(item.count ?? 0);
-    return acc;
-  }, {});
-
-  const sorted = Object.entries(platformTotals)
-    .map(([platform, { total, count }]) => ({ platform, total, count }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10); // Top 10 platforms
-
-  const colors = [
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56',
-    '#4BC0C0',
-    '#9966FF',
-    '#FF9F40',
-    '#8AC24A',
-    '#FF5252',
-    '#607D8B',
-    '#9C27B0',
-  ];
-
-  return {
-    labels: sorted.map((item) => item.platform),
-    datasets: [
-      {
-        label: 'Total',
-        data: sorted.map((item) => item.total),
-        backgroundColor: sorted.map(
-          (_, index) => colors[index % colors.length],
-        ),
-        borderWidth: 1,
-      },
-    ],
-    details: sorted,
-  };
-}
-
-export function getPlatformChartOptions(): ChartOptions<'bar'> {
-  return {
-    indexAxis: 'y',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
-  };
-}
-
-export function getTypeChartData(typeData: TypeDatum[]) {
-  // Aggregate by type across all actions
-  const typeTotals = typeData.reduce<
-    Record<string, { total: number; count: number }>
-  >((acc, item) => {
-    if (!(item.type in acc)) acc[item.type] = { total: 0, count: 0 };
-    acc[item.type].total += Math.abs(Number(item.total));
-    acc[item.type].count += Number(item.count ?? 0);
-    return acc;
-  }, {});
-
-  const sorted = Object.entries(typeTotals)
-    .map(([type, { total, count }]) => ({ type, total, count }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 12);
-
-  const colors = [
-    '#FF6384',
-    '#36A2EB',
-    '#FFCE56',
-    '#4BC0C0',
-    '#9966FF',
-    '#FF9F40',
-    '#8AC24A',
-    '#FF5252',
-    '#607D8B',
-    '#9C27B0',
-    '#3F51B5',
-    '#E91E63',
-  ];
-
-  return {
-    labels: sorted.map((item) => item.type),
-    datasets: [
-      {
-        label: 'Total',
-        data: sorted.map((item) => item.total),
-        backgroundColor: sorted.map(
-          (_, index) => colors[index % colors.length],
-        ),
-        borderWidth: 1,
-      },
-    ],
-    details: sorted,
-  };
-}
-
-export function getTypeChartOptions(): ChartOptions<'bar'> {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
-  };
-}
-
 export function getCategoryPlatformBreakdown(
   categoryPlatformData: CategoryPlatformDatum[],
   selectedCategory: string,
@@ -524,33 +338,6 @@ export function getCategoryPlatformBreakdown(
       },
     ],
     details: sorted,
-  };
-}
-
-export function getCategoryPlatformChartOptions(): ChartOptions<'bar'> {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
   };
 }
 
@@ -755,63 +542,6 @@ export function computeSpendingVelocity(
   );
 }
 
-// ─── SEASONAL PATTERNS ───
-
-export interface SeasonalItem {
-  month: number;
-  monthName: string;
-  total: number;
-  count: number;
-}
-
-export function getSeasonalChartData(seasonalData: SeasonalItem[]) {
-  const colors = seasonalData.map((item) => {
-    const max = Math.max(...seasonalData.map((d) => d.total));
-    const intensity = max > 0 ? item.total / max : 0;
-    return `rgba(239, 68, 68, ${0.3 + intensity * 0.7})`;
-  });
-
-  return {
-    labels: seasonalData.map((item) => item.monthName),
-    datasets: [
-      {
-        label: 'Promedio mensual',
-        data: seasonalData.map((item) => item.total),
-        backgroundColor: colors,
-        borderColor: 'rgba(239, 68, 68, 0.8)',
-        borderWidth: 1,
-      },
-    ],
-  };
-}
-
-export function getSeasonalChartOptions(): ChartOptions<'bar'> {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
-  };
-}
-
 // ─── TIPO EXPLORER ───
 
 export function getTipoExplorerData(
@@ -860,33 +590,6 @@ export function getTipoExplorerData(
     ],
     details: sorted,
     total,
-  };
-}
-
-export function getTipoExplorerChartOptions(): ChartOptions<'bar'> {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => {
-            // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- raw derives from SUM(); || coerces potential NaN to 0
-            const value = Number(context.raw || 0);
-            return `${context.dataset.label}: ${formatEuro(value)}`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value) => formatEuro(Number(value)),
-        },
-      },
-    },
   };
 }
 

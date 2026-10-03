@@ -20,7 +20,7 @@ describe('AnalyticsSubnav', () => {
     render(<AnalyticsSubnav />);
 
     const general = screen.getByRole('link', { name: 'General' });
-    const porTipo = screen.getByRole('link', { name: 'Por Tipo' });
+    const porTipo = screen.getByRole('link', { name: 'Por tipo' });
 
     expect(general).toHaveAttribute('href', '/analytics');
     expect(general).not.toHaveAttribute('aria-current');
@@ -39,7 +39,7 @@ describe('AnalyticsSubnav', () => {
       'href',
       '/analytics?type=Salario&groupBy=year',
     );
-    expect(screen.getByRole('link', { name: 'Por Tipo' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Por tipo' })).toHaveAttribute(
       'href',
       '/analytics/tipo?type=Salario&groupBy=year',
     );
@@ -54,7 +54,7 @@ describe('AnalyticsSubnav', () => {
       'aria-current',
       'page',
     );
-    expect(screen.getByRole('link', { name: 'Por Tipo' })).not.toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Por tipo' })).not.toHaveAttribute(
       'aria-current',
     );
   });

@@ -1,55 +1,32 @@
-import { type ChartData, type ChartOptions } from 'chart.js';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Sun, Snowflake, Leaf, Flower2 } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { Bar } from 'react-chartjs-2';
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  type CategoryTemporalDatum,
-  type SeasonalItem,
-} from '@/lib/analytics-charts';
+import { Flower2, Leaf, Snowflake, Sun } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-);
+import {
+  Amount,
+  EmptyState,
+  ChartLoading,
+  fmtShort,
+  PillSelect,
+  Section,
+} from '@/components/analytics/kit';
+import { type CategoryTemporalDatum } from '@/lib/analytics-charts';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface SeasonalExplorerProps {
   categoryTemporalData: CategoryTemporalDatum[];
   types: string[];
-  getChartData: (data: SeasonalItem[]) => ChartData<'bar', number[], string>;
-  getChartOptions: () => ChartOptions<'bar'>;
   loading: boolean;
 }
 
 export function SeasonalExplorer({
   categoryTemporalData,
   types,
-  getChartData,
-  getChartOptions,
   loading,
 }: SeasonalExplorerProps) {
-  const [selectedTipo, setSelectedTipo] = useState<string>('');
+  const [pickedTipo, setSelectedTipo] = useState<string>('');
+  const selectedTipo = pickedTipo || types[0] || '';
   const [selectedQue, setSelectedQue] = useState<string>('__all__');
 
   // Build tipo → que mapping
@@ -90,7 +67,7 @@ export function SeasonalExplorer({
     ];
 
     const filtered = categoryTemporalData.filter((item) => {
-      if (selectedQue)
+      if (selectedQue && selectedQue !== '__all__')
         return item.category === selectedQue && item.action === 'Gasto';
       if (selectedTipo)
         return item.type === selectedTipo && item.action === 'Gasto';
@@ -126,42 +103,17 @@ export function SeasonalExplorer({
     }));
   }, [categoryTemporalData, selectedTipo, selectedQue]);
 
-  const chartData = getChartData(seasonalData);
-  const chartOptions = getChartOptions();
-
   const sorted = [...seasonalData].sort((a, b) => b.total - a.total);
   const peakMonth = sorted[0];
   const lowMonth = sorted[sorted.length - 1];
+  const max = peakMonth.total;
+  const hasData = max > 0;
 
   const seasons = [
-    {
-      name: 'Invierno',
-      months: [11, 0, 1],
-      icon: Snowflake,
-      color: 'text-blue-500',
-      bg: 'bg-blue-50',
-    },
-    {
-      name: 'Primavera',
-      months: [2, 3, 4],
-      icon: Flower2,
-      color: 'text-green-500',
-      bg: 'bg-green-50',
-    },
-    {
-      name: 'Verano',
-      months: [5, 6, 7],
-      icon: Sun,
-      color: 'text-amber-500',
-      bg: 'bg-amber-50',
-    },
-    {
-      name: 'Otoño',
-      months: [8, 9, 10],
-      icon: Leaf,
-      color: 'text-orange-500',
-      bg: 'bg-orange-50',
-    },
+    { name: 'Invierno', months: [11, 0, 1], icon: Snowflake },
+    { name: 'Primavera', months: [2, 3, 4], icon: Flower2 },
+    { name: 'Verano', months: [5, 6, 7], icon: Sun },
+    { name: 'Otoño', months: [8, 9, 10], icon: Leaf },
   ];
 
   const seasonTotals = seasons.map((season) => {
@@ -170,136 +122,146 @@ export function SeasonalExplorer({
       .reduce((sum, s) => sum + s.total, 0);
     return { ...season, total };
   });
+  const topSeason = Math.max(...seasonTotals.map((s) => s.total));
 
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <CardTitle>Patrones Estacionales</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            ¿En qué meses gastas más?
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Select value={selectedTipo} onValueChange={handleTipoChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Tipo (general)" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {types.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
+    <Section
+      title="Patrones estacionales"
+      description="¿En qué meses gastas más? Media por mes del año"
+      action={
+        <>
+          <PillSelect
+            ariaLabel="Tipo"
+            value={selectedTipo}
+            onValueChange={handleTipoChange}
+            placeholder="Tipo (general)"
+            options={types}
+          />
+          <PillSelect
+            ariaLabel="Categoría"
             value={selectedQue}
             onValueChange={setSelectedQue}
             disabled={!selectedTipo}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue
-                placeholder={
-                  selectedTipo
-                    ? 'Categoría (específica)'
-                    : 'Selecciona tipo primero'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="__all__">Todas (ver tipo agregado)</SelectItem>
-              {availableQue.map((q) => (
-                <SelectItem key={q} value={q}>
-                  {q}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : selectedTipo ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 h-64">
-              {(chartData.labels?.length ?? 0) > 0 ? (
-                <Bar data={chartData} options={chartOptions} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No hay datos estacionales
-                </div>
-              )}
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                  <div className="text-xs text-red-600 font-medium mb-1">
-                    Pico
-                  </div>
-                  <div className="text-lg font-bold text-red-700">
-                    {peakMonth.monthName}
-                  </div>
-                  <div className="text-xs text-red-600">
-                    {peakMonth.total.toLocaleString('es-ES', {
-                      style: 'currency',
-                      currency: 'EUR',
-                    })}
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-                  <div className="text-xs text-green-600 font-medium mb-1">
-                    Valle
-                  </div>
-                  <div className="text-lg font-bold text-green-700">
-                    {lowMonth.monthName}
-                  </div>
-                  <div className="text-xs text-green-600">
-                    {lowMonth.total.toLocaleString('es-ES', {
-                      style: 'currency',
-                      currency: 'EUR',
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Por estación
-                </h4>
-                {seasonTotals.map((season) => {
-                  const Icon = season.icon;
-                  return (
-                    <div
-                      key={season.name}
-                      className={`flex items-center justify-between p-2 rounded-lg ${season.bg}`}
+            placeholder={
+              selectedTipo
+                ? 'Categoría (específica)'
+                : 'Selecciona tipo primero'
+            }
+            allOption={{ value: '__all__', label: 'Todas las categorías' }}
+            options={availableQue}
+          />
+        </>
+      }
+    >
+      {loading ? (
+        <ChartLoading className="h-48" />
+      ) : !selectedTipo ? (
+        <EmptyState>
+          Selecciona un tipo para ver sus patrones estacionales
+        </EmptyState>
+      ) : !hasData ? (
+        <EmptyState>No hay datos estacionales</EmptyState>
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <ol
+              aria-label="Gasto medio por mes"
+              className="grid h-40 grid-cols-12 items-end gap-1 md:gap-2"
+            >
+              {seasonalData.map((m) => {
+                const isPeak = m.month === peakMonth.month;
+                return (
+                  <li
+                    key={m.month}
+                    className="flex h-full min-w-0 flex-col items-center justify-end gap-1.5"
+                    title={`${m.monthName}: ${formatCurrency(m.total)}`}
+                  >
+                    <span
+                      className={cn(
+                        'num hidden text-[10px] md:block',
+                        isPeak ? 'text-foreground' : 'text-faint',
+                      )}
                     >
-                      <div className="flex items-center gap-2">
-                        <Icon className={`h-4 w-4 ${season.color}`} />
-                        <span className="text-sm font-medium">
-                          {season.name}
-                        </span>
-                      </div>
-                      <span className={`text-sm font-bold ${season.color}`}>
-                        {season.total.toLocaleString('es-ES', {
-                          style: 'currency',
-                          currency: 'EUR',
-                        })}
+                      {m.total > 0 ? fmtShort(m.total) : ''}
+                    </span>
+                    <span className="flex min-h-0 w-full flex-1 items-end justify-center">
+                      <span
+                        className={cn(
+                          'w-full max-w-5 rounded-[4px]',
+                          isPeak ? 'bg-foreground' : 'bg-surface-4',
+                        )}
+                        style={{
+                          height: `${Math.max((m.total / max) * 100, 2)}%`,
+                        }}
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        'text-[10px] md:text-[11px]',
+                        isPeak ? 'font-semibold text-foreground' : 'text-faint',
+                      )}
+                    >
+                      {m.monthName.charAt(0)}
+                      <span className="hidden md:inline">
+                        {m.monthName.slice(1)}
                       </span>
-                    </div>
-                  );
-                })}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+          <div className="space-y-4">
+            <dl className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-surface-2 p-3">
+                <dt className="text-[12px] text-faint">Pico</dt>
+                <dd className="text-[17px] font-semibold">
+                  {peakMonth.monthName}
+                </dd>
+                <dd className="num text-[12px] text-subtle">
+                  <Amount amount={peakMonth.total} />
+                </dd>
               </div>
-            </div>
+              <div className="rounded-xl bg-surface-2 p-3">
+                <dt className="text-[12px] text-faint">Valle</dt>
+                <dd className="text-[17px] font-semibold">
+                  {lowMonth.monthName}
+                </dd>
+                <dd className="num text-[12px] text-subtle">
+                  <Amount amount={lowMonth.total} />
+                </dd>
+              </div>
+            </dl>
+            <ul aria-label="Por estación">
+              {seasonTotals.map((season, i) => {
+                const Icon = season.icon;
+                return (
+                  <li
+                    key={season.name}
+                    className={cn(
+                      'flex h-11 items-center justify-between gap-3',
+                      i > 0 && 'border-t border-hairline',
+                    )}
+                  >
+                    <span className="flex items-center gap-2 text-[15px]">
+                      <Icon className="h-4 w-4 text-faint" />
+                      {season.name}
+                    </span>
+                    <span
+                      className={cn(
+                        'num text-[15px] font-semibold',
+                        season.total !== topSeason && 'text-subtle',
+                      )}
+                    >
+                      <Amount amount={season.total} />
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        ) : (
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            Selecciona un tipo para ver sus patrones estacionales
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </Section>
   );
 }

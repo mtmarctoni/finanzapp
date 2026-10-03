@@ -2,43 +2,32 @@
 
 import { useMemo } from 'react';
 
-import { CategoryChart } from '@/components/analytics/CategoryChart';
 import { CategoryDeepDive } from '@/components/analytics/CategoryDeepDive';
 import { IntelligenceExplorer } from '@/components/analytics/IntelligenceExplorer';
 import { NetTrendChart } from '@/components/analytics/NetTrendChart';
-import { PerActionCards } from '@/components/analytics/PerActionCards';
-import { PlatformChart } from '@/components/analytics/PlatformChart';
-import { SavingsRateCard } from '@/components/analytics/SavingsRateCard';
 import { SeasonalExplorer } from '@/components/analytics/SeasonalExplorer';
+import { SpendingBreakdown } from '@/components/analytics/SpendingBreakdown';
 import { SpendingVelocity } from '@/components/analytics/SpendingVelocity';
 import { SummaryCards } from '@/components/analytics/SummaryCards';
 import { TemporalChart } from '@/components/analytics/TemporalChart';
-import { TipoExplorer } from '@/components/analytics/TipoExplorer';
 import { TopTransactionsTable } from '@/components/analytics/TopTransactionsTable';
 import { TrendExplorer } from '@/components/analytics/TrendExplorer';
-import { TypeChart } from '@/components/analytics/TypeChart';
 import { AnalyticsSubnav } from '@/components/analytics/analytics-subnav';
-import { AnalyticsFilter } from '@/components/analytics-filter';
+import {
+  AnalyticsFilter,
+  AnalyticsFilterChips,
+  AnalyticsPeriodControl,
+} from '@/components/analytics-filter';
+import { PageHeader } from '@/components/page-header';
 import { useAnalyticsData, type Filters } from '@/hooks/use-analytics-data';
 import {
   getTemporalChartData,
-  getCategoryChartData,
   getTemporalChartOptions,
   getLineChartOptions,
-  getDoughnutChartOptions,
-  getPlatformChartData,
-  getPlatformChartOptions,
-  getTypeChartData,
-  getTypeChartOptions,
   getCategoryPlatformBreakdown,
-  getCategoryPlatformChartOptions,
   getCategoryTrendData,
   computeSpendingVelocity,
   computeTipoSpendingVelocity,
-  getSeasonalChartData,
-  getSeasonalChartOptions,
-  getTipoExplorerData,
-  getTipoExplorerChartOptions,
   getTipoTrendData,
 } from '@/lib/analytics-charts';
 
@@ -48,9 +37,6 @@ export default function AnalyticsPageContent() {
     data,
     data.metrics?.groupBy ?? 'month',
   );
-  const categoryChartData = getCategoryChartData(data);
-  const platformChartData = getPlatformChartData(data.platformData);
-  const typeChartData = getTypeChartData(data.typeData);
 
   const tipoToQueMap = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -73,7 +59,10 @@ export default function AnalyticsPageContent() {
       .reduce((sum, item) => sum + Number(item.total || 0), 0);
     return ingresos - Math.abs(gastos);
   });
-  const accBalance = balance.reduce((acc: number[], curr) => {
+  const netSeries = data.netTemporal?.length
+    ? data.netTemporal.map((n) => n.net)
+    : balance;
+  const accBalance = netSeries.reduce((acc: number[], curr) => {
     if (acc.length === 0) return [curr];
     acc.push(acc[acc.length - 1] + curr);
     return acc;
@@ -124,145 +113,130 @@ export default function AnalyticsPageContent() {
     'Gasto',
   );
 
-  const typesWithTemporal = Array.from(
-    new Set(data.typeTemporalData.map((d) => d.type)),
-  ).sort();
+  // Pickers list tipos by how much was spent in them, so each explorer opens
+  // on the most relevant one instead of an empty state.
+  const spendByType = new Map<string, number>();
+  for (const d of data.typeTemporalData) {
+    const add = d.action === 'Gasto' ? Math.abs(Number(d.total)) : 0;
+    spendByType.set(d.type, (spendByType.get(d.type) ?? 0) + add);
+  }
+  const typesWithTemporal = Array.from(spendByType.keys()).sort(
+    (a, b) =>
+      (spendByType.get(b) ?? 0) - (spendByType.get(a) ?? 0) ||
+      a.localeCompare(b),
+  );
+
+  // Years for the period presets come from the data (TODOS #4); fall back to
+  // the last three calendar years before the first response lands.
+  const thisYear = new Date().getFullYear();
+  const years = data.availableYears.length
+    ? Array.from(new Set(data.availableYears))
+        .sort((a, b) => b - a)
+        .slice(0, 4)
+    : [thisYear, thisYear - 1, thisYear - 2];
+
+  const onFilters = (f: Filters) => setFilters(f);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Analíticas Financieras</h1>
-      <div className="mb-6">
-        <AnalyticsSubnav />
-      </div>
-      <div className="mb-6">
-        <AnalyticsFilter
-          value={filters}
-          onChange={(f) => setFilters(f as Filters)}
-          actions={[...new Set(data.temporalData.map((d) => d.action))]}
-          categories={[...new Set(data.categoryData.map((d) => d.category))]}
-          platforms={[
-            ...new Set([
-              ...data.temporalData.map((d) => d.platform).filter(Boolean),
-              ...data.categoryData.map((d) => d.platform).filter(Boolean),
-              ...data.platformData.map((d) => d.platform).filter(Boolean),
-            ]),
-          ]}
-          types={[
-            ...new Set([
-              ...data.temporalData.map((d) => d.type).filter(Boolean),
-              ...data.categoryData.map((d) => d.type).filter(Boolean),
-              ...data.typeData.map((d) => d.type).filter(Boolean),
-              ...data.tipoQueData.map((d) => d.type).filter(Boolean),
-              ...data.typeTemporalData.map((d) => d.type).filter(Boolean),
-            ]),
-          ]}
-          years={[2025, 2024, 2023]}
-          tipoToQueMap={tipoToQueMap}
-        />
-      </div>
-
-      <SummaryCards
-        sums={data.sums}
-        metrics={data.metrics as Parameters<typeof SummaryCards>[0]['metrics']}
-        monthsInRange={monthsInRange}
-        yearsInRange={yearsInRange}
-      />
-      <PerActionCards
-        metrics={
-          data.metrics as Parameters<typeof PerActionCards>[0]['metrics']
+    <div className="min-w-0">
+      <PageHeader
+        title="Análisis"
+        actions={
+          <AnalyticsPeriodControl
+            value={filters}
+            onChange={(f) => onFilters(f as Filters)}
+            years={years}
+          />
         }
       />
-      <div className="mb-6 max-w-sm">
-        <SavingsRateCard
-          income={data.sums.ingresos}
-          expenses={data.sums.gastos}
+      <AnalyticsSubnav
+        actions={
+          <AnalyticsFilter
+            value={filters}
+            onChange={(f) => onFilters(f as Filters)}
+            actions={[...new Set(data.temporalData.map((d) => d.action))]}
+            categories={[...new Set(data.categoryData.map((d) => d.category))]}
+            platforms={[
+              ...new Set([
+                ...data.temporalData.map((d) => d.platform).filter(Boolean),
+                ...data.categoryData.map((d) => d.platform).filter(Boolean),
+                ...data.platformData.map((d) => d.platform).filter(Boolean),
+              ]),
+            ]}
+            types={[
+              ...new Set([
+                ...data.temporalData.map((d) => d.type).filter(Boolean),
+                ...data.categoryData.map((d) => d.type).filter(Boolean),
+                ...data.typeData.map((d) => d.type).filter(Boolean),
+                ...data.tipoQueData.map((d) => d.type).filter(Boolean),
+                ...data.typeTemporalData.map((d) => d.type).filter(Boolean),
+              ]),
+            ]}
+            years={years}
+            tipoToQueMap={tipoToQueMap}
+          />
+        }
+      />
+      <div className="mt-2 empty:hidden">
+        <AnalyticsFilterChips
+          value={filters}
+          onChange={(f) => onFilters(f as Filters)}
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <TemporalChart
-          data={temporalChartData}
-          options={getTemporalChartOptions(data.temporalData)}
+      <div className="mt-5 space-y-3 md:space-y-4">
+        <SummaryCards
+          sums={data.sums}
+          metrics={
+            data.metrics as Parameters<typeof SummaryCards>[0]['metrics']
+          }
+          monthsInRange={monthsInRange}
+          yearsInRange={yearsInRange}
           loading={loading}
         />
-        <NetTrendChart
-          data={{
-            labels: netIncomeExpenseLabels.map((p) => {
-              const d = new Date(p);
-              return data.metrics?.groupBy === 'year'
-                ? d.getFullYear().toString()
-                : d.toLocaleString('es-ES', {
-                    month: 'short',
-                    year: 'numeric',
-                  });
-            }),
-            datasets: [
-              {
-                label: 'Neto',
-                data: (data.netTemporal ?? []).map((n) => n.net),
-                borderColor: 'rgba(99, 102, 241, 1)',
-                backgroundColor: 'rgba(99, 102, 241, 0.2)',
-              },
-              {
-                label: 'Balance',
-                data: balance,
-                borderColor: 'rgba(34,197,94,1)',
-                backgroundColor: 'rgba(34,197,94,0.1)',
-                borderDash: [6, 3],
-              },
-              {
-                label: 'Acc Balance',
-                data: accBalance,
-                borderColor: 'rgba(234,179,8,1)',
-                backgroundColor: 'rgba(234,179,8,0.1)',
-                borderDash: [2, 2],
-              },
-            ],
-          }}
-          options={getLineChartOptions()}
-          loading={loading}
-        />
-        <CategoryChart
-          data={categoryChartData}
-          options={getDoughnutChartOptions(
-            categoryChartData.total,
-            data.categoryData,
-          )}
-          loading={loading}
-        />
-        <PlatformChart
-          data={platformChartData}
-          options={getPlatformChartOptions()}
-          loading={loading}
-        />
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <TypeChart
-          data={typeChartData}
-          options={getTypeChartOptions()}
-          loading={loading}
-        />
-        <CategoryDeepDive
-          categoryData={data.categoryData}
-          categoryPlatformData={data.categoryPlatformData}
-          getChartData={getCategoryPlatformBreakdown}
-          getChartOptions={getCategoryPlatformChartOptions}
-          loading={loading}
-        />
-      </div>
+        <div className="grid gap-3 md:gap-4 lg:grid-cols-2">
+          <TemporalChart
+            data={temporalChartData}
+            options={getTemporalChartOptions(data.temporalData)}
+            loading={loading}
+          />
+          <NetTrendChart
+            data={{
+              labels: netIncomeExpenseLabels.map((p) => {
+                const d = new Date(p);
+                return data.metrics?.groupBy === 'year'
+                  ? d.getFullYear().toString()
+                  : d.toLocaleString('es-ES', {
+                      month: 'short',
+                      year: 'numeric',
+                    });
+              }),
+              datasets: [
+                { label: 'Acumulado', data: accBalance },
+                { label: 'Neto del periodo', data: netSeries },
+              ],
+            }}
+            options={getLineChartOptions()}
+            loading={loading}
+          />
+        </div>
 
-      <div className="mb-6">
-        <TipoExplorer
-          tipoQueData={data.tipoQueData}
-          types={typesWithTemporal}
-          getChartData={getTipoExplorerData}
-          getChartOptions={getTipoExplorerChartOptions}
-          loading={loading}
-        />
-      </div>
+        <div className="grid items-start gap-3 md:gap-4 lg:grid-cols-2">
+          <SpendingBreakdown
+            categoryData={data.categoryData}
+            typeData={data.typeData}
+            platformData={data.platformData}
+            loading={loading}
+          />
+          <CategoryDeepDive
+            categoryData={data.categoryData}
+            categoryPlatformData={data.categoryPlatformData}
+            getChartData={getCategoryPlatformBreakdown}
+            loading={loading}
+          />
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 mb-6">
         <TrendExplorer
           categoryTemporalData={data.categoryTemporalData}
           typeTemporalData={data.typeTemporalData}
@@ -274,16 +248,20 @@ export default function AnalyticsPageContent() {
           getTipoTrendData={getTipoTrendData}
           getLineChartOptions={getLineChartOptions}
         />
-        <SpendingVelocity
-          velocities={queVelocities}
-          loading={loading}
-          title="Velocidad por Categoría"
-        />
-        <SpendingVelocity
-          velocities={tipoVelocities}
-          loading={loading}
-          title="Velocidad por Tipo"
-        />
+
+        <div className="grid gap-3 md:gap-4 lg:grid-cols-2">
+          <SpendingVelocity
+            velocities={queVelocities}
+            loading={loading}
+            title="Velocidad por categoría"
+          />
+          <SpendingVelocity
+            velocities={tipoVelocities}
+            loading={loading}
+            title="Velocidad por tipo"
+          />
+        </div>
+
         <IntelligenceExplorer
           categoryStats={data.categoryStats}
           categoryPlatformData={data.categoryPlatformData}
@@ -295,13 +273,9 @@ export default function AnalyticsPageContent() {
         <SeasonalExplorer
           categoryTemporalData={data.categoryTemporalData}
           types={typesWithTemporal}
-          getChartData={getSeasonalChartData}
-          getChartOptions={getSeasonalChartOptions}
           loading={loading}
         />
-      </div>
 
-      <div className="grid grid-cols-1 gap-6">
         <TopTransactionsTable
           transactions={data.topTransactions}
           loading={loading}

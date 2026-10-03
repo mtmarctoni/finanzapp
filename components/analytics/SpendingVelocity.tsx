@@ -1,13 +1,9 @@
-import {
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartLoading, Section } from '@/components/analytics/kit';
+import { CategoryTile } from '@/components/quick-add/category-icon';
 import { type VelocityItem } from '@/lib/analytics-charts';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface SpendingVelocityProps {
   velocities: VelocityItem[];
@@ -15,10 +11,65 @@ interface SpendingVelocityProps {
   title?: string;
 }
 
+function VelocityList({
+  heading,
+  items,
+  direction,
+  empty,
+}: {
+  heading: string;
+  items: VelocityItem[];
+  direction: 'up' | 'down';
+  empty: string;
+}) {
+  const Arrow = direction === 'up' ? ArrowUpRight : ArrowDownRight;
+  return (
+    <div className="min-w-0">
+      <h3 className="mb-1 text-[13px] font-semibold text-subtle">{heading}</h3>
+      {items.length > 0 ? (
+        <ul>
+          {items.map((item, i) => (
+            <li
+              key={item.category}
+              className={cn(
+                'flex h-16 items-center gap-3',
+                i > 0 && 'border-t border-hairline',
+              )}
+            >
+              <CategoryTile name={item.category} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-semibold tracking-[-0.01em]">
+                  {item.category}
+                </p>
+                <p className="num truncate text-[13px] text-subtle">
+                  {formatCurrency(item.previous)} →{' '}
+                  {formatCurrency(item.current)}
+                </p>
+              </div>
+              <span
+                className={cn(
+                  'num flex shrink-0 items-center gap-0.5 text-[15px] font-semibold',
+                  direction === 'down' && 'text-positive',
+                )}
+              >
+                <Arrow className="h-4 w-4" />
+                {direction === 'up' ? '+' : ''}
+                {Math.round(item.changePercent) || 0}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="py-3 text-[13px] text-faint">{empty}</p>
+      )}
+    </div>
+  );
+}
+
 export function SpendingVelocity({
   velocities,
   loading,
-  title = 'Velocidad de Gasto',
+  title = 'Velocidad de gasto',
 }: SpendingVelocityProps) {
   const growing = velocities.filter((v) => v.direction === 'up').slice(0, 3);
   const shrinking = velocities
@@ -26,111 +77,32 @@ export function SpendingVelocity({
     .slice(0, 3);
 
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-500" />
-          {title}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Categorías que más han cambiado respecto al periodo anterior
+    <Section
+      title={title}
+      description="Lo que más ha cambiado respecto al periodo anterior"
+    >
+      {loading ? (
+        <ChartLoading className="h-48" />
+      ) : growing.length === 0 && shrinking.length === 0 ? (
+        <p className="text-[13px] text-faint">
+          Ningún cambio significativo respecto al periodo anterior
         </p>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Growing */}
-            <div>
-              <h4 className="text-sm font-semibold text-red-600 mb-3 flex items-center gap-1.5">
-                <TrendingUp className="h-4 w-4" />
-                Creciendo (alerta)
-              </h4>
-              <div className="space-y-3">
-                {growing.length > 0 ? (
-                  growing.map((item) => (
-                    <div
-                      key={item.category}
-                      className="flex items-center justify-between p-3 rounded-lg bg-red-50 border border-red-100"
-                    >
-                      <div className="flex-1 min-w-0 mr-3">
-                        <div className="font-medium text-sm truncate">
-                          {item.category}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {item.previous.toLocaleString('es-ES', {
-                            style: 'currency',
-                            currency: 'EUR',
-                          })}{' '}
-                          →{' '}
-                          {item.current.toLocaleString('es-ES', {
-                            style: 'currency',
-                            currency: 'EUR',
-                          })}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-red-600 font-bold text-sm shrink-0">
-                        <ArrowUpRight className="h-4 w-4" />+
-                        {item.changePercent.toFixed(0)}%
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Ninguna categoría creciendo significativamente
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Shrinking */}
-            <div>
-              <h4 className="text-sm font-semibold text-green-600 mb-3 flex items-center gap-1.5">
-                <TrendingDown className="h-4 w-4" />
-                Reduciendo (bien)
-              </h4>
-              <div className="space-y-3">
-                {shrinking.length > 0 ? (
-                  shrinking.map((item) => (
-                    <div
-                      key={item.category}
-                      className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-100"
-                    >
-                      <div className="flex-1 min-w-0 mr-3">
-                        <div className="font-medium text-sm truncate">
-                          {item.category}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {item.previous.toLocaleString('es-ES', {
-                            style: 'currency',
-                            currency: 'EUR',
-                          })}{' '}
-                          →{' '}
-                          {item.current.toLocaleString('es-ES', {
-                            style: 'currency',
-                            currency: 'EUR',
-                          })}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-green-600 font-bold text-sm shrink-0">
-                        <ArrowDownRight className="h-4 w-4" />
-                        {item.changePercent.toFixed(0)}%
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Ninguna categoría reduciendo significativamente
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-8 lg:grid-cols-1 lg:gap-4">
+          <VelocityList
+            heading="Creciendo"
+            items={growing}
+            direction="up"
+            empty="Ninguna categoría creciendo significativamente"
+          />
+          <VelocityList
+            heading="Reduciendo"
+            items={shrinking}
+            direction="down"
+            empty="Ninguna categoría reduciendo significativamente"
+          />
+        </div>
+      )}
+    </Section>
   );
 }

@@ -1,26 +1,12 @@
 'use client';
 
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  TrendingDown,
-  TrendingUp,
-} from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { ChartLoading, EmptyState, Section } from '@/components/analytics/kit';
+import { RECORD_COLUMNS, RecordRow } from '@/components/analytics/record-rows';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { type PaginatedEntriesResponse } from '@/types/api';
 
 const ITEMS_PER_PAGE = 10;
@@ -33,12 +19,14 @@ interface SortableColumn {
   className?: string;
 }
 
+// Same order as the RECORD_COLUMNS grid so the header doubles as the table
+// head on desktop and a sort rail on mobile.
 const COLUMNS: SortableColumn[] = [
-  { field: 'fecha', label: 'Fecha' },
-  { field: 'que', label: 'Que' },
+  { field: 'que', label: 'Que', className: 'md:pl-[52px]' },
   { field: 'accion', label: 'Acción' },
   { field: 'plataforma_pago', label: 'Plataforma' },
-  { field: 'cantidad', label: 'Importe', className: 'text-right' },
+  { field: 'fecha', label: 'Fecha' },
+  { field: 'cantidad', label: 'Importe', className: 'md:justify-self-end' },
 ];
 
 interface TipoEntriesTableProps {
@@ -133,189 +121,127 @@ export function TipoEntriesTable({
     setCurrentPage(Math.max(1, Math.min(page, data.totalPages || 1)));
   };
 
+  const SortIcon = sortOrder === 'asc' ? ArrowUp : ArrowDown;
+
   return (
-    <Card className="col-span-1 lg:col-span-2">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <CardTitle>Movimientos por Tipo</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            {data.totalItems} movimientos en{' '}
-            <span className="font-semibold">{tipo}</span>
-          </p>
-        </div>
-        {error && (
+    <Section
+      title="Movimientos por tipo"
+      description={
+        <span className="num">
+          {data.totalItems} movimientos en{' '}
+          <span className="font-semibold text-foreground">{tipo}</span>
+        </span>
+      }
+      action={
+        error && (
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => void fetchEntries()}
           >
             Reintentar
           </Button>
+        )
+      }
+    >
+      <div
+        role="group"
+        aria-label="Ordenar movimientos"
+        className={cn(
+          'no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-3 md:mx-0 md:overflow-visible md:border-b md:border-hairline md:px-0 md:pb-2',
+          RECORD_COLUMNS,
         )}
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
+      >
+        {COLUMNS.map((col) => {
+          const active = sortBy === col.field;
+          return (
+            <button
+              key={col.field}
+              type="button"
+              onClick={() => handleSort(col.field)}
+              aria-label={`Ordenar por ${col.label}`}
+              aria-pressed={active}
+              className={cn(
+                'inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-[13px] font-semibold transition-colors',
+                active
+                  ? 'bg-foreground text-background'
+                  : 'bg-surface-2 text-subtle hover:text-foreground',
+                'md:h-auto md:rounded-none md:bg-transparent md:px-0 md:text-[11px] md:font-medium md:uppercase md:tracking-wide',
+                active ? 'md:text-foreground' : 'md:text-faint',
+                col.className,
+              )}
+            >
+              {col.label}
+              {active && <SortIcon aria-hidden className="h-3 w-3" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {loading ? (
+        <ChartLoading className="mt-2 h-64" />
+      ) : error ? (
+        <EmptyState className="min-h-48">
+          <div className="space-y-3">
             <p>{error}</p>
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => void fetchEntries()}
             >
               Reintentar
             </Button>
           </div>
-        ) : data.data.length > 0 ? (
-          <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {COLUMNS.map((col) => (
-                      <TableHead
-                        key={col.field}
-                        className={cn(
-                          col.className,
-                          col.field === 'cantidad' && 'text-right',
-                        )}
-                      >
-                        <button
-                          type="button"
-                          className={cn(
-                            'inline-flex items-center gap-1 uppercase tracking-wide',
-                            sortBy === col.field
-                              ? 'text-foreground font-semibold'
-                              : 'font-medium',
-                          )}
-                          onClick={() => handleSort(col.field)}
-                          aria-label={`Ordenar por ${col.label}`}
-                        >
-                          {col.label}
-                          {sortBy === col.field && (
-                            <span aria-hidden>
-                              {sortOrder === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </button>
-                      </TableHead>
-                    ))}
-                    <TableHead className="hidden sm:table-cell">
-                      Detalle
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.data.map((entry) => {
-                    const isIncome = entry.accion === 'Ingreso';
-                    const isInvestment = entry.accion === 'Inversión';
-                    const amount = Math.abs(Number(entry.cantidad));
-                    return (
-                      <TableRow key={entry.id}>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(entry.fecha).toLocaleDateString('es-ES')}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {entry.que}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={cn(
-                              'inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full',
-                              isIncome
-                                ? 'bg-green-100 text-green-700'
-                                : isInvestment
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-red-100 text-red-700',
-                            )}
-                          >
-                            {isIncome ? (
-                              <TrendingUp className="h-3 w-3" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3" />
-                            )}
-                            {entry.accion}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {entry.plataforma_pago}
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            'text-right font-semibold',
-                            isIncome
-                              ? 'text-green-600'
-                              : isInvestment
-                                ? 'text-blue-600'
-                                : 'text-destructive',
-                          )}
-                        >
-                          {isIncome ? '+' : '-'}
-                          {formatCurrency(amount)}
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground max-w-[200px] truncate">
-                          {entry.detalle1 ?? entry.detalle2 ?? '—'}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+        </EmptyState>
+      ) : data.data.length > 0 ? (
+        <>
+          <ul aria-label={`Movimientos en ${tipo}`}>
+            {data.data.map((entry, i) => (
+              <RecordRow
+                key={entry.id}
+                first={i === 0}
+                name={entry.que}
+                sub={[entry.accion, entry.plataforma_pago]
+                  .filter(Boolean)
+                  .join(' · ')}
+                detail={entry.detalle1 ?? entry.detalle2}
+                action={entry.accion}
+                platform={entry.plataforma_pago}
+                date={entry.fecha}
+                amount={Number(entry.cantidad)}
+              />
+            ))}
+          </ul>
 
-            {data.totalPages > 1 && (
-              <div className="flex items-center justify-center space-x-2 py-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => goToPage(1)}
-                  aria-label="Primera página"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage <= 1}
-                  onClick={() => goToPage(currentPage - 1)}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm">
-                  Página {currentPage} de {data.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= data.totalPages}
-                  onClick={() => goToPage(currentPage + 1)}
-                  aria-label="Página siguiente"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={currentPage >= data.totalPages}
-                  onClick={() => goToPage(data.totalPages)}
-                  aria-label="Última página"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-48 text-muted-foreground">
-            No hay datos
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {data.totalPages > 1 && (
+            <div className="mt-2 flex items-center justify-between gap-2 border-t border-hairline pt-3">
+              <Button
+                variant="secondary"
+                size="icon"
+                disabled={currentPage <= 1}
+                onClick={() => goToPage(currentPage - 1)}
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="num text-[13px] text-subtle">
+                Página {currentPage} de {data.totalPages}
+              </span>
+              <Button
+                variant="secondary"
+                size="icon"
+                disabled={currentPage >= data.totalPages}
+                onClick={() => goToPage(currentPage + 1)}
+                aria-label="Página siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </>
+      ) : (
+        <EmptyState>No hay datos</EmptyState>
+      )}
+    </Section>
   );
 }

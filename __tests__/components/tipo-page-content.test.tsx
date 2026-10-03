@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { type ReactElement } from 'react';
 
 import TipoPageContent from '@/components/analytics/tipo-page-content';
@@ -21,10 +21,6 @@ const rerenderHolder: { rerender: (el: ReactElement) => void } = {
 const mockUseAnalyticsData = jest.fn();
 jest.mock('@/hooks/use-analytics-data', () => ({
   useAnalyticsData: () => mockUseAnalyticsData(),
-}));
-
-jest.mock('react-chartjs-2', () => ({
-  Doughnut: () => <div data-testid="doughnut" />,
 }));
 
 jest.mock('@/components/analytics/TipoExplorer', () => ({
@@ -51,7 +47,12 @@ const euro = new Intl.NumberFormat('es-ES', {
 
 function cardText(label: string): string {
   const title = screen.getByText(label);
-  return title.closest('.rounded-lg')?.textContent ?? '';
+  return title.closest('[data-metric]')?.textContent ?? '';
+}
+
+// Year and month presets live in the header's period popover.
+function openPeriod() {
+  fireEvent.click(screen.getByRole('button', { name: /^Periodo/ }));
 }
 
 const baseData: AnalyticsData = {
@@ -148,13 +149,13 @@ describe('TipoPageContent', () => {
     });
   });
 
-  it('renders the tipo-scoped summary cards and expense doughnut', () => {
+  it('renders the tipo-scoped summary cards and expense ranking', () => {
     mockParams = new URLSearchParams('type=Vivienda');
 
     render(<TipoPageContent />);
 
     expect(
-      screen.getByRole('heading', { name: 'Analíticas por Tipo' }),
+      screen.getByRole('heading', { name: 'Análisis' }),
     ).toBeInTheDocument();
     // Gastos / Inversión / Ingresos / Neto for Vivienda only
     expect(cardText('Gastos')).toContain(euro(800));
@@ -162,7 +163,11 @@ describe('TipoPageContent', () => {
     expect(cardText('Ingresos')).toContain(euro(500));
     expect(cardText('Neto')).toContain(euro(300));
     expect(cardText('Gastos')).toContain('2 mov.');
-    expect(screen.getByTestId('doughnut')).toBeInTheDocument();
+    expect(
+      within(
+        screen.getByRole('list', { name: 'Gasto por categoría' }),
+      ).getByText('Alquiler'),
+    ).toBeInTheDocument();
   });
 
   it('writes the selected tipo to the URL and passes it to the explorers', () => {
@@ -184,6 +189,7 @@ describe('TipoPageContent', () => {
     const view = render(<TipoPageContent />);
     rerenderHolder.rerender = view.rerender;
 
+    openPeriod();
     fireEvent.click(screen.getByRole('button', { name: '2025' }));
 
     expect(routerReplace).toHaveBeenCalledWith(
@@ -199,6 +205,7 @@ describe('TipoPageContent', () => {
     const view = render(<TipoPageContent />);
     rerenderHolder.rerender = view.rerender;
 
+    openPeriod();
     for (const year of ['2025', '2024', '2023']) {
       expect(screen.getByRole('button', { name: year })).toBeInTheDocument();
     }
@@ -211,6 +218,7 @@ describe('TipoPageContent', () => {
     rerenderHolder.rerender = view.rerender;
 
     // No period selected -> months belong to the most recent available year.
+    openPeriod();
     fireEvent.click(screen.getByRole('button', { name: 'Mar' }));
 
     expect(routerReplace).toHaveBeenCalledWith(
