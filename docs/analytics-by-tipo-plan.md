@@ -85,7 +85,7 @@ Plus: `TODOS.md` (new) with 4 accepted items (below).
 5. **Step 4 — orchestrator + route**: `tipo-page-content.tsx`, `app/analytics/tipo/page.tsx`, URL sync + tests.
 6. **Step 5 — e2e** + full `pnpm check:all` (typecheck, lint, format, jest, audit).
 
-Commits: conventional, one per step, on `feat/analytics-by-tipo`. PR per AGENTS.md (squash-merge; Financial & Data Integrity section: read-only analytics + no data writes).
+Commits: conventional, one per step, on `feat/analytics-by-tipo`. PR per AGENTS.md (rebase-merge; Financial & Data Integrity section: read-only analytics + no data writes).
 
 ## Tests (all new; 36 paths — 0 pre-existing coverage)
 
@@ -158,7 +158,7 @@ Lane A: steps 0→2 (shared components dir) · Lane B: step 1 (independent) · t
 
 ## Merge / workflow (per AGENTS.md)
 
-Feature branch `feat/analytics-by-tipo` (already checked out). Squash-merge PR into `main` via `gh pr merge --squash --delete-branch`; PR title conventional (`feat(analytics): add analytics-by-tipo subpage`); fill `.github/PULL_REQUEST_TEMPLATE.md` — Financial & Data Integrity: read-only feature, no data writes; one parameterized-SQL extension on the entries read path.
+Feature branch `feat/analytics-by-tipo` (already checked out). Rebase-merge PR into `main` via `gh pr merge --rebase --delete-branch`; PR title conventional (`feat(analytics): add analytics-by-tipo subpage`); fill `.github/PULL_REQUEST_TEMPLATE.md` — Financial & Data Integrity: read-only feature, no data writes; one parameterized-SQL extension on the entries read path.
 
 ## GSTACK REVIEW REPORT
 
