@@ -1,61 +1,65 @@
 'use client';
 
-import { ExternalLink } from 'lucide-react';
+import { ChevronRight, Github, Lock } from 'lucide-react';
 import Link from 'next/link';
 
-import { Button } from '@/components/ui/button';
+import { AuthMessage, AuthShell } from '@/components/auth/auth-shell';
+
+const LINKS = [
+  {
+    href: 'https://github.com/mtmarctoni/finanzapp',
+    label: 'Ver el repositorio',
+    detail: 'github.com/mtmarctoni/finanzapp',
+  },
+  {
+    href: 'https://github.com/mtmarctoni/finanzapp/issues/new',
+    label: 'Solicitar acceso',
+    detail: 'Abre una issue en GitHub',
+  },
+];
 
 export default function Unauthorized() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="container flex flex-col items-center justify-center gap-8 px-4 py-8">
-        <div className="flex flex-col items-center text-center">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Acceso no autorizado
-          </h1>
-          <p className="text-lg text-muted-foreground mt-2">
-            Este proyecto está protegido y solo está disponible para usuarios
-            autorizados.
-          </p>
-        </div>
+    <AuthShell>
+      <AuthMessage icon={<Lock />} title="Acceso no autorizado">
+        Este proyecto está protegido y solo está disponible para usuarios
+        autorizados.
+      </AuthMessage>
 
-        <div className="max-w-md text-center">
-          <p className="text-muted-foreground">
-            Si deseas contribuir o aprender más sobre este proyecto, puedes:
-          </p>
-          <ul className="list-disc list-inside mt-4 space-y-2 text-muted-foreground">
-            <li>
-              Visitar el repositorio en GitHub:
-              <br />
-              <Link
-                href="https://github.com/mtmarctoni/finanzapp"
-                className="text-primary hover:underline"
-                target="_blank"
-              >
-                github.com/mtmarctoni/finanzapp
-              </Link>
-            </li>
-            <li>
-              Abrir una issue para solicitar acceso:
-              <br />
-              <Link
-                href="https://github.com/mtmarctoni/finanzapp/issues/new"
-                className="text-primary hover:underline"
-                target="_blank"
-              >
-                Abrir issue
-              </Link>
-            </li>
-          </ul>
-        </div>
+      <p className="mt-8 px-4 text-[13px] font-semibold text-subtle">
+        Si quieres contribuir o saber más
+      </p>
+      <ul className="mt-2 divide-y divide-hairline overflow-hidden rounded-[20px] border border-hairline bg-surface">
+        {LINKS.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              target="_blank"
+              className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2/60"
+            >
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-surface-3 text-subtle">
+                <Github className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-medium">
+                  {link.label}
+                </span>
+                <span className="block truncate text-[13px] text-subtle">
+                  {link.detail}
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-faint" />
+            </Link>
+          </li>
+        ))}
+      </ul>
 
-        <Button asChild className="mt-8">
-          <Link href="https://github.com/mtmarctoni/finanzapp">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Ir al repositorio
-          </Link>
-        </Button>
-      </div>
-    </div>
+      <Link
+        href="/auth/signin"
+        className="mt-6 block text-center text-[13px] font-medium text-subtle hover:text-foreground"
+      >
+        Volver a iniciar sesión
+      </Link>
+    </AuthShell>
   );
 }
