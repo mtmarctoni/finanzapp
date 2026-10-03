@@ -1,17 +1,12 @@
 'use client';
 
-import { Brain, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { CategoryTile } from '@/components/quick-add/category-icon';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  SettingsGroup,
+  SettingsRow,
+} from '@/components/settings/settings-group';
 
 /** Spanish needs the noun to agree with the count: "1 compra", "2 compras". */
 function plural(count: number, singular: string, many: string): string {
@@ -55,63 +50,69 @@ export function MerchantMemoryCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Brain className="h-4 w-4" />
-          Comercios aprendidos
-        </CardTitle>
-        <CardDescription>
-          Confirmamos o corregimos la categoría de cada compra a partir de lo
-          que ya sabes de ese comercio.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {merchants === null ? null : merchants.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Todavía no hemos aprendido nada. Sube un recibo para empezar.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {merchants.map((merchant) => (
-              <li
-                key={merchant.id}
-                className="flex items-center justify-between gap-3 text-sm"
+    <SettingsGroup
+      title="Comercios aprendidos"
+      footer="Confirmamos o corregimos la categoría de cada compra a partir de lo que ya sabes de ese comercio. Olvidar uno hace que el próximo recibo empiece de cero."
+    >
+      {merchants === null ? (
+        <SettingsRow
+          label={<span className="font-normal text-faint">Cargando…</span>}
+        />
+      ) : merchants.length === 0 ? (
+        <SettingsRow
+          label={
+            <span className="font-normal text-subtle">
+              Todavía no hemos aprendido nada. Sube un recibo para empezar.
+            </span>
+          }
+          className="[&_.truncate]:whitespace-normal"
+        />
+      ) : (
+        <ul className="divide-y divide-hairline">
+          {merchants.map((merchant) => (
+            <li key={merchant.id}>
+              <SettingsRow
+                icon={<CategoryTile name={merchant.tipo} />}
+                trailing={
+                  <button
+                    type="button"
+                    aria-label={`Olvidar ${merchant.canonical_name}`}
+                    onClick={async () => await forget(merchant.id)}
+                    className="h-9 shrink-0 rounded-full px-3 text-[13px] font-semibold text-subtle transition-colors hover:bg-surface-2 hover:text-foreground"
+                  >
+                    Olvidar
+                  </button>
+                }
               >
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{merchant.canonical_name}</span>
-                  <Badge variant="secondary">
-                    {merchant.tipo ?? 'Sin categoría'}
-                  </Badge>
-                  <span className="text-muted-foreground">
-                    {plural(merchant.veces_visto, 'compra', 'compras')}
-                    {merchant.veces_confirmado > 0 &&
-                      ` · ${plural(
-                        merchant.veces_confirmado,
-                        'confirmada',
-                        'confirmadas',
-                      )}`}
-                    {merchant.veces_corregido > 0 &&
-                      ` · ${plural(
-                        merchant.veces_corregido,
-                        'corregida',
-                        'corregidas',
-                      )}`}
-                  </span>
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Olvidar ${merchant.canonical_name}`}
-                  onClick={async () => await forget(merchant.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px] font-medium">
+                    {merchant.canonical_name}
+                  </div>
+                  <div className="text-[13px] leading-snug text-subtle">
+                    <span>{merchant.tipo ?? 'Sin categoría'}</span>
+                    <span className="text-faint"> · </span>
+                    <span className="text-faint">
+                      {plural(merchant.veces_visto, 'compra', 'compras')}
+                      {merchant.veces_confirmado > 0 &&
+                        ` · ${plural(
+                          merchant.veces_confirmado,
+                          'confirmada',
+                          'confirmadas',
+                        )}`}
+                      {merchant.veces_corregido > 0 &&
+                        ` · ${plural(
+                          merchant.veces_corregido,
+                          'corregida',
+                          'corregidas',
+                        )}`}
+                    </span>
+                  </div>
+                </div>
+              </SettingsRow>
+            </li>
+          ))}
+        </ul>
+      )}
+    </SettingsGroup>
   );
 }
