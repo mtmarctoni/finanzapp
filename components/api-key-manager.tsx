@@ -1,19 +1,24 @@
 'use client';
 
-import { AlertTriangle, Copy, KeyRound, RefreshCw, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Copy,
+  ExternalLink,
+  KeyRound,
+  RefreshCw,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  SettingsGroup,
+  SettingsIcon,
+  SettingsRow,
+} from '@/components/settings/settings-group';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 type ApiKeyItem = {
   id: string;
@@ -212,136 +217,143 @@ export function ApiKeyManager() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <KeyRound className="h-5 w-5" />
-              API pública
-            </CardTitle>
-            <CardDescription>
-              Crea llaves para que otras apps registren movimientos sin tocar la
-              base de datos desde el cliente.
-            </CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
+    <SettingsGroup
+      title="Claves API"
+      action={
+        <span className="flex items-center gap-1">
+          <span className="text-[12px] text-faint">
+            {activeKeys.length} {activeKeys.length === 1 ? 'activa' : 'activas'}
+          </span>
+          <button
+            type="button"
             onClick={handleRefreshKeys}
             disabled={loading}
+            aria-label="Recargar llaves"
+            className="-mr-2 grid h-8 w-8 place-items-center rounded-full text-faint transition-colors hover:text-foreground disabled:opacity-50"
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Recargar
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {generatedKey && (
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Guarda esta llave ahora</AlertTitle>
-            <AlertDescription className="space-y-3">
-              <p>
+            <RefreshCw
+              className={cn('h-3.5 w-3.5', loading && 'animate-spin')}
+            />
+          </button>
+        </span>
+      }
+      footer={
+        <>
+          Crea llaves para que otras apps registren movimientos sin tocar la
+          base de datos desde el cliente. Ponle un nombre que diga dónde vive,
+          por ejemplo n8n gastos.
+        </>
+      }
+    >
+      {generatedKey && (
+        <div className="space-y-3 bg-surface-2 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-subtle" />
+            <div>
+              <p className="text-[15px] font-semibold">
+                Guarda esta llave ahora
+              </p>
+              <p className="text-[13px] text-subtle">
                 Solo se muestra una vez. Si la pierdes, tendrás que revocarla y
                 crear otra.
               </p>
-              <div className="rounded-md border bg-muted/40 p-3 font-mono text-xs break-all">
-                {generatedKey}
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={handleCopyKey}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copiar llave
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setGeneratedKey(null)}
-                >
-                  Ocultar
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="rounded-lg border p-4">
-          <div className="mb-4 space-y-1">
-            <h3 className="font-medium">Nueva llave</h3>
-            <p className="text-sm text-muted-foreground">
-              Usa un nombre que te diga exactamente dónde vive. Ejemplo: n8n
-              gastos o webhook del banco.
-            </p>
+            </div>
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Input
-              value={newKeyName}
-              onChange={(event) => setNewKeyName(event.target.value)}
-              placeholder="Ejemplo: Zapier personal"
-              aria-label="Nombre de la nueva llave"
-            />
+          <div className="break-all rounded-[12px] border border-hairline bg-background p-3 font-mono text-[12px]">
+            {generatedKey}
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={handleCopyKey}>
+              <Copy />
+              Copiar llave
+            </Button>
             <Button
-              onClick={handleCreateKey}
-              disabled={submitting}
-              className="sm:min-w-40"
+              size="sm"
+              variant="ghost"
+              onClick={() => setGeneratedKey(null)}
             >
-              {submitting ? 'Creando...' : 'Crear llave'}
+              Ocultar
             </Button>
           </div>
         </div>
+      )}
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium">Llaves activas</h3>
-            <span className="text-sm text-muted-foreground">
-              {activeKeys.length} activas
-            </span>
-          </div>
+      <form
+        className="flex items-center gap-2 p-2 pl-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleCreateKey();
+        }}
+      >
+        <Input
+          value={newKeyName}
+          onChange={(event) => setNewKeyName(event.target.value)}
+          placeholder="Nombre de la integración"
+          aria-label="Nombre de la nueva llave"
+          className="h-10 flex-1 border-transparent bg-transparent px-0 focus-visible:ring-0"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="secondary"
+          disabled={submitting}
+          className="h-10 shrink-0"
+        >
+          {submitting ? 'Creando...' : 'Crear llave'}
+        </Button>
+      </form>
 
-          {loading ? (
-            <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-              Cargando llaves...
-            </div>
-          ) : activeKeys.length === 0 ? (
-            <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+      {loading ? (
+        <SettingsRow
+          label={<span className="text-subtle">Cargando llaves...</span>}
+        />
+      ) : activeKeys.length === 0 ? (
+        <SettingsRow
+          label={
+            <span className="font-normal text-subtle">
               Aún no tienes llaves creadas.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {activeKeys.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Creada: {formatDate(item.created_at)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Último uso: {formatDate(item.last_used_at)}
-                    </div>
-                  </div>
+            </span>
+          }
+        />
+      ) : (
+        activeKeys.map((item) => (
+          <SettingsRow
+            key={item.id}
+            icon={
+              <SettingsIcon>
+                <KeyRound />
+              </SettingsIcon>
+            }
+            label={item.name}
+            detail={`Creada ${formatDate(item.created_at)} · Último uso: ${formatDate(item.last_used_at)}`}
+            trailing={
+              <button
+                type="button"
+                onClick={async () => handleRevokeKey(item.id)}
+                disabled={revokingId === item.id}
+                aria-label={`Revocar llave ${item.name}`}
+                className="h-9 shrink-0 rounded-full px-3 text-[13px] font-semibold text-negative transition-colors hover:bg-negative/10 disabled:opacity-50"
+              >
+                {revokingId === item.id ? 'Revocando...' : 'Revocar'}
+              </button>
+            }
+          />
+        ))
+      )}
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={async () => handleRevokeKey(item.id)}
-                    disabled={revokingId === item.id}
-                    aria-label={`Revocar llave ${item.name}`}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {revokingId === item.id ? 'Revocando...' : 'Revocar'}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      <a
+        href="/docs/public-entry-api"
+        target="_blank"
+        className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-2/60"
+      >
+        <SettingsIcon>
+          <BookOpen />
+        </SettingsIcon>
+        <span className="flex-1 text-[15px] font-medium">
+          Documentación de la API
+        </span>
+        <ExternalLink className="h-4 w-4 text-faint" />
+      </a>
+    </SettingsGroup>
   );
 }
