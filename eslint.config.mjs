@@ -27,6 +27,7 @@ export default defineConfig([
             'postcss.config.mjs',
             'prettier.config.mjs',
             '.dependency-cruiser.js',
+            'commitlint.config.mjs',
           ],
         },
       },
