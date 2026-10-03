@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import { signInAsTestUser } from './utils/auth';
+import { openReceiptSheet } from './utils/quick-add';
 
 /** Smallest byte sequence the server accepts as a JPEG (SOI + marker). */
 const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -43,7 +44,7 @@ test.describe('Receipt upload', () => {
       await route.fulfill({ status: 200, json: CANNED_PARSE });
     });
 
-    await page.goto('/records');
+    await openReceiptSheet(page);
     await page.getByLabel('Sube una foto de un recibo').setInputFiles({
       name: 'recibo.jpg',
       mimeType: 'image/jpeg',
@@ -54,7 +55,7 @@ test.describe('Receipt upload', () => {
     await expect(page).toHaveURL(/\/new\?/);
     await expect(page).toHaveURL(/rcpt=1/);
     await expect(
-      page.getByRole('heading', { name: 'Revisar Entrada (IA)' }),
+      page.getByRole('heading', { name: 'Revisar entrada' }),
     ).toBeVisible();
 
     // The category/merchant options are fetched after /new mounts, so wait for
@@ -73,7 +74,7 @@ test.describe('Receipt upload', () => {
     //      (Ingreso/Gasto). Choosing a category from that combobox silently
     //      records an income or an expense instead, and the assertions at the
     //      bottom then fail for a reason unrelated to this feature.
-    await page.getByRole('combobox', { name: 'Tipo', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Categoría' }).click();
     await page.getByRole('option', { name: 'Limpieza' }).click();
 
     // `Qué` is already "Mercadona E2E" from the prefill, so there is nothing
@@ -81,6 +82,9 @@ test.describe('Receipt upload', () => {
 
     await page.getByRole('button', { name: 'Guardar' }).click();
     await page.waitForURL(/\/records/, { timeout: 30000 });
+
+    // Learned merchants are listed on the profile page.
+    await page.goto('/user');
 
     // The remembered category is the saved one, not the prefill. The merchant
     // did not exist before this save, so `applyMerchantConfirmation` inserts
@@ -95,7 +99,7 @@ test.describe('Receipt upload', () => {
 
   test('rejects a non-image before the model is reached', async ({ page }) => {
     // Deliberately not stubbed: the point is the server's own magic-byte guard.
-    await page.goto('/records');
+    await openReceiptSheet(page);
     await page.getByLabel('Sube una foto de un recibo').setInputFiles({
       name: 'recibo.png',
       mimeType: 'image/png',
@@ -108,7 +112,7 @@ test.describe('Receipt upload', () => {
     await expect(
       page.getByRole('status').filter({ hasText: 'no es una imagen válida' }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/records/);
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 
   test('says so when the receipt is already saved', async ({ page }) => {
@@ -124,7 +128,7 @@ test.describe('Receipt upload', () => {
       });
     });
 
-    await page.goto('/records');
+    await openReceiptSheet(page);
     await page.getByLabel('Sube una foto de un recibo').setInputFiles({
       name: 'recibo.jpg',
       mimeType: 'image/jpeg',
@@ -135,6 +139,6 @@ test.describe('Receipt upload', () => {
     await expect(
       page.getByRole('status').filter({ hasText: 'Ya tienes esta entrada' }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/records/);
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 });

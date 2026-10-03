@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { z } from 'zod';
 
 import { FinanceForm } from '@/components/finance-form';
+import { PageHeader } from '@/components/page-header';
 import { normalizeCategory } from '@/lib/categories';
 
 /**
@@ -135,19 +136,22 @@ function NewEntryContent() {
     : undefined;
 
   return (
-    <main className="container mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">
-        {hasAiData ? 'Revisar Entrada (IA)' : 'Añadir Nueva Entrada'}
-      </h1>
+    <div className="mx-auto w-full max-w-2xl">
+      <PageHeader title={hasAiData ? 'Revisar entrada' : 'Nuevo registro'} />
       <FinanceForm parsedData={parsedData} />
-    </main>
+    </div>
   );
 }
 
 export default function NewEntryPage() {
   return (
     <Suspense
-      fallback={<div className="container mx-auto py-10">Cargando...</div>}
+      fallback={
+        <div className="mx-auto w-full max-w-2xl">
+          <PageHeader title="Nuevo registro" />
+          <p className="text-[13px] text-subtle">Cargando...</p>
+        </div>
+      }
     >
       <NewEntryContent />
     </Suspense>
