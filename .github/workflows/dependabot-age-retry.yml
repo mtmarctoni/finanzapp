@@ -63,6 +63,7 @@ jobs:
 
             # Check if any failed run has minimumReleaseAge violation
             IS_AGE_VIOLATION=false
+            AGE_RUN_ID=""
             for run_id in $(echo "$FAILED_RUNS" | jq -r '.[].databaseId'); do
               FAILED_JOBS=$(gh api "/repos/$REPO/actions/runs/$run_id/jobs?status=failure" --jq '.jobs[].id' 2>/dev/null || true)
               for job_id in $FAILED_JOBS; do
@@ -70,6 +71,7 @@ jobs:
                 LOGS=$(gh api "/repos/$REPO/actions/jobs/$job_id/logs" 2>/dev/null || echo "")
                 if echo "$LOGS" | grep -q "ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION"; then
                   IS_AGE_VIOLATION=true
+                  AGE_RUN_ID="$run_id"
                   echo "Found minimumReleaseAge violation in job $job_id"
                   break 2
                 fi
@@ -90,14 +92,8 @@ jobs:
               gh pr comment "$PR_NUMBER" --repo "$REPO" --body $'### Supply Chain Protection Active\n\nCI failed due to pnpm\'s `minimumReleaseAge` policy (`trustPolicy: strict` in `pnpm-workspace.yaml`).\nSome dependency updates were published less than 24 hours ago.\n\nThis PR will be automatically retried every ~6 hours.\nOnce the packages age past the 24-hour window, CI should pass.\n\n> This protection guards against supply-chain attacks from freshly published malicious packages.'
             fi
 
-            # Push empty commit to retry CI
-            git fetch origin "$HEAD_REF"
-            git checkout "$HEAD_REF"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit --allow-empty -m "chore: retry CI after minimumReleaseAge wait"
-            git push origin "$HEAD_REF"
-            echo "Pushed empty commit to retry CI for PR #$PR_NUMBER"
-
-            git checkout main 2>/dev/null || git checkout - 2>/dev/null || true
+            # Rerun the failed jobs. A push made with GITHUB_TOKEN would not
+            # start a new CI run, so an empty commit cannot retry CI.
+            gh run rerun "$AGE_RUN_ID" --failed --repo "$REPO"
+            echo "Requested a rerun of failed jobs in run $AGE_RUN_ID for PR #$PR_NUMBER"
           done
