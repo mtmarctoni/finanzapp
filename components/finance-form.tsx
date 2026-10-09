@@ -260,15 +260,9 @@ export function FinanceForm({ entry, parsedData }: FinanceFormProps) {
         // Provenance is write-once at insert. `updateEntry` does not store
         // it (Task 11 leaves it untouched), and an edit months later is not a
         // statement about the receipt that produced the entry.
-        await updateEntry(entry.id, formattedValues, {
-          user: { id: session.user.id },
-        });
+        await updateEntry(entry.id, formattedValues);
       } else {
-        await createEntry(
-          { ...formattedValues, ...provenance },
-          { user: { id: session.user.id } },
-          learning,
-        );
+        await createEntry({ ...formattedValues, ...provenance }, learning);
       }
     } catch (error) {
       logger.error('Failed to save entry:', error);
