@@ -35,7 +35,7 @@ jobs:
             --repo "$REPO" 2>/dev/null || true
 
           if [ -n "$MANUAL_PR" ]; then
-            PRS=$(gh pr view "$MANUAL_PR" --repo "$REPO" --json number,headRefName,author --jq '. | [.]\n')
+            PRS=$(gh pr view "$MANUAL_PR" --repo "$REPO" --json number,headRefName,author --jq 'tojson')
           else
             PRS=$(gh pr list --repo "$REPO" --state open --json number,headRefName,author --jq '.[] | select(.author.login | test("dependabot"))')
           fi
