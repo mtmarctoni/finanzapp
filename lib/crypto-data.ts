@@ -207,4 +207,22 @@ export async function getCryptoOverview(): Promise<CryptoPortfolioOverview | nul
   }
 }
 
-export { duplicateCryptoTransaction } from './cryptoActions';
+/**
+ * Duplicates a crypto transaction through the API. The route resolves the
+ * user from the session, so the client never supplies a user id.
+ */
+export async function duplicateCryptoTransaction(
+  id: string,
+): Promise<CryptoTransaction> {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const response = await fetch(
+    `${baseUrl}/api/crypto/transactions/${id}/duplicate`,
+    { method: 'POST' },
+  );
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return (await response.json()) as CryptoTransaction;
+}

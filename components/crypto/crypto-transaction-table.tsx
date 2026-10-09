@@ -313,9 +313,7 @@ export default function CryptoTransactionTable({
     }
 
     try {
-      await duplicateCryptoTransaction(id, {
-        user: { id: session.user.id },
-      });
+      await duplicateCryptoTransaction(id);
       setActiveTransaction(null);
       setTransactions(await fetchTransactions());
     } catch (error) {

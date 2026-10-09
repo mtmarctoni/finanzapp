@@ -1,7 +1,5 @@
-'use server';
-
 /**
- * Server-action facade for the crypto domain.
+ * Server-side facade for the crypto domain.
  *
  * The previous version of this file was 592 lines that mixed
  * transaction CRUD, wallet CRUD, holdings aggregation, mapping
@@ -12,10 +10,12 @@
  *   - lib/crypto/holdings.ts
  *   - lib/crypto/mappers.ts
  *
- * This file is the small "use server" boundary that client components
- * (crypto-transaction-form, crypto-transaction-table) and API routes
- * import from. The signatures are preserved 1:1 so existing callers
- * keep working.
+ * Only API routes and server components import this file. It is
+ * deliberately not a "use server" module: every function takes the user
+ * from a `session` argument, and a server action is a public endpoint
+ * whose arguments the caller controls. Callers pass the session they
+ * resolved with `getServerSession`; client components go through the
+ * `/api/crypto/*` routes via `lib/crypto-data.ts`.
  */
 
 import { revalidatePath } from 'next/cache';

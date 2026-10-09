@@ -139,7 +139,6 @@ module.exports = {
           // The server-action boundary (intentionally callable from the client).
           '^lib/actions\\.ts$',
           '^lib/recurringActions\\.ts$',
-          '^lib/cryptoActions\\.ts$',
         ],
       },
     },
