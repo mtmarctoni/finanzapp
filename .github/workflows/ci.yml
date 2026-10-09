@@ -99,11 +99,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Audit for vulnerabilities
-        # Using --audit-level=critical instead of --audit-level=high because:
-        # Next.js 16.0.10 has 11 high-severity vulns (no compatible patch available
-        # yet in the 16.x line without breaking changes). Switch back to --audit-level=high
-        # once Next.js is updated to 16.2.5+ or the xlsx package is replaced.
-        run: pnpm audit --audit-level=critical
+        # Advisories with no patched release are listed, with reasons, under
+        # auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        run: pnpm audit --audit-level=high
 
   build:
     runs-on: ubuntu-latest
