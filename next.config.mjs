@@ -1,5 +1,39 @@
+const isDev = process.env.NODE_ENV === 'development';
+
+// Baseline Content-Security-Policy. Next.js injects inline bootstrap scripts
+// and styles, so 'unsafe-inline' is needed until nonces are wired up; the
+// dev server additionally needs 'unsafe-eval' for React Refresh. Images allow
+// any https origin because OAuth avatars come from the provider's CDN.
+// form-action is left unset on purpose: the NextAuth sign-in form redirects
+// to the OAuth provider, which a 'self' form-action would block.
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
+const securityHeaders = [
+  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains',
+  },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }];
+  },
   // NOTE: Do NOT add server-only secrets here.
   // Anything declared under `env` is inlined into the client bundle at build
   // time and becomes publicly visible. Only safe public values may live here,
