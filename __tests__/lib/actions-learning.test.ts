@@ -31,6 +31,9 @@ jest.mock('@/lib/users/repo', () => ({
 jest.mock('@/lib/merchants/repo', () => ({
   applyMerchantConfirmation: jest.fn(),
 }));
+jest.mock('@/lib/session', () => ({
+  requireSessionUserId: jest.fn(async () => 'user-1'),
+}));
 
 const insertMock = insertEntry as jest.MockedFunction<typeof insertEntry>;
 const learningMock = applyMerchantConfirmation as jest.MockedFunction<
@@ -39,8 +42,6 @@ const learningMock = applyMerchantConfirmation as jest.MockedFunction<
 const revalidateMock = revalidatePath as jest.MockedFunction<
   typeof revalidatePath
 >;
-
-const SESSION = { user: { id: 'user-1' } };
 
 const RECEIPT: EntryInput = {
   fecha: '2026-09-20T12:00:00.000Z',
@@ -63,14 +64,14 @@ beforeEach(() => {
 
 describe('createEntry', () => {
   it('persists the entry as before', async () => {
-    await createEntry(RECEIPT, SESSION);
+    await createEntry(RECEIPT);
     expect(insertMock).toHaveBeenCalledWith(RECEIPT, 'user-1');
     expect(revalidateMock).toHaveBeenCalledWith('/');
   });
 
   // Review Focus #5: the saved category is the authority, not the prefill.
   it('learns the category the user actually saved, not the prefill', async () => {
-    await createEntry(RECEIPT, SESSION, {
+    await createEntry(RECEIPT, {
       comercio: 'Mercadona',
       categoriaPrefill: 'Supermercado',
     });
@@ -83,15 +84,18 @@ describe('createEntry', () => {
   });
 
   it('does not touch merchant memory for a manual entry', async () => {
-    await createEntry({ ...RECEIPT, origen: 'manual' }, SESSION, {
-      comercio: 'Mercadona',
-      categoriaPrefill: 'Supermercado',
-    });
+    await createEntry(
+      { ...RECEIPT, origen: 'manual' },
+      {
+        comercio: 'Mercadona',
+        categoriaPrefill: 'Supermercado',
+      },
+    );
     expect(learningMock).not.toHaveBeenCalled();
   });
 
   it('does not touch merchant memory without learning context', async () => {
-    await createEntry(RECEIPT, SESSION);
+    await createEntry(RECEIPT);
     expect(learningMock).not.toHaveBeenCalled();
   });
 
@@ -102,7 +106,7 @@ describe('createEntry', () => {
     );
 
     await expect(
-      createEntry(RECEIPT, SESSION, {
+      createEntry(RECEIPT, {
         comercio: 'Mercadona',
         categoriaPrefill: 'Supermercado',
       }),
@@ -118,7 +122,7 @@ describe('createEntry', () => {
       Object.assign(new Error('duplicate key value'), { code: '23505' }),
     );
 
-    await createEntry(RECEIPT, SESSION, {
+    await createEntry(RECEIPT, {
       comercio: 'Mercadona',
       categoriaPrefill: 'Supermercado',
     });
@@ -129,7 +133,7 @@ describe('createEntry', () => {
   it('keeps the entry even when the learning write fails', async () => {
     learningMock.mockRejectedValue(new Error('learning boom'));
     await expect(
-      createEntry(RECEIPT, SESSION, {
+      createEntry(RECEIPT, {
         comercio: 'Mercadona',
         categoriaPrefill: 'Supermercado',
       }),

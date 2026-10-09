@@ -11,11 +11,15 @@
  * on — its job is to be the small, audited surface that performs the
  * RPC handshake.
  *
- * Public API stays identical, so existing imports (`@/lib/actions`)
- * keep working:
+ * Exports:
  *   - createUser, getUserByEmail
  *   - createEntry, updateEntry, deleteEntry, deleteManyEntries
- *   - getEntries, getExportEntries
+ *
+ * Every entry action resolves the user from the session cookie on the
+ * server (`requireSessionUserId`). Server actions are public endpoints, so
+ * none of them may accept a user id from the caller. Server-side readers
+ * (API routes) call `lib/entries/repo.ts` directly with the id from their
+ * own session check.
  */
 
 import { revalidatePath } from 'next/cache';
@@ -23,17 +27,14 @@ import { revalidatePath } from 'next/cache';
 import {
   deleteEntriesByIds,
   deleteEntryById,
-  exportEntries,
-  findEntries,
   insertEntry,
   isUniqueViolation,
   updateEntryById,
-  type EntryFilter,
   type EntryInput,
-  type PaginatedEntries,
 } from '@/lib/entries/repo';
 import { applyMerchantConfirmation } from '@/lib/merchants/repo';
 import { ensureCategory } from '@/lib/server-data';
+import { requireSessionUserId } from '@/lib/session';
 import { findUserByEmail, insertUser } from '@/lib/users/repo';
 
 /**
@@ -75,7 +76,6 @@ export async function getUserByEmail(email: string) {
 
 export async function createEntry(
   formData: EntryInput,
-  session: { user: { id: string } },
   learning?: {
     /** Merchant as the user saw it on the receipt. */
     comercio: string;
@@ -83,9 +83,10 @@ export async function createEntry(
     categoriaPrefill: string;
   },
 ) {
+  const userId = await requireSessionUserId();
   try {
-    await insertEntry(formData, session.user.id);
-    await provisionCategory(session.user.id, formData.tipo);
+    await insertEntry(formData, userId);
+    await provisionCategory(userId, formData.tipo);
   } catch (error) {
     // The unique partial index on `(user_id, content_hash)` is the last line
     // of defence against a double save: two tabs opened from the same
@@ -109,7 +110,7 @@ export async function createEntry(
   if (learning && formData.origen === 'receipt') {
     try {
       await applyMerchantConfirmation({
-        userId: session.user.id,
+        userId,
         comercio: learning.comercio,
         // The category the user saved, which outranks the prefill.
         tipo: formData.tipo,
@@ -123,14 +124,11 @@ export async function createEntry(
   revalidatePath('/');
 }
 
-export async function updateEntry(
-  entryId: string,
-  formData: EntryInput,
-  session: { user: { id: string } },
-) {
+export async function updateEntry(entryId: string, formData: EntryInput) {
+  const userId = await requireSessionUserId();
   try {
-    await updateEntryById(entryId, formData, session.user.id);
-    await provisionCategory(session.user.id, formData.tipo);
+    await updateEntryById(entryId, formData, userId);
+    await provisionCategory(userId, formData.tipo);
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to update entry.');
@@ -138,40 +136,22 @@ export async function updateEntry(
   revalidatePath('/');
 }
 
-export async function deleteEntry(
-  formData: FormData,
-  session: { user: { id: string } },
-) {
+export async function deleteEntry(formData: FormData) {
+  const userId = await requireSessionUserId();
   const entryId = String(formData.get('entryId') ?? '');
   if (!entryId) return;
-  await deleteEntryById(entryId, session.user.id);
+  await deleteEntryById(entryId, userId);
   revalidatePath('/');
 }
 
-export async function deleteManyEntries(
-  formData: FormData,
-  session: { user: { id: string } },
-) {
+export async function deleteManyEntries(formData: FormData) {
+  const userId = await requireSessionUserId();
   const raw = String(formData.get('ids') ?? '');
   const ids = raw
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
   if (ids.length === 0) return;
-  await deleteEntriesByIds(ids, session.user.id);
+  await deleteEntriesByIds(ids, userId);
   revalidatePath('/');
-}
-
-export async function getEntries(
-  filters: EntryFilter,
-  session: { user: { id: string } },
-): Promise<PaginatedEntries> {
-  return findEntries(filters, session.user.id);
-}
-
-export async function getExportEntries(
-  filter: { search?: string; tipo?: string; from?: string; to?: string },
-  userId: string,
-) {
-  return exportEntries(filter, userId);
 }

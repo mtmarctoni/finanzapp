@@ -309,20 +309,17 @@ export function QuickAddSheet({
     const fecha = (when ?? new Date()).toISOString();
     const cantidad = split ? value / 2 : value;
     try {
-      await createEntry(
-        {
-          fecha,
-          accion,
-          tipo,
-          que: que.trim(),
-          plataforma_pago: plataforma,
-          cantidad,
-          detalle1: nota.trim(),
-          detalle2: '',
-          quien,
-        },
-        { user: { id: session.user.id } },
-      );
+      await createEntry({
+        fecha,
+        accion,
+        tipo,
+        que: que.trim(),
+        plataforma_pago: plataforma,
+        cantidad,
+        detalle1: nota.trim(),
+        detalle2: '',
+        quien,
+      });
       rememberSave({ accion, tipo, que, plataforma_pago: plataforma, quien });
       // The new qué/category/platform should be selectable next time.
       setOptions(null);

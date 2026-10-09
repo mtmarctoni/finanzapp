@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { APP_NAME } from '@/config';
-import { getExportEntries } from '@/lib/actions';
+import { exportEntries } from '@/lib/entries/repo';
 import { formatDate } from '@/lib/utils';
 
 export async function GET(request: Request) {
@@ -21,8 +21,7 @@ export async function GET(request: Request) {
     const from = searchParams.get('from') ?? '';
     const to = searchParams.get('to') ?? '';
 
-    // Get entries with filters from actions
-    const entries = await getExportEntries({ search, tipo, from, to }, userId);
+    const entries = await exportEntries({ search, tipo, from, to }, userId);
 
     // Format data for Excel
     const data = entries.map((entry) => ({

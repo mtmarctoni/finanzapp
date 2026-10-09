@@ -201,7 +201,7 @@ export default function FinanceTable({
         if (!session?.user.id) {
           throw new Error('User session not available');
         }
-        await deleteEntry(formData, { user: { id: session.user.id } });
+        await deleteEntry(formData);
         toast({ title: 'Registro eliminado' });
       } catch (error) {
         console.error('Error eliminando entrada:', error);
@@ -249,7 +249,7 @@ export default function FinanceTable({
         return;
       }
       try {
-        await deleteManyEntries(formData, { user: { id: session.user.id } });
+        await deleteManyEntries(formData);
       } catch (error) {
         console.error('Error eliminando entradas:', error);
         toast({

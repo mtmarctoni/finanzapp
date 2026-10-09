@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ITEMS_PER_PAGE } from '@/config';
-import { getEntries } from '@/lib/actions';
+import { findEntries } from '@/lib/entries/repo';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       sortOrder,
     };
 
-    const result = await getEntries(filters, { user: { id: session.user.id } });
+    const result = await findEntries(filters, session.user.id);
     // console.log('result', result)
     return NextResponse.json({
       data: result.entries,

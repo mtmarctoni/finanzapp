@@ -6,21 +6,21 @@ import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { GET } from '@/app/api/entries/route';
-import { getEntries } from '@/lib/actions';
+import { findEntries } from '@/lib/entries/repo';
 
 jest.mock('next-auth', () => ({
   __esModule: true,
   default: jest.fn(() => ({ handlers: {}, auth: jest.fn() })),
   getServerSession: jest.fn(),
 }));
-jest.mock('@/lib/actions', () => ({
-  getEntries: jest.fn(),
+jest.mock('@/lib/entries/repo', () => ({
+  findEntries: jest.fn(),
 }));
 
 const mockedGetServerSession = getServerSession as jest.MockedFunction<
   typeof getServerSession
 >;
-const mockedGetEntries = getEntries as jest.MockedFunction<typeof getEntries>;
+const mockedGetEntries = findEntries as jest.MockedFunction<typeof findEntries>;
 
 function mockRequest(query: string): NextRequest {
   return new NextRequest(`http://localhost:3000/api/entries?${query}`);
@@ -51,7 +51,7 @@ describe('GET /api/entries', () => {
     expect(mockedGetEntries).not.toHaveBeenCalled();
   });
 
-  it('passes tipo, que and amount filters through to getEntries', async () => {
+  it('passes tipo, que and amount filters through to findEntries', async () => {
     const request = mockRequest(
       'tipo=Vivienda&que=Alquiler&minAmount=100&maxAmount=500&search=Hipoteca&accion=Gasto&page=3&itemsPerPage=10&sortBy=cantidad&sortOrder=asc',
     );
@@ -75,7 +75,7 @@ describe('GET /api/entries', () => {
         sortBy: 'cantidad',
         sortOrder: 'asc',
       },
-      { user: { id: 'user-123' } },
+      'user-123',
     );
     expect(json).toMatchObject({
       data: [],
