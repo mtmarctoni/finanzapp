@@ -342,8 +342,9 @@ export function ApiKeyManager() {
       )}
 
       <a
-        href="/docs/public-entry-api"
+        href="https://github.com/mtmarctoni/finanzapp/blob/main/docs/public-entry-api.md"
         target="_blank"
+        rel="noopener noreferrer"
         className="flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-2/60"
       >
         <SettingsIcon>
