@@ -18,6 +18,8 @@ export interface RateLimitConfig {
 
 export interface RateLimitResult {
   allowed: boolean;
+  /** The configured maximum number of requests per window. */
+  limit: number;
   remaining: number;
   resetTime: number;
   retryAfter: number;
@@ -102,6 +104,7 @@ export async function checkRateLimit(
       const result = await rl.limit(identifier);
       return {
         allowed: result.success,
+        limit: config.maxRequests,
         remaining: result.remaining,
         resetTime: Date.now() + config.windowMs,
         retryAfter: Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)),
@@ -129,6 +132,7 @@ export async function checkRateLimit(
 
     return {
       allowed: true,
+      limit: config.maxRequests,
       remaining: config.maxRequests - 1,
       resetTime: newEntry.resetTime,
       retryAfter: 0,
@@ -138,6 +142,7 @@ export async function checkRateLimit(
   if (existing.count >= config.maxRequests) {
     return {
       allowed: false,
+      limit: config.maxRequests,
       remaining: 0,
       resetTime: existing.resetTime,
       retryAfter: Math.ceil((existing.resetTime - now) / 1000),
@@ -148,6 +153,7 @@ export async function checkRateLimit(
 
   return {
     allowed: true,
+    limit: config.maxRequests,
     remaining: config.maxRequests - existing.count,
     resetTime: existing.resetTime,
     retryAfter: 0,
@@ -158,7 +164,7 @@ export function getRateLimitHeaders(
   result: RateLimitResult,
 ): Record<string, string> {
   return {
-    'X-RateLimit-Limit': String(result.remaining + (result.allowed ? 1 : 0)),
+    'X-RateLimit-Limit': String(result.limit),
     'X-RateLimit-Remaining': String(result.remaining),
     'X-RateLimit-Reset': String(Math.ceil(result.resetTime / 1000)),
   };
