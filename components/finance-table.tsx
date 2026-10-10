@@ -555,9 +555,16 @@ function DesktopRow({
       <td className="max-w-[260px] px-3 py-2.5">
         <div className="flex items-center gap-3">
           <CategoryTile name={entry.tipo} size="sm" />
-          <span className="truncate font-medium text-foreground">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+            className="truncate rounded-sm text-left font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+          >
             {entry.que}
-          </span>
+          </button>
         </div>
       </td>
       <td className="whitespace-nowrap px-3 text-subtle">{entry.tipo}</td>
