@@ -1,6 +1,9 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import { useAnalyticsData } from '@/hooks/use-analytics-data';
+import {
+  SEARCH_DEBOUNCE_MS,
+  useAnalyticsData,
+} from '@/hooks/use-analytics-data';
 
 const emptyData = {
   temporalData: [],
@@ -112,5 +115,97 @@ describe('useAnalyticsData', () => {
     const url = fetchMock.mock.calls[0][0] as string;
     expect(url).not.toContain('type=');
     expect(url).toContain('action=Ingreso');
+  });
+
+  it('fetches once on mount', async () => {
+    mockUseSearchParams.mockReturnValue(new URLSearchParams('accion=Gasto'));
+
+    const { result } = renderHook(() => useAnalyticsData());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('debounces search keystrokes into a single request', async () => {
+    jest.useFakeTimers();
+    try {
+      mockUseSearchParams.mockReturnValue(new URLSearchParams());
+      const { result } = renderHook(() => useAnalyticsData());
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+      fetchMock.mockClear();
+
+      for (const search of ['m', 'me', 'mer']) {
+        act(() => {
+          result.current.setFilters({ ...result.current.filters, search });
+        });
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(50);
+        });
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock.mock.calls[0][0]).toContain('search=mer');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('aborts a superseded request so its late response is ignored', async () => {
+    mockUseSearchParams.mockReturnValue(new URLSearchParams());
+    let resolveFirst: (value: unknown) => void = () => undefined;
+    const signals: AbortSignal[] = [];
+    fetchMock.mockImplementation(
+      async (_url: string, init?: { signal?: AbortSignal }) => {
+        if (init?.signal) signals.push(init.signal);
+        if (signals.length === 1)
+          return new Promise((resolve) => {
+            resolveFirst = resolve;
+          });
+        return Promise.resolve({
+          ok: true,
+          json: async () =>
+            Promise.resolve({ ...emptyData, availableYears: [2025] }),
+        });
+      },
+    );
+
+    const { result } = renderHook(() => useAnalyticsData());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      result.current.setFilters({ accion: 'Ingreso' });
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(signals[0].aborted).toBe(true);
+    await waitFor(() =>
+      expect(result.current.data.availableYears).toEqual([2025]),
+    );
+
+    await act(async () => {
+      resolveFirst({
+        ok: true,
+        json: async () =>
+          Promise.resolve({ ...emptyData, availableYears: [1999] }),
+      });
+      await Promise.resolve();
+    });
+    expect(result.current.data.availableYears).toEqual([2025]);
+  });
+
+  it('exposes an error when the request fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockUseSearchParams.mockReturnValue(new URLSearchParams());
+    fetchMock.mockResolvedValue({ ok: false, json: jest.fn() });
+
+    const { result } = renderHook(() => useAnalyticsData());
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.loading).toBe(false);
   });
 });
