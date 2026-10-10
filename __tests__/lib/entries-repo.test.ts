@@ -1,10 +1,42 @@
-import { findEntries } from '@/lib/entries/repo';
+import { deleteEntriesByIds, findEntries } from '@/lib/entries/repo';
 
 const mockWithPool = jest.fn();
+const mockWithClient = jest.fn();
 jest.mock('@/lib/db', () => ({
   withPool: (callback: unknown) => mockWithPool(callback),
-  withClient: jest.fn(),
+  withClient: (callback: unknown) => mockWithClient(callback),
 }));
+
+describe('deleteEntriesByIds', () => {
+  let query: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    query = jest.fn().mockResolvedValue({ rows: [] });
+    mockWithClient.mockImplementation(
+      async (callback: (client: { query: typeof query }) => unknown) =>
+        callback({ query }),
+    );
+  });
+
+  it('binds varchar entry IDs as text and restricts deletion to the current user', async () => {
+    const ids = ['entry-1', 'entry-2'];
+    await deleteEntriesByIds(ids, 'user-1');
+
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, params] = query.mock.calls[0] as [string, unknown[]];
+    expect(sql).toContain('DELETE FROM finance_entries');
+    expect(sql).toContain('user_id = $1');
+    expect(sql).toContain('id = ANY($2::text[])');
+    expect(params).toEqual(['user-1', ids]);
+  });
+
+  it('skips the database when no IDs are selected', async () => {
+    await deleteEntriesByIds([], 'user-1');
+
+    expect(mockWithClient).not.toHaveBeenCalled();
+  });
+});
 
 describe('findEntries / compileFilter', () => {
   let query: jest.Mock;
