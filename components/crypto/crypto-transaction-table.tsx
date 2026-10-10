@@ -191,12 +191,12 @@ export default function CryptoTransactionTable({
       sortBy,
       sortOrder,
     });
-    setTransactions({
+    return {
       data: result.data ?? [],
       total: result.total ?? 0,
       totalPages: result.totalPages ?? 0,
       currentPage: result.currentPage ?? currentPage,
-    });
+    };
   }, [
     search,
     transactionType,
@@ -210,13 +210,19 @@ export default function CryptoTransactionTable({
   ]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-change of the URL filters
-    void fetchTransactions();
+    // A newer filter, page or sort supersedes this request; drop its result.
+    let cancelled = false;
+    void fetchTransactions().then((result) => {
+      if (!cancelled) setTransactions(result);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [fetchTransactions]);
 
   useCryptoChanged(
     useCallback(() => {
-      void fetchTransactions();
+      void fetchTransactions().then(setTransactions);
     }, [fetchTransactions]),
   );
 
@@ -262,6 +268,8 @@ export default function CryptoTransactionTable({
           data: prev.data.filter((t) => t.id !== id),
           total: Math.max(0, prev.total - 1),
         }));
+      } else {
+        alert('Error al eliminar la transacción');
       }
     });
   };
@@ -273,18 +281,28 @@ export default function CryptoTransactionTable({
       return;
 
     startTransition(async () => {
-      let deletedCount = 0;
+      const deletedIds: string[] = [];
       for (const id of selectedIds) {
         const success = await deleteCryptoTransaction(id);
-        if (success) deletedCount++;
+        if (success) deletedIds.push(id);
       }
 
+      // Drop only the rows the server deleted; failed ones stay selected.
       setTransactions((prev) => ({
         ...prev,
-        data: prev.data.filter((t) => !selectedIds.includes(t.id)),
-        total: Math.max(0, prev.total - deletedCount),
+        data: prev.data.filter((t) => !deletedIds.includes(t.id)),
+        total: Math.max(0, prev.total - deletedIds.length),
       }));
-      setSelectedIds([]);
+      setSelectedIds((prev) => prev.filter((id) => !deletedIds.includes(id)));
+
+      const failedCount = selectedIds.length - deletedIds.length;
+      if (failedCount > 0) {
+        alert(
+          failedCount === 1
+            ? 'No se pudo eliminar 1 transacción'
+            : `No se pudieron eliminar ${failedCount} transacciones`,
+        );
+      }
     });
   };
 
@@ -299,7 +317,7 @@ export default function CryptoTransactionTable({
         user: { id: session.user.id },
       });
       setActiveTransaction(null);
-      await fetchTransactions();
+      setTransactions(await fetchTransactions());
     } catch (error) {
       console.error('Error duplicating transaction:', error);
       alert('Error al duplicar la transacción');
