@@ -16,17 +16,27 @@ export async function POST(request: Request) {
     const userId = session.user.id;
     logger.info('Starting generate request');
 
-    // Get the date from the request body or use today
-    const { date } = await request.json();
+    // Get the date from the request body
+    let body: { date?: unknown } | null;
+    try {
+      body = (await request.json()) as { date?: unknown } | null;
+    } catch {
+      return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const date = body?.date;
+    const isValidDate =
+      typeof date === 'string' && !Number.isNaN(new Date(date).getTime());
     logger.info('Received date payload', {
       hasDate: Boolean(date),
       isString: typeof date === 'string',
-      isValidDate:
-        typeof date === 'string' && !Number.isNaN(new Date(date).getTime()),
+      isValidDate,
     });
 
-    if (!date) {
-      throw new Error('No date provided');
+    if (!isValidDate) {
+      return Response.json(
+        { error: 'A valid date is required' },
+        { status: 400 },
+      );
     }
     const targetDate = new Date(date);
     const targetYear = targetDate.getFullYear();
@@ -51,10 +61,7 @@ export async function POST(request: Request) {
       stack: error instanceof Error ? error.stack : undefined,
     });
     return Response.json(
-      {
-        error: 'Failed to generate recurring records',
-        details: errorMessage,
-      },
+      { error: 'Failed to generate recurring records' },
       { status: 500 },
     );
   }
