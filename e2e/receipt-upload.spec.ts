@@ -1,7 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
+
+import { test as base, expect, type Page } from '@playwright/test';
 
 import { signInAsTestUser } from './utils/auth';
 import { openReceiptSheet } from './utils/quick-add';
+
+import type { MerchantRecord } from '@/lib/merchants/repo';
 
 /** Smallest byte sequence the server accepts as a JPEG (SOI + marker). */
 const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
@@ -15,22 +19,88 @@ const CANNED_PARSE = {
     minuto: 30,
     tipo: 'Supermercado',
     accion: 'Gasto',
-    que: 'Mercadona E2E',
     plataforma_pago: 'Visa',
     cantidad: 43.2,
     detalle1: 'Leche y pan',
     detalle2: '',
   },
   receipt: {
-    contentHash: 'a'.repeat(64),
     confianza: 0.9,
     needsReview: false,
-    comercio: 'Mercadona E2E',
     categorySource: 'model',
   },
   providerUsed: 'opencode',
   modelUsed: 'mimo-v2.5-free',
 };
+
+async function receiptEntries(page: Page, merchant: string) {
+  const response = await page.request.get(
+    `/api/entries?${new URLSearchParams({ que: merchant, accion: 'todos' })}`,
+  );
+  expect(response.ok()).toBe(true);
+  return (await response.json()) as {
+    totalItems: number;
+    data: {
+      id: string;
+      que: string;
+      tipo: string;
+      cantidad: number | string;
+    }[];
+  };
+}
+
+async function receiptMerchants(page: Page, merchant: string) {
+  const response = await page.request.get('/api/merchants');
+  expect(response.ok()).toBe(true);
+  const { merchants } = (await response.json()) as {
+    merchants: MerchantRecord[];
+  };
+  return merchants.filter((row) => row.canonical_name === merchant);
+}
+
+const test = base.extend<{
+  receipt: { merchant: string; contentHash: string };
+}>({
+  receipt: [
+    async ({ page }, use) => {
+      // Browsers, retries and repeated runs share a user and database, but
+      // must each exercise a fresh save and merchant confirmation.
+      const contentHash = randomBytes(32).toString('hex');
+      const merchant = `Mercadona E2E ${contentHash}`;
+      await use({ merchant, contentHash });
+
+      // Teardown has its own budget, including after a failed or timed-out test.
+      try {
+        const entries = await receiptEntries(page, merchant);
+        if (entries.totalItems > 0) {
+          await page.goto(
+            `/records?${new URLSearchParams({ que: merchant, accion: 'todos' })}`,
+          );
+          for (const entry of entries.data) {
+            await page
+              .getByRole('button', {
+                name: `Eliminar entrada ${entry.id}`,
+                exact: true,
+              })
+              .click();
+          }
+          await expect(async () => {
+            expect((await receiptEntries(page, merchant)).totalItems).toBe(0);
+          }).toPass({ timeout: 15000 });
+        }
+      } finally {
+        for (const row of await receiptMerchants(page, merchant)) {
+          const deleted = await page.request.delete(
+            `/api/merchants?${new URLSearchParams({ id: row.id })}`,
+          );
+          expect(deleted.ok()).toBe(true);
+        }
+        expect(await receiptMerchants(page, merchant)).toEqual([]);
+      }
+    },
+    { timeout: 30000 },
+  ],
+});
 
 test.describe('Receipt upload', () => {
   test.beforeEach(async ({ page }) => {
@@ -39,9 +109,24 @@ test.describe('Receipt upload', () => {
 
   test('prefills the form, and a correction is what gets remembered', async ({
     page,
+    receipt,
   }) => {
+    expect((await receiptEntries(page, receipt.merchant)).totalItems).toBe(0);
+    expect(await receiptMerchants(page, receipt.merchant)).toEqual([]);
+
     await page.route('**/api/ai/parse-receipt', async (route) => {
-      await route.fulfill({ status: 200, json: CANNED_PARSE });
+      await route.fulfill({
+        status: 200,
+        json: {
+          ...CANNED_PARSE,
+          parsedData: { ...CANNED_PARSE.parsedData, que: receipt.merchant },
+          receipt: {
+            ...CANNED_PARSE.receipt,
+            contentHash: receipt.contentHash,
+            comercio: receipt.merchant,
+          },
+        },
+      });
     });
 
     await openReceiptSheet(page);
@@ -77,11 +162,28 @@ test.describe('Receipt upload', () => {
     await page.getByRole('combobox', { name: 'Categoría' }).click();
     await page.getByRole('option', { name: 'Limpieza' }).click();
 
-    // `Qué` is already "Mercadona E2E" from the prefill, so there is nothing
+    // `Qué` is already the unique merchant from the prefill, so there is nothing
     // to re-select: the point of the test is which category gets remembered.
 
     await page.getByRole('button', { name: 'Guardar' }).click();
     await page.waitForURL(/\/records/, { timeout: 30000 });
+
+    const saved = await receiptEntries(page, receipt.merchant);
+    expect(saved.totalItems).toBe(1);
+    expect(saved.data).toHaveLength(1);
+    expect(saved.data[0]).toMatchObject({
+      que: receipt.merchant,
+      tipo: 'Limpieza',
+    });
+    expect(Number(saved.data[0].cantidad)).toBe(43.2);
+
+    const learned = await receiptMerchants(page, receipt.merchant);
+    expect(learned).toHaveLength(1);
+    expect(learned[0]).toMatchObject({
+      tipo: 'Limpieza',
+      veces_confirmado: 1,
+      veces_corregido: 0,
+    });
 
     // Learned merchants are listed on the profile page.
     await page.goto('/user');
@@ -90,11 +192,12 @@ test.describe('Receipt upload', () => {
     // did not exist before this save, so `applyMerchantConfirmation` inserts
     // it with veces_confirmado = 1 and veces_corregido = 0 — the category the
     // user typed is what the memory holds.
-    const row = page.getByRole('listitem').filter({ hasText: 'Mercadona E2E' });
+    const row = page
+      .getByRole('listitem')
+      .filter({ hasText: receipt.merchant });
     await expect(row).toContainText('Limpieza');
     await expect(row).not.toContainText('Supermercado');
-    // `1 confirmada` and `3 confirmadas` both have to satisfy this.
-    await expect(row).toContainText(/confirmada/);
+    await expect(row).toContainText('1 confirmada');
   });
 
   test('rejects a non-image before the model is reached', async ({ page }) => {
