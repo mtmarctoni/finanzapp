@@ -128,31 +128,39 @@ export async function generateFinanceEntries(
       (record) =>
         !existingEntries.rows.some((entry) => entry.que === record.name),
     );
-    // Generate new entries for the user
-    for (const record of recordsToGenerate) {
+    if (recordsToGenerate.length === 0) return { generated: 0 };
+
+    // Generate all new entries for the user in one multi-row INSERT, so the
+    // batch costs a single round trip and lands atomically.
+    const params: unknown[] = [];
+    const rows = recordsToGenerate.map((record) => {
       // Ensure date is valid (e.g., 30th of February would be adjusted to 28th)
       const validEntryDate = new Date(year, month - 1, record.dia + 1);
       const validEntryDateStr = validEntryDate.toISOString().split('T')[0];
-      await client.sql`
-                INSERT INTO finance_entries (
-                    id, fecha, tipo, accion, que, cantidad, plataforma_pago, detalle1, detalle2, quien, created_at, updated_at, user_id
-                ) VALUES (
-                    gen_random_uuid(),
-                    ${validEntryDateStr},
-                    ${record.tipo},
-                    ${record.accion},
-                    ${record.name},
-                    ${record.amount},
-                    ${record.plataforma_pago},
-                    ${record.detalle1},
-                    ${record.detalle2},
-                    ${record.quien || 'Yo'},
-                    CURRENT_TIMESTAMP,
-                    CURRENT_TIMESTAMP,
-                    ${user_id}
-                )
-            `;
-    }
+      const values = [
+        validEntryDateStr,
+        record.tipo,
+        record.accion,
+        record.name,
+        record.amount,
+        record.plataforma_pago,
+        record.detalle1,
+        record.detalle2,
+        record.quien || 'Yo',
+        user_id,
+      ];
+      const placeholders = values.map((value) => {
+        params.push(value);
+        return `$${params.length}`;
+      });
+      return `(gen_random_uuid(), ${placeholders.join(', ')}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`;
+    });
+    await client.query(
+      `INSERT INTO finance_entries (
+          id, fecha, tipo, accion, que, cantidad, plataforma_pago, detalle1, detalle2, quien, user_id, created_at, updated_at
+        ) VALUES ${rows.join(', ')}`,
+      params,
+    );
     return { generated: recordsToGenerate.length };
   } finally {
     await client.end();
