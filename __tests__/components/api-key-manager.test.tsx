@@ -137,6 +137,23 @@ describe('ApiKeyManager', () => {
     });
   });
 
+  it('links the API docs to the published markdown', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: [] }),
+    }) as jest.Mock;
+
+    render(<ApiKeyManager />);
+
+    const link = screen.getByRole('link', { name: /Documentación de la API/ });
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/mtmarctoni/finanzapp/blob/main/docs/public-entry-api.md',
+    );
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  });
+
   it('revokes an api key and removes it from active list', async () => {
     global.fetch = jest
       .fn()
