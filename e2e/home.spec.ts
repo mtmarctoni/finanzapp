@@ -16,7 +16,7 @@ test.describe('Home Page', () => {
     ).toBeVisible();
 
     await expect(
-      page.getByPlaceholder('Buscar por descripción o plataforma...'),
+      page.getByRole('searchbox', { name: 'Buscar registros' }),
     ).toBeVisible();
     await expect(
       page.getByRole('button', { name: 'Aplicar filtros' }),
@@ -44,9 +44,9 @@ test.describe('Home Page', () => {
     await page.goto('/records');
     await page.waitForLoadState('networkidle');
 
-    const searchInput = page.getByPlaceholder(
-      'Buscar por descripción o plataforma...',
-    );
+    const searchInput = page.getByRole('searchbox', {
+      name: 'Buscar registros',
+    });
     await expect(searchInput).toBeVisible();
     await searchInput.fill('test search');
     await searchInput.press('Enter');
@@ -73,7 +73,7 @@ test.describe('Home Page', () => {
     await page.goto('/records?search=test&accion=Ingreso');
 
     await expect(
-      page.getByPlaceholder('Buscar por descripción o plataforma...'),
+      page.getByRole('searchbox', { name: 'Buscar registros' }),
     ).toHaveValue('test');
 
     await page.getByRole('button', { name: 'Limpiar' }).click();
@@ -81,7 +81,7 @@ test.describe('Home Page', () => {
     await expect(page).toHaveURL(/\/records\?page=1$/);
 
     await expect(
-      page.getByPlaceholder('Buscar por descripción o plataforma...'),
+      page.getByRole('searchbox', { name: 'Buscar registros' }),
     ).toHaveValue('');
   });
 });
