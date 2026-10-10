@@ -27,6 +27,25 @@ async function provisionCategory(userId: string, tipo: string | undefined) {
   }
 }
 
+/**
+ * Parse a JSON object request body, or return null when the body is not valid
+ * JSON or not an object, so callers can answer with a 400 instead of a 500.
+ */
+async function readJsonObject(request: Request) {
+  try {
+    const body = await request.json();
+    return body !== null && typeof body === 'object' ? body : null;
+  } catch {
+    return null;
+  }
+}
+
+const invalidBody = () =>
+  Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+
+const missingFields = () =>
+  Response.json({ error: 'Todos los campos son requeridos' }, { status: 400 });
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -53,6 +72,8 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
+    const body = await readJsonObject(request);
+    if (!body) return invalidBody();
     const {
       name,
       accion,
@@ -65,7 +86,7 @@ export async function POST(request: Request) {
       active = true,
       plataforma_pago = 'any',
       dia = 1,
-    } = await request.json();
+    } = body;
 
     if (
       !name ||
@@ -75,7 +96,7 @@ export async function POST(request: Request) {
       !plataforma_pago ||
       !accion
     ) {
-      throw new Error('Todos los campos son requeridos');
+      return missingFields();
     }
     const data = {
       name,
@@ -116,6 +137,8 @@ export async function PUT(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const userId = session.user.id;
+    const body = await readJsonObject(request);
+    if (!body) return invalidBody();
     const {
       id,
       name,
@@ -129,7 +152,7 @@ export async function PUT(request: Request) {
       active,
       plataforma_pago,
       dia,
-    } = await request.json();
+    } = body;
 
     if (
       !id ||
@@ -140,7 +163,7 @@ export async function PUT(request: Request) {
       !plataforma_pago ||
       !accion
     ) {
-      throw new Error('Todos los campos son requeridos');
+      return missingFields();
     }
 
     await updateRecurringRecord(
@@ -197,7 +220,9 @@ export async function DELETE(request: Request) {
     }
     const userId = session.user.id;
 
-    const { id } = await request.json();
+    const body = await readJsonObject(request);
+    if (!body) return invalidBody();
+    const { id } = body;
 
     const result = await deleteRecurringRecord(id, userId);
 
