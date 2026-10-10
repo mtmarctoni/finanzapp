@@ -103,6 +103,16 @@ export async function deleteRecurringRecord(
   }
 }
 
+/**
+ * The ledger date (YYYY-MM-DD) for a recurring record's day in a month. A day
+ * past the end of the month rolls into the next month (day 31 of a 30-day
+ * month is the 1st). Computed in UTC so the result does not depend on the
+ * server's timezone.
+ */
+function entryDate(year: number, month: number, dia: number): string {
+  return new Date(Date.UTC(year, month - 1, dia)).toISOString().slice(0, 10);
+}
+
 // Generate finance entries for all active recurring records for a user and a given date, with day logic
 export async function generateFinanceEntries(
   user_id: string,
@@ -134,11 +144,8 @@ export async function generateFinanceEntries(
     // batch costs a single round trip and lands atomically.
     const params: unknown[] = [];
     const rows = recordsToGenerate.map((record) => {
-      // Ensure date is valid (e.g., 30th of February would be adjusted to 28th)
-      const validEntryDate = new Date(year, month - 1, record.dia + 1);
-      const validEntryDateStr = validEntryDate.toISOString().split('T')[0];
       const values = [
-        validEntryDateStr,
+        entryDate(year, month, record.dia),
         record.tipo,
         record.accion,
         record.name,
