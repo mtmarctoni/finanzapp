@@ -386,7 +386,7 @@ export async function deleteEntriesByIds(
     await client.query(
       `DELETE FROM finance_entries
         WHERE user_id = $1
-          AND id = ANY($2::uuid[])`,
+          AND id = ANY($2::text[])`,
       [userId, ids],
     );
   });
