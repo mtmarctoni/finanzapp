@@ -151,6 +151,11 @@ jobs:
   e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Every run resets the one shared CI database, so e2e runs from different
+    # refs must not overlap. Queue them instead of cancelling a run mid-reset.
+    concurrency:
+      group: e2e-db
+      cancel-in-progress: false
     env:
       POSTGRES_URL: ${{ secrets.CI_POSTGRES_URL }}
       POSTGRES_URL_NON_POOLING: ${{ secrets.CI_POSTGRES_URL_NON_POOLING }}
