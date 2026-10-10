@@ -1,5 +1,14 @@
 const isDev = process.env.NODE_ENV === 'development';
 
+// Derive the canonical site URL on per-deployment environments (e.g. Vercel
+// previews), where NEXTAUTH_URL is unset. This keeps NextAuth's redirect and
+// callback URLs on the deployment host and lets the __Secure- session cookie
+// be detected over https. NEXTAUTH_URL is a public value, so it is safe to
+// surface through `env` below.
+if (!process.env.NEXTAUTH_URL && process.env.VERCEL_URL) {
+  process.env.NEXTAUTH_URL = `https://${process.env.VERCEL_URL}`;
+}
+
 // Baseline Content-Security-Policy. Next.js injects inline bootstrap scripts
 // and styles, so 'unsafe-inline' is needed until nonces are wired up; the
 // dev server additionally needs 'unsafe-eval' for React Refresh. Images allow
@@ -41,6 +50,7 @@ const nextConfig = {
   // are surfaced through `process.env.NEXT_PUBLIC_*` automatically.
   env: {
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
   typescript: {
     // TODO(security): a number of pre-existing type errors live in
