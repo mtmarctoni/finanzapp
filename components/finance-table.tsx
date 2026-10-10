@@ -187,6 +187,7 @@ export default function FinanceTable({
   const handleDelete = (id: string) => {
     const formData = new FormData();
     formData.set('entryId', id);
+    const snapshot = entries;
     startTransition(async () => {
       // Optimistic: drop the row first, then delete on the server.
       setEntries((prev) => ({
@@ -196,11 +197,21 @@ export default function FinanceTable({
       }));
       setSelectedIds((prev) => prev.filter((i) => i !== id));
       setDetail(null);
-      if (!session?.user.id) {
-        throw new Error('User session not available');
+      try {
+        if (!session?.user.id) {
+          throw new Error('User session not available');
+        }
+        await deleteEntry(formData, { user: { id: session.user.id } });
+        toast({ title: 'Registro eliminado' });
+      } catch (error) {
+        console.error('Error eliminando entrada:', error);
+        // Roll back the optimistic removal with the server's current rows.
+        setEntries(await fetchEntries().catch(() => snapshot));
+        toast({
+          title: 'Error al eliminar la entrada',
+          variant: 'destructive',
+        });
       }
-      await deleteEntry(formData, { user: { id: session.user.id } });
-      toast({ title: 'Registro eliminado' });
     });
   };
 
@@ -237,7 +248,16 @@ export default function FinanceTable({
         });
         return;
       }
-      await deleteManyEntries(formData, { user: { id: session.user.id } });
+      try {
+        await deleteManyEntries(formData, { user: { id: session.user.id } });
+      } catch (error) {
+        console.error('Error eliminando entradas:', error);
+        toast({
+          title: 'Error al eliminar las entradas',
+          variant: 'destructive',
+        });
+        return;
+      }
       const count = selectedIds.length;
       setEntries((prev) => ({
         ...prev,
