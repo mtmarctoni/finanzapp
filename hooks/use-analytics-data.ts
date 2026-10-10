@@ -1,5 +1,5 @@
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import {
   type CategoryDatum,
@@ -55,6 +55,9 @@ export interface Filters {
   useActivePeriods?: boolean;
 }
 
+/** Delay before a changed search term triggers a request (one per pause, not per keystroke). */
+export const SEARCH_DEBOUNCE_MS = 300;
+
 /**
  * Defensive normalization for multi-value filters.
  *
@@ -89,6 +92,7 @@ export function useAnalyticsData(options?: { ignoreTipoFromUrl?: boolean }) {
     netTemporal: [],
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const initialFilters = useCallback(() => {
     const search = searchParams.get('search') ?? '';
@@ -130,48 +134,81 @@ export function useAnalyticsData(options?: { ignoreTipoFromUrl?: boolean }) {
     };
   }, [searchParams, ignoreTipoFromUrl]);
 
-  const [filters, setFilters] = useState<Filters>(initialFilters());
+  const [filters, setFilters] = useState<Filters>(initialFilters);
+
+  // Re-sync filters when the URL changes. Comparing during render (instead of
+  // an effect) avoids setting an equal-but-new object on mount, which used to
+  // fire a second /api/analytics request on every page load.
+  const [syncedInitialFilters, setSyncedInitialFilters] = useState(
+    () => initialFilters,
+  );
+  if (syncedInitialFilters !== initialFilters) {
+    setSyncedInitialFilters(() => initialFilters);
+    setFilters(initialFilters());
+  }
+
+  const lastSearch = useRef(filters.search);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing filter-sync effect; restructuring is out of scope
-    setFilters(initialFilters());
-  }, [initialFilters]);
+    const controller = new AbortController();
+    const searchChanged = filters.search !== lastSearch.current;
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (filters.search) params.set('search', filters.search);
-      if (filters.accion && filters.accion !== 'todos')
-        params.set('action', filters.accion);
-      asArray(filters.actions).forEach((a) => params.append('action', a));
-      if (filters.from)
-        params.set('from', filters.from.toISOString().split('T')[0]);
-      if (filters.to) params.set('to', filters.to.toISOString().split('T')[0]);
-      asArray(filters.categories).forEach((c) => params.append('category', c));
-      asArray(filters.platforms).forEach((p) => params.append('platform', p));
-      asArray(filters.types).forEach((t) => params.append('type', t));
-      if (typeof filters.minAmount === 'number')
-        params.set('minAmount', String(filters.minAmount));
-      if (typeof filters.maxAmount === 'number')
-        params.set('maxAmount', String(filters.maxAmount));
-      params.set('groupBy', filters.groupBy ?? 'month');
-      params.set('useActivePeriods', String(filters.useActivePeriods ?? false));
-      const response = await fetch(`/api/analytics?${params.toString()}`);
-      if (!response.ok) throw new Error('Error fetching analytics data');
-      const result = await response.json();
-      setData(result);
-    } catch (error) {
-      console.error('Error fetching analytics data:', error);
-    } finally {
-      setLoading(false);
-    }
+    const fetchData = async () => {
+      lastSearch.current = filters.search;
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (filters.search) params.set('search', filters.search);
+        if (filters.accion && filters.accion !== 'todos')
+          params.set('action', filters.accion);
+        asArray(filters.actions).forEach((a) => params.append('action', a));
+        if (filters.from)
+          params.set('from', filters.from.toISOString().split('T')[0]);
+        if (filters.to)
+          params.set('to', filters.to.toISOString().split('T')[0]);
+        asArray(filters.categories).forEach((c) =>
+          params.append('category', c),
+        );
+        asArray(filters.platforms).forEach((p) => params.append('platform', p));
+        asArray(filters.types).forEach((t) => params.append('type', t));
+        if (typeof filters.minAmount === 'number')
+          params.set('minAmount', String(filters.minAmount));
+        if (typeof filters.maxAmount === 'number')
+          params.set('maxAmount', String(filters.maxAmount));
+        params.set('groupBy', filters.groupBy ?? 'month');
+        params.set(
+          'useActivePeriods',
+          String(filters.useActivePeriods ?? false),
+        );
+        const response = await fetch(`/api/analytics?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error('Error fetching analytics data');
+        const result = await response.json();
+        if (controller.signal.aborted) return;
+        setData(result);
+        setError(null);
+      } catch (err) {
+        // A superseded request must not overwrite the newer one's state.
+        if (controller.signal.aborted) return;
+        console.error('Error fetching analytics data:', err);
+        setError('No se pudieron cargar los datos de análisis');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
+    // Typing in the search box debounces; every other filter change fetches
+    // right away.
+    const timer = setTimeout(
+      () => void fetchData(),
+      searchChanged ? SEARCH_DEBOUNCE_MS : 0,
+    );
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [filters]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- pre-existing fetch-on-mount; restructuring is out of scope
-    fetchData();
-  }, [fetchData]);
-
-  return { data, filters, setFilters, loading };
+  return { data, filters, setFilters, loading, error };
 }
