@@ -3,6 +3,8 @@
 import { createClient } from '@vercel/postgres';
 import { v4 as uuidv4 } from 'uuid';
 
+import { withPool } from '@/lib/db';
+
 export interface RecurringRecord {
   id: string;
   name: string;
@@ -23,17 +25,13 @@ export interface RecurringRecord {
 export async function getRecurringRecords(
   user_id: string,
 ): Promise<RecurringRecord[]> {
-  const client = createClient();
-  await client.connect();
-  try {
-    const result = await client.sql`
+  const result = await withPool(
+    async (pool) => pool.sql<RecurringRecord>`
       SELECT * FROM recurring_records WHERE user_id = ${user_id}
       ORDER BY dia ASC, name ASC
-    `;
-    return result.rows as RecurringRecord[];
-  } finally {
-    await client.end();
-  }
+    `,
+  );
+  return result.rows;
 }
 
 // Create a new recurring record
