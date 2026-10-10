@@ -320,6 +320,7 @@ export function ChatWidget() {
               <input
                 ref={inputRef}
                 type="text"
+                aria-label="Mensaje para el asistente"
                 placeholder="Escribe un mensaje..."
                 disabled={isLoading}
                 className="h-11 flex-1 rounded-full bg-surface-2 px-4 text-base outline-none placeholder:text-faint focus:ring-2 focus:ring-ring/30 disabled:opacity-50 md:text-sm"
