@@ -2,9 +2,10 @@
 
 import { getServerSession } from 'next-auth';
 
-import { POST, PUT } from '@/app/api/recurring/route';
+import { DELETE, POST, PUT } from '@/app/api/recurring/route';
 import {
   createRecurringRecord,
+  deleteRecurringRecord,
   updateRecurringRecord,
 } from '@/lib/recurringActions';
 
@@ -27,6 +28,9 @@ const createMock = createRecurringRecord as jest.MockedFunction<
 >;
 const updateMock = updateRecurringRecord as jest.MockedFunction<
   typeof updateRecurringRecord
+>;
+const deleteMock = deleteRecurringRecord as jest.MockedFunction<
+  typeof deleteRecurringRecord
 >;
 
 function request(method: string, body: string) {
@@ -79,5 +83,26 @@ describe('PUT /api/recurring', () => {
     const res = await PUT(request('PUT', 'not json'));
     expect(res.status).toBe(400);
     expect(updateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('DELETE /api/recurring', () => {
+  it('returns 200 when the record was deleted', async () => {
+    deleteMock.mockResolvedValue(true);
+    const res = await DELETE(request('DELETE', JSON.stringify({ id: 'r-1' })));
+    expect(res.status).toBe(200);
+    expect(deleteMock).toHaveBeenCalledWith('r-1', 'user-1');
+  });
+
+  it('returns 404 when no record matched', async () => {
+    deleteMock.mockResolvedValue(false);
+    const res = await DELETE(request('DELETE', JSON.stringify({ id: 'r-1' })));
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 500 when the database fails', async () => {
+    deleteMock.mockRejectedValue(new Error('connection reset'));
+    const res = await DELETE(request('DELETE', JSON.stringify({ id: 'r-1' })));
+    expect(res.status).toBe(500);
   });
 });
