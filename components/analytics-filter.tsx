@@ -11,7 +11,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { CalendarDays, ChevronDown, SlidersHorizontal, X } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Pill, pillClass } from '@/components/analytics/kit';
 import { Button } from '@/components/ui/button';
@@ -70,16 +70,26 @@ const isString = (v: string | null | undefined): v is string =>
 
 function Field({
   label,
+  htmlFor,
   children,
   className,
 }: {
   label: string;
+  /** Id of the control this label names; omit for grouped controls. */
+  htmlFor?: string;
   children: React.ReactNode;
   className?: string;
 }) {
+  const labelClass = 'block text-[13px] font-medium text-subtle';
   return (
     <div className={cn('min-w-0 space-y-1.5', className)}>
-      <span className="block text-[13px] font-medium text-subtle">{label}</span>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className={labelClass}>
+          {label}
+        </label>
+      ) : (
+        <span className={labelClass}>{label}</span>
+      )}
       {children}
     </div>
   );
@@ -207,6 +217,7 @@ export function AnalyticsFilter({
   tipoToQueMap,
 }: AnalyticsFilterProps) {
   const [open, setOpen] = useState(false);
+  const fieldId = useId();
 
   // Determine available que options based on selected tipo
   const selectedTipo = Array.isArray(value.types)
@@ -264,8 +275,9 @@ export function AnalyticsFilter({
           </DialogHeader>
 
           <div className="space-y-4">
-            <Field label="Buscar">
+            <Field label="Buscar" htmlFor={`${fieldId}-search`}>
               <Input
+                id={`${fieldId}-search`}
                 placeholder="Buscar..."
                 value={value.search ?? ''}
                 onChange={(e) => onChange({ ...value, search: e.target.value })}
@@ -273,14 +285,14 @@ export function AnalyticsFilter({
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Movimiento">
+              <Field label="Movimiento" htmlFor={`${fieldId}-action`}>
                 <Select
                   value={value.actions?.[0] ?? ''}
                   onValueChange={(action) =>
                     onChange({ ...value, actions: [action] })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`${fieldId}-action`}>
                     <SelectValue placeholder="Acción" />
                   </SelectTrigger>
                   <SelectContent>
@@ -292,14 +304,14 @@ export function AnalyticsFilter({
                   </SelectContent>
                 </Select>
               </Field>
-              <Field label="Método de pago">
+              <Field label="Método de pago" htmlFor={`${fieldId}-platform`}>
                 <Select
                   value={value.platforms?.[0] ?? ''}
                   onValueChange={(platform) =>
                     onChange({ ...value, platforms: [platform] })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`${fieldId}-platform`}>
                     <SelectValue placeholder="Plataforma" />
                   </SelectTrigger>
                   <SelectContent>
@@ -315,12 +327,12 @@ export function AnalyticsFilter({
 
             <div className="grid grid-cols-2 gap-3">
               {/* Tipo (general) comes first */}
-              <Field label="Tipo">
+              <Field label="Tipo" htmlFor={`${fieldId}-tipo`}>
                 <Select
                   value={selectedTipo ?? ''}
                   onValueChange={handleTipoChange}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`${fieldId}-tipo`}>
                     <SelectValue placeholder="Tipo (general)" />
                   </SelectTrigger>
                   <SelectContent>
@@ -333,12 +345,12 @@ export function AnalyticsFilter({
                 </Select>
               </Field>
               {/* Que (specific) cascades from tipo */}
-              <Field label="Categoría">
+              <Field label="Categoría" htmlFor={`${fieldId}-que`}>
                 <Select
                   value={value.categories?.[0] ?? ''}
                   onValueChange={handleQueChange}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id={`${fieldId}-que`}>
                     <SelectValue
                       placeholder={
                         selectedTipo
@@ -359,8 +371,9 @@ export function AnalyticsFilter({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Importe mínimo">
+              <Field label="Importe mínimo" htmlFor={`${fieldId}-min`}>
                 <Input
+                  id={`${fieldId}-min`}
                   type="number"
                   inputMode="decimal"
                   placeholder="Mín. €"
@@ -375,8 +388,9 @@ export function AnalyticsFilter({
                   }
                 />
               </Field>
-              <Field label="Importe máximo">
+              <Field label="Importe máximo" htmlFor={`${fieldId}-max`}>
                 <Input
+                  id={`${fieldId}-max`}
                   type="number"
                   inputMode="decimal"
                   placeholder="Máx. €"
@@ -411,7 +425,11 @@ export function AnalyticsFilter({
             </Field>
 
             <Field label="Promedios">
-              <div className="flex flex-wrap gap-2" role="group">
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Promedios"
+              >
                 <Pill
                   active={!value.useActivePeriods}
                   onClick={() =>
