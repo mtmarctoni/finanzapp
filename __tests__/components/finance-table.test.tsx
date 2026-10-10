@@ -211,6 +211,16 @@ describe('FinanceTable', () => {
     // This is challenging in this test because we're mocking useTransition
   });
 
+  it('opens the detail sheet from the keyboard-reachable description', async () => {
+    render(<FinanceTable />);
+
+    const open = await screen.findByRole('button', { name: 'Trabajo' });
+    expect(open.tagName).toBe('BUTTON');
+    fireEvent.click(open);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
   describe('on mobile', () => {
     const originalMatchMedia = window.matchMedia;
 

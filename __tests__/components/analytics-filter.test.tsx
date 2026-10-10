@@ -104,6 +104,30 @@ describe('AnalyticsFilter', () => {
     ).toBeInTheDocument();
   });
 
+  it('names every field in the sheet by its visible label', () => {
+    renderFilter();
+    fireEvent.click(screen.getByRole('button', { name: /Filtros/ }));
+
+    expect(screen.getByLabelText('Buscar')).toHaveAttribute(
+      'placeholder',
+      'Buscar...',
+    );
+    expect(screen.getByLabelText('Importe mínimo')).toHaveAttribute(
+      'type',
+      'number',
+    );
+    expect(screen.getByLabelText('Importe máximo')).toHaveAttribute(
+      'type',
+      'number',
+    );
+    for (const name of ['Movimiento', 'Método de pago', 'Tipo', 'Categoría']) {
+      expect(screen.getByRole('combobox', { name })).toBeInTheDocument();
+    }
+    expect(
+      screen.getByRole('group', { name: 'Promedios' }),
+    ).toBeInTheDocument();
+  });
+
   it('shows active filters as chips that clear only their own field', () => {
     const onChange = jest.fn();
     const value = { actions: ['Gasto'], platforms: ['Tarjeta'] };
