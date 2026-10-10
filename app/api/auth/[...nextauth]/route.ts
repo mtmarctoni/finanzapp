@@ -40,7 +40,8 @@ interface DevUser {
  * SECURITY: Hard-coded dev credentials used to live in this file (and
  * therefore in the git history). They have been moved to an env var so
  * the source tree is no longer a credential repository. The provider is
- * also gated to non-production builds — see `getProviders` below.
+ * also gated to non-production builds and Vercel preview deployments —
+ * see `getProviders` below.
  */
 function loadDevCredentials(): DevUser[] {
   const raw = process.env.DEV_CREDENTIALS;
@@ -113,9 +114,15 @@ function getProviders(): Provider[] {
   // entirely in production ("TODO: Add password hash check") and
   // therefore authenticated anyone whose email existed in the users
   // table. Adding a real password column is a larger change; until then
-  // this provider is restricted to local development behind an explicit
-  // env var.
-  if (process.env.NODE_ENV !== 'production' && process.env.DEV_CREDENTIALS) {
+  // this provider is restricted behind an explicit env var. It is now
+  // allowed on local development and Vercel preview deployments
+  // (VERCEL_ENV === 'preview'); production (VERCEL_ENV === 'production')
+  // remains hard-gated. DEV_CREDENTIALS must still be set in all cases.
+  const devCredentialsEnabled =
+    (process.env.NODE_ENV !== 'production' ||
+      process.env.VERCEL_ENV === 'preview') &&
+    process.env.DEV_CREDENTIALS;
+  if (devCredentialsEnabled) {
     providers.push(
       CredentialsProvider({
         name: 'Credentials',
