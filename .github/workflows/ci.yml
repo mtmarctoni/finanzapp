@@ -185,6 +185,12 @@ jobs:
       - name: Initialize database schema
         run: psql "$POSTGRES_URL_NON_POOLING" -f db/init.sql
 
+      # init.sql has no crypto tables; both migrations are idempotent.
+      - name: Apply crypto migrations
+        run: |
+          psql "$POSTGRES_URL_NON_POOLING" -f db/20251228_create_crypto_transactions.sql
+          psql "$POSTGRES_URL_NON_POOLING" -f db/migrations/20260822_create_crypto_prices.sql
+
       - name: Seed test data
         run: pnpm tsx scripts/reset-test-user-data.ts
 
