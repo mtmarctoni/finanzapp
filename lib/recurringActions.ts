@@ -87,7 +87,8 @@ export async function updateRecurringRecord(
   }
 }
 
-// Delete a recurring record by id and user_id
+// Delete a recurring record by id and user_id. Resolves to false when no
+// record matched; database errors propagate to the caller.
 export async function deleteRecurringRecord(
   id: string,
   user_id: string,
@@ -95,13 +96,10 @@ export async function deleteRecurringRecord(
   const client = createClient();
   await client.connect();
   try {
-    await client.sql`
+    const result = await client.sql`
             DELETE FROM recurring_records WHERE id = ${id} AND user_id = ${user_id}
         `;
-    return true;
-  } catch (error) {
-    console.error('Error deleting recurring record:', error);
-    return false;
+    return (result.rowCount ?? 0) > 0;
   } finally {
     await client.end();
   }

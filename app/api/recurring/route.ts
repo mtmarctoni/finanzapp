@@ -225,6 +225,12 @@ export async function DELETE(request: Request) {
     const { id } = body;
 
     const result = await deleteRecurringRecord(id, userId);
+    if (!result) {
+      return Response.json(
+        { error: 'Recurring record not found' },
+        { status: 404 },
+      );
+    }
 
     // if (!id) {
     //   throw new Error('ID is required')
