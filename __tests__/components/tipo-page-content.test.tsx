@@ -149,6 +149,21 @@ describe('TipoPageContent', () => {
     });
   });
 
+  it('shows an alert when the analytics request failed', () => {
+    mockUseAnalyticsData.mockReturnValue({
+      data: baseData,
+      filters: { groupBy: 'month' },
+      loading: false,
+      error: 'No se pudieron cargar los datos de análisis',
+    });
+
+    render(<TipoPageContent />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'No se pudieron cargar los datos de análisis',
+    );
+  });
+
   it('renders the tipo-scoped summary cards and expense ranking', () => {
     mockParams = new URLSearchParams('type=Vivienda');
 
