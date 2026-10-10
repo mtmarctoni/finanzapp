@@ -25,10 +25,10 @@ jobs:
   release:
     # Only the default branch publishes, and never from a fork.
     if: github.repository == 'mtmarctoni/finanzapp'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Full history is mandatory: semantic-release diffs the last tag
           # against HEAD to decide the bump.
@@ -36,9 +36,9 @@ jobs:
           # Required so the tag push succeeds.
           persist-credentials: true
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
