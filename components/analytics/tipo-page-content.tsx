@@ -65,7 +65,7 @@ function lastDayOfMonth(year: number, monthIndex: number) {
 export default function TipoPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data, filters, loading } = useAnalyticsData({
+  const { data, filters, loading, error } = useAnalyticsData({
     ignoreTipoFromUrl: true,
   });
 
@@ -355,6 +355,15 @@ export default function TipoPageContent() {
         }
       />
       <AnalyticsSubnav />
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-surface-2 px-4 py-3 text-[13px] text-negative"
+        >
+          {error}
+        </p>
+      )}
 
       <div className="mt-3 space-y-2">
         <div

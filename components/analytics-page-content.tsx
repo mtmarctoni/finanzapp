@@ -32,7 +32,7 @@ import {
 } from '@/lib/analytics-charts';
 
 export default function AnalyticsPageContent() {
-  const { data, filters, setFilters, loading } = useAnalyticsData();
+  const { data, filters, setFilters, loading, error } = useAnalyticsData();
   const temporalChartData = getTemporalChartData(
     data,
     data.metrics?.groupBy ?? 'month',
@@ -183,6 +183,15 @@ export default function AnalyticsPageContent() {
           onChange={(f) => onFilters(f as Filters)}
         />
       </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-surface-2 px-4 py-3 text-[13px] text-negative"
+        >
+          {error}
+        </p>
+      )}
 
       <div className="mt-5 space-y-3 md:space-y-4">
         <SummaryCards
