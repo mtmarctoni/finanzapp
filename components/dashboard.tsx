@@ -3,6 +3,7 @@
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
+  AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
   ChevronDown,
@@ -472,6 +473,10 @@ export default function Dashboard() {
   const [expanded, setExpanded] = useState(false);
   const [fullBreakdown, setFullBreakdown] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [statsError, setStatsError] = useState(false);
+  // Only the latest summary request may write state, so a slow response for
+  // an earlier month cannot land under the month now selected.
+  const latestStatsRequest = useRef(0);
 
   const monthOptions = useMemo(() => {
     const now = new Date();
@@ -491,14 +496,24 @@ export default function Dashboard() {
     // The full breakdown is small; fetch it up front so the desktop rail can
     // show more rows than mobile without a second request.
     async (showAll = true) => {
+      const request = ++latestStatsRequest.current;
+      const isStale = () => request !== latestStatsRequest.current;
       const params = new URLSearchParams({
         month: selectedMonth,
         ...(showAll ? { showAll: 'true' } : {}),
       });
-      const response = await fetch(`/api/summary?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch summary stats');
-      const data = (await response.json()) as DashboardStats;
+      let data: DashboardStats;
+      try {
+        const response = await fetch(`/api/summary?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch summary stats');
+        data = (await response.json()) as DashboardStats;
+      } catch (error) {
+        if (isStale()) return;
+        throw error;
+      }
+      if (isStale()) return;
       setStats(data);
+      setStatsError(false);
       setFullBreakdown(showAll);
     },
     [selectedMonth],
@@ -514,15 +529,21 @@ export default function Dashboard() {
     setRecent(result.data ?? []);
   }, []);
 
+  const loadStats = useCallback(() => {
+    setStatsError(false);
+    fetchStats().catch((error: unknown) => {
+      console.error('Error fetching stats:', error);
+      setStatsError(true);
+    });
+  }, [fetchStats]);
+
   useEffect(() => {
     // Defer past the synchronous effect body (react-hooks/set-state-in-effect).
     void Promise.resolve().then(() => {
       setExpanded(false);
-      fetchStats().catch((error: unknown) => {
-        console.error('Error fetching stats:', error);
-      });
+      loadStats();
     });
-  }, [fetchStats]);
+  }, [loadStats]);
 
   useEffect(() => {
     void Promise.resolve().then(async () => fetchRecent());
@@ -575,6 +596,25 @@ export default function Dashboard() {
       }
     />
   );
+
+  if (statsError) {
+    return (
+      <>
+        {header}
+        <div className="flex flex-col items-center gap-4 rounded-[20px] border border-hairline bg-surface px-6 py-10 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-surface-3 text-subtle">
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <p className="text-[15px] text-subtle">
+            No se pudo cargar el resumen del mes.
+          </p>
+          <Button variant="secondary" size="sm" onClick={loadStats}>
+            Reintentar
+          </Button>
+        </div>
+      </>
+    );
+  }
 
   if (!stats) {
     return (
