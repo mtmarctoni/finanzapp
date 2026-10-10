@@ -117,6 +117,16 @@ const seedDatabase = async () => {
 
     const { recurringRecords, financeEntries } = generateTestData();
 
+    // Ensure the test user row exists before seeding rows that reference it.
+    // The credentials session uses this id as session.user.id, and api_keys
+    // has a foreign key to users(id), so without this row API-key creation
+    // fails on a freshly seeded database.
+    await sql`
+      INSERT INTO users (id, name, email)
+      VALUES (${TEST_USER_ID}, 'Test User', 'test@example.com')
+      ON CONFLICT (id) DO NOTHING
+    `;
+
     // Insert recurring records
     for (const record of recurringRecords) {
       await sql`
