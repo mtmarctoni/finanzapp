@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import FinanceTable from '@/components/finance-table';
-import { deleteEntry } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+import { deleteEntry, deleteManyEntries } from '@/lib/actions';
 import { getFinanceEntries } from '@/lib/data';
 
 // Mock the modules
@@ -11,6 +12,12 @@ jest.mock('@/lib/data', () => ({
 
 jest.mock('@/lib/actions', () => ({
   deleteEntry: jest.fn(),
+  deleteManyEntries: jest.fn(),
+}));
+
+const mockToast = jest.fn();
+jest.mock('@/hooks/use-toast', () => ({
+  useToast: jest.fn(),
 }));
 
 // Mock useTransition
@@ -87,6 +94,7 @@ describe('FinanceTable', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (useToast as jest.Mock).mockReturnValue({ toast: mockToast });
     // Mock the getFinanceEntries function to return test data
     (getFinanceEntries as jest.Mock).mockResolvedValue(mockEntries);
   });
@@ -219,6 +227,48 @@ describe('FinanceTable', () => {
     fireEvent.click(open);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('restores the row and reports it when the server delete fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    (deleteEntry as jest.Mock).mockRejectedValue(new Error('db down'));
+
+    render(<FinanceTable />);
+
+    fireEvent.click(await screen.findByLabelText('Eliminar entrada 1'));
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Error al eliminar la entrada',
+        variant: 'destructive',
+      });
+    });
+    expect(mockToast).not.toHaveBeenCalledWith({
+      title: 'Registro eliminado',
+    });
+    expect(await screen.findByText('Salario')).toBeInTheDocument();
+  });
+
+  it('keeps the selected rows and reports it when a bulk delete fails', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    (deleteManyEntries as jest.Mock).mockRejectedValue(new Error('db down'));
+
+    render(<FinanceTable />);
+
+    await screen.findByText('Salario');
+    fireEvent.click(screen.getByLabelText('Seleccionar todas las filas'));
+    fireEvent.click(
+      await screen.findByLabelText('Eliminar entradas seleccionadas'),
+    );
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'Error al eliminar las entradas',
+        variant: 'destructive',
+      });
+    });
+    expect(screen.getByText('Salario')).toBeInTheDocument();
+    expect(screen.getByText('Compra')).toBeInTheDocument();
   });
 
   describe('on mobile', () => {
