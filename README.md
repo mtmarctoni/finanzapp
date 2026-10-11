@@ -112,7 +112,7 @@ pnpm run <script>
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 24+ and pnpm 11.1.3 (pinned in `package.json`)
 - PostgreSQL database
 - Git
 
@@ -130,6 +130,16 @@ pnpm run <script>
    ```bash
    pnpm install
    ```
+
+   For development in a Git checkout, enable the repository's commit and push hooks:
+
+   ```bash
+   pnpm setup:hooks
+   ```
+
+   Run this once per clone. Hook setup is explicit so dependency installation also
+   works in deployment source uploads without Git metadata. Deployment installs
+   should not run `setup:hooks`.
 
 3. **Set up environment variables**
    Create a `.env.local` file in the root directory and add the following variables:

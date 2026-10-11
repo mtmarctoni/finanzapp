@@ -32,8 +32,7 @@
     "audit": "pnpm audit --audit-level=critical",
     "audit:high": "pnpm audit --audit-level=high",
     "audit:all": "pnpm audit",
-    "knip": "knip",
-    "postinstall": "git config core.hooksPath .githooks"
+    "knip": "knip"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
