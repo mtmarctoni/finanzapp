@@ -96,7 +96,8 @@ module.exports = {
      *
      * The rule below is fail-closed: client-oriented code (`components/`,
      * `hooks/`, and the client-side fetch wrappers `lib/data.ts` /
-     * `lib/crypto-data.ts`) may import NOTHING from `lib/` except the
+     * `lib/crypto-data.ts` / `lib/safebox-data.ts`) may import NOTHING from
+     * `lib/` except the
      * explicitly allow-listed safe modules. Server components (app page.tsx
      * files and API route.ts handlers) are intentionally excluded from the
      * rule - they run server-side and are the correct place to query the DB
@@ -119,6 +120,7 @@ module.exports = {
           '^hooks/',
           '^lib/data\\.ts$',
           '^lib/crypto-data\\.ts$',
+          '^lib/safebox-data\\.ts$',
         ],
       },
       to: {
@@ -136,6 +138,7 @@ module.exports = {
           // Client-side fetch wrappers (talk to /api/*).
           '^lib/data\\.ts$',
           '^lib/crypto-data\\.ts$',
+          '^lib/safebox-data\\.ts$',
           // The server-action boundary (intentionally callable from the client).
           '^lib/actions\\.ts$',
           '^lib/recurringActions\\.ts$',
@@ -197,8 +200,8 @@ module.exports = {
       comment:
         '`app/api/**` route handlers are backend-only. They must not import ' +
         'UI (`components/`, `hooks/`) or the client fetch wrappers ' +
-        '(`lib/data.ts` / `lib/crypto-data.ts`). Prefer `lib/server-data.ts`, ' +
-        'repos, and server actions.',
+        '(`lib/data.ts` / `lib/crypto-data.ts` / `lib/safebox-data.ts`). ' +
+        'Prefer `lib/server-data.ts`, repos, and server actions.',
       from: {
         path: '^app/api/',
       },
@@ -208,6 +211,7 @@ module.exports = {
           '^hooks/',
           '^lib/data\\.ts$',
           '^lib/crypto-data\\.ts$',
+          '^lib/safebox-data\\.ts$',
         ],
       },
     },
@@ -229,7 +233,11 @@ module.exports = {
         path: '^lib/',
       },
       to: {
-        path: ['^lib/data\\.ts$', '^lib/crypto-data\\.ts$'],
+        path: [
+          '^lib/data\\.ts$',
+          '^lib/crypto-data\\.ts$',
+          '^lib/safebox-data\\.ts$',
+        ],
       },
     },
 
