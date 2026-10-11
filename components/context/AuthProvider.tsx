@@ -14,8 +14,12 @@ function SignInRedirect() {
   const onAuthPage = pathname.startsWith('/auth');
 
   useEffect(() => {
-    if (status === 'unauthenticated' && !onAuthPage) void signIn();
-  }, [status, onAuthPage]);
+    // `/` already redirects to /dashboard on the server. Starting the async
+    // sign-in here races that navigation and can abort the providers fetch.
+    if (status === 'unauthenticated' && !onAuthPage && pathname !== '/') {
+      void signIn();
+    }
+  }, [status, onAuthPage, pathname]);
 
   return null;
 }
