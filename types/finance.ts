@@ -219,3 +219,56 @@ export type CryptoPortfolioOverview = {
   pricesUpdatedAt: string | null;
   missingPrices: string[];
 };
+
+/**
+ * Safebox movement types
+ *
+ * - `opening`: the initial cash count that starts the safebox ledger
+ * - `deposit`: cash put into the safe (not income)
+ * - `withdrawal`: cash taken out of the safe, e.g. into the wallet (not an
+ *   expense; later wallet spending is a normal finance entry)
+ * - `adjustment`: signed correction after a physical count (counted minus
+ *   expected), never zero
+ */
+export type SafeboxMovementType =
+  'opening' | 'deposit' | 'withdrawal' | 'adjustment';
+
+/**
+ * Safebox movement record. Amounts are positive magnitudes for
+ * opening/deposit/withdrawal and signed for adjustment.
+ */
+export type SafeboxMovement = {
+  id: string;
+  movementType: SafeboxMovementType;
+  amount: number;
+  note: string | null;
+  movementDate: string;
+  createdAt: string;
+};
+
+/** Input for recording a new safebox movement. */
+export type SafeboxMovementInput = {
+  movementType: SafeboxMovementType;
+  amount: number;
+  note?: string | null;
+  movementDate: string;
+};
+
+/**
+ * Aggregated safebox state. The balance is derived from every movement, so
+ * it always matches the history: opening + deposits - withdrawals +
+ * adjustments.
+ */
+export type SafeboxSummary = {
+  balance: number;
+  totalIn: number;
+  totalOut: number;
+  totalAdjustments: number;
+  movementCount: number;
+  hasOpening: boolean;
+};
+
+/** A movement annotated with the safebox balance right after it happened. */
+export type SafeboxMovementWithBalance = SafeboxMovement & {
+  balanceAfter: number;
+};
