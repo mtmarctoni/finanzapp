@@ -14,6 +14,7 @@ import {
 } from '@/lib/ai/fallback';
 import { PARSE_ENTRY_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ai/rate-limit';
+import { previewAiDisabledResponse } from '@/lib/demo/policy';
 import { logger } from '@/lib/logger';
 
 const parsedEntrySchema = z.object({
@@ -77,6 +78,9 @@ export async function POST(request: NextRequest) {
   if (!session?.user.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
+
+  const disabledResponse = previewAiDisabledResponse();
+  if (disabledResponse) return disabledResponse;
 
   const userId = session.user.id;
 

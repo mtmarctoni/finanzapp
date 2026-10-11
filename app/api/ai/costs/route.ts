@@ -8,6 +8,7 @@ import {
   getRecentCosts,
   isPaidFallbackAvailable,
 } from '@/lib/ai/fallback';
+import { previewAiDisabledResponse } from '@/lib/demo/policy';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -15,6 +16,9 @@ export async function GET() {
   if (!session?.user.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const disabledResponse = previewAiDisabledResponse();
+  if (disabledResponse) return disabledResponse;
 
   try {
     const totalSpent = getTotalSpent();
