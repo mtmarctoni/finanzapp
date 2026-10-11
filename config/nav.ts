@@ -5,6 +5,7 @@ import {
   ListOrdered,
   Repeat,
   UserRound,
+  Vault,
 } from 'lucide-react';
 
 type NavIcon = React.ComponentType<{
@@ -24,6 +25,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Registros', href: '/records', icon: ListOrdered },
   { name: 'Análisis', href: '/analytics', icon: BarChart3 },
   { name: 'Recurrentes', href: '/recurring', icon: Repeat },
+  { name: 'Caja fuerte', href: '/safebox', icon: Vault },
   { name: 'Cripto', href: '/investment/crypto', icon: Bitcoin },
 ];
 
