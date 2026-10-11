@@ -207,6 +207,39 @@ export default function UserPage() {
           <ThemeRows />
         </SettingsGroup>
 
+        <SettingsGroup
+          title="Instalar FinanzApp"
+          footer="FinanzApp necesita conexión a internet para consultar y guardar tus datos."
+        >
+          <div className="space-y-4 px-4 py-4 text-[13px] leading-relaxed text-subtle">
+            <p>
+              Añade FinanzApp a tu pantalla de inicio para abrirla como una app.
+            </p>
+            <div>
+              <h3 className="text-[15px] font-medium text-foreground">
+                iPhone o iPad
+              </h3>
+              <p>
+                Abre esta web en Safari, toca Compartir y elige Añadir a la
+                pantalla de inicio. Si aparece Abrir como app, actívalo.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-[15px] font-medium text-foreground">
+                Android
+              </h3>
+              <p>
+                Abre esta web en Chrome, toca el menú de tres puntos y elige
+                Instalar aplicación o Añadir a la pantalla de inicio.
+              </p>
+            </div>
+            <p>
+              Si no aparece la opción, prueba en Safari en iPhone o en Chrome en
+              Android. También puedes seguir usando FinanzApp en el navegador.
+            </p>
+          </div>
+        </SettingsGroup>
+
         <SettingsGroup>
           <button
             type="button"

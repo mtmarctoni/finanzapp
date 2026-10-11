@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description: 'Aplicación para gestionar finanzas personales',
   appleWebApp: {
     capable: true,
-    title: 'Finanzas',
+    title: 'FinanzApp',
     statusBarStyle: 'black-translucent',
   },
 };
@@ -31,10 +31,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#000000' },
-    { media: '(prefers-color-scheme: light)', color: '#f2f2f7' },
-  ],
+  themeColor: '#000000',
 };
 
 export default function RootLayout({
