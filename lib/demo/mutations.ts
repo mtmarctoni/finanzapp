@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 
-import { Redis } from '@upstash/redis';
 import { headers } from 'next/headers';
 
+import { reservePreviewBudget } from '@/lib/demo/budget';
 import { isPreviewDemo } from '@/lib/demo/policy';
 
 export interface MutationRejection {
@@ -17,25 +17,6 @@ export interface MutationRejection {
   error: string;
   retryAfter: number;
 }
-
-// One atomic reservation: a denied policy consumes none of the other buckets.
-// Each key has its own first-write-anchored window, timed by Redis TTL.
-export const RESERVE_SCRIPT = `
-local weight = tonumber(ARGV[1])
-local retry = 0
-for i, key in ipairs(KEYS) do
-  local count = tonumber(redis.call('GET', key) or '0')
-  if count + weight > tonumber(ARGV[2*i]) then
-    retry = math.max(retry, redis.call('PTTL', key), 1)
-  end
-end
-if retry > 0 then return retry end
-for i, key in ipairs(KEYS) do
-  local count = redis.call('INCRBY', key, weight)
-  if count == weight then redis.call('PEXPIRE', key, ARGV[2*i+1]) end
-end
-return 0
-`;
 
 function reject(
   code: MutationRejection['code'],
@@ -85,37 +66,10 @@ export async function checkPreviewMutation(
       60,
     );
   }
-  // Same providers as the existing AI limiter; deliberately no process-local fallback.
-  const url =
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty values fall through to the alternate provider
-    process.env.UPSTASH_REDIS_URL?.trim() ||
-    process.env.KV_REST_API_URL?.trim();
-  const token =
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty values fall through to the alternate provider
-    process.env.UPSTASH_REDIS_TOKEN?.trim() ||
-    process.env.KV_REST_API_TOKEN?.trim();
   try {
-    if (!url || !token) throw new Error('Redis configuration unavailable');
-    const redis = new Redis({
-      url,
-      token,
-      // SDK 1.39.0's retry:false permits two attempts. Never replay weighted EVAL.
-      retry: { retries: 0 },
-      signal: AbortSignal.timeout(3000),
-    });
-    const prefix = 'finanzapp:preview:mutations:v1';
-    const retryMs = await redis.eval<number[], number>(
-      RESERVE_SCRIPT,
-      [
-        `${prefix}:visitor:${visitor}:minute`,
-        `${prefix}:visitor:${visitor}:day`,
-        `${prefix}:aggregate:minute`,
-        `${prefix}:aggregate:day`,
-      ],
-      [units, 60, 60000, 1000, 86400000, 300, 60000, 5000, 86400000],
-    );
-    if (!Number.isFinite(retryMs) || retryMs < 0)
-      throw new Error('Invalid Redis result');
+    const retryMs = await reservePreviewBudget(visitor, units);
+    if (typeof retryMs !== 'number' || !Number.isFinite(retryMs) || retryMs < 0)
+      throw new Error('Invalid PostgreSQL budget result');
     if (retryMs > 0) {
       const retryAfter = Math.max(1, Math.ceil(retryMs / 1000));
       return reject(

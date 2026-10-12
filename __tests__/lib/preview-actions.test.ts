@@ -1,6 +1,5 @@
 /** @jest-environment node */
 
-import { Redis } from '@upstash/redis';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
@@ -11,6 +10,7 @@ import {
   deleteManyEntries,
   createUser,
 } from '@/lib/actions';
+import { reservePreviewBudget } from '@/lib/demo/budget';
 import * as entries from '@/lib/entries/repo';
 import { applyMerchantConfirmation } from '@/lib/merchants/repo';
 import * as recurringRepo from '@/lib/recurring/repo';
@@ -19,7 +19,7 @@ import { ensureCategory } from '@/lib/server-data';
 import { requireSessionUserId } from '@/lib/session';
 import { insertUser } from '@/lib/users/repo';
 
-jest.mock('@upstash/redis', () => ({ Redis: jest.fn() }));
+jest.mock('@/lib/demo/budget', () => ({ reservePreviewBudget: jest.fn() }));
 jest.mock('next/headers', () => ({ headers: jest.fn() }));
 jest.mock('next/cache', () => ({ revalidatePath: jest.fn() }));
 jest.mock('@/lib/session', () => ({ requireSessionUserId: jest.fn() }));
@@ -46,7 +46,7 @@ jest.mock('@/lib/users/repo', () => ({
   findUserByEmail: jest.fn(),
 }));
 
-const evalMock = jest.fn();
+const evalMock = reservePreviewBudget as jest.Mock;
 const keys = [
   'VERCEL_ENV',
   'VERCEL',
@@ -89,9 +89,6 @@ beforeEach(() => {
   process.env.VERCEL = '1';
   process.env.UPSTASH_REDIS_URL = 'https://redis.example.test';
   process.env.UPSTASH_REDIS_TOKEN = 'test-token';
-  (Redis as unknown as jest.Mock).mockImplementation(() => ({
-    eval: evalMock,
-  }));
   evalMock.mockResolvedValue(60000);
   (headers as jest.Mock).mockResolvedValue(
     new Headers({ 'x-vercel-forwarded-for': '203.0.113.1' }),
@@ -140,7 +137,7 @@ it('rejects every finance boundary with serializable guidance before any side ef
 it('charges unique bulk rows, rejects oversized batches and preserves local behavior', async () => {
   evalMock.mockResolvedValue(0);
   await deleteManyEntries(form('ids', 'e1,e2,e1'));
-  expect(evalMock.mock.calls[0][2][0]).toBe(2);
+  expect(evalMock.mock.calls[0][1]).toBe(2);
   jest.clearAllMocks();
   const ids = Array.from({ length: 61 }, (_, i) => `e${i}`).join(',');
   expect(await deleteManyEntries(form('ids', ids))).toMatchObject({
@@ -164,8 +161,8 @@ it('authenticates before reservation', async () => {
   expect(entries.insertEntry).not.toHaveBeenCalled();
 });
 
-it('returns Redis outages safely and does not write', async () => {
-  evalMock.mockRejectedValue(new Error('internal Redis error'));
+it('returns database outages safely and does not write', async () => {
+  evalMock.mockRejectedValue(new Error('internal database error'));
   expect(await createEntry(entry)).toMatchObject({
     status: 503,
     code: 'PREVIEW_UNAVAILABLE',
@@ -184,7 +181,7 @@ it('returns a structured cascade denial after reserving only the base delete onc
     ok: false,
     status: 429,
   });
-  expect(evalMock.mock.calls.map((call) => call[2][0])).toEqual([1, 2]);
+  expect(evalMock.mock.calls.map((call) => call[1])).toEqual([1, 2]);
   expect(revalidatePath).not.toHaveBeenCalled();
 });
 
@@ -240,5 +237,5 @@ it('translates generation rejection to an action result, with session-scoped rep
     10,
     expect.any(Function),
   );
-  expect(evalMock.mock.calls[0][2][0]).toBe(5);
+  expect(evalMock.mock.calls[0][1]).toBe(5);
 });

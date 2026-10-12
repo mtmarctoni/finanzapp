@@ -1,6 +1,5 @@
 /** @jest-environment node */
 
-import { Redis } from '@upstash/redis';
 import { createClient } from '@vercel/postgres';
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -27,13 +26,14 @@ import { POST as createApiEntries } from '@/app/api/v1/entries/route';
 import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
 import * as apiKeys from '@/lib/api-keys';
 import * as crypto from '@/lib/cryptoActions';
+import { reservePreviewBudget } from '@/lib/demo/budget';
 import { deleteMerchantById } from '@/lib/merchants/repo';
 import * as recurring from '@/lib/recurring/repo';
 import * as safebox from '@/lib/safeboxActions';
 import { ensureCategory } from '@/lib/server-data';
 
 jest.mock('next-auth');
-jest.mock('@upstash/redis', () => ({ Redis: jest.fn() }));
+jest.mock('@/lib/demo/budget', () => ({ reservePreviewBudget: jest.fn() }));
 jest.mock('@vercel/postgres', () => ({ createClient: jest.fn() }));
 jest.mock('@/lib/api-auth', () => ({
   authenticateAndRateLimitApiRequest: jest.fn(),
@@ -62,7 +62,7 @@ jest.mock('@/lib/safeboxActions', () => ({
   deleteSafeboxMovement: jest.fn(),
 }));
 
-const evalMock = jest.fn();
+const evalMock = reservePreviewBudget as jest.Mock;
 const envKeys = [
   'VERCEL_ENV',
   'VERCEL',
@@ -140,9 +140,6 @@ beforeEach(() => {
   process.env.VERCEL = '1';
   process.env.UPSTASH_REDIS_URL = 'https://redis.example.test';
   process.env.UPSTASH_REDIS_TOKEN = 'test-token';
-  (Redis as unknown as jest.Mock).mockImplementation(() => ({
-    eval: evalMock,
-  }));
   evalMock.mockResolvedValue(60000);
   (getServerSession as jest.Mock).mockResolvedValue({
     user: { id: 'session-user' },
@@ -208,22 +205,25 @@ it.each(boundaries)(
   },
 );
 
-it.each(boundaries)('%s fails closed on Redis outage', async (_name, call) => {
-  evalMock.mockRejectedValue(new Error('distributed store unavailable'));
-  expect((await call()).status).toBe(503);
-  noWrites();
-});
+it.each(boundaries)(
+  '%s fails closed on database outage',
+  async (_name, call) => {
+    evalMock.mockRejectedValue(new Error('distributed store unavailable'));
+    expect((await call()).status).toBe(503);
+    noWrites();
+  },
+);
 
 it('charges API-key batches by entries plus metadata and cannot evade the shared namespace by rotating keys', async () => {
   await createApiEntries(request({ entries: [entry, entry, entry] }));
-  expect(evalMock.mock.calls[0][2][0]).toBe(4);
+  expect(evalMock.mock.calls[0][1]).toBe(4);
   (authenticateAndRateLimitApiRequest as jest.Mock).mockResolvedValue({
     auth: { userId: 'session-user', keyId: 'rotated' },
   });
   await createApiEntries(request(entry));
   await createWallet(request());
-  expect(evalMock.mock.calls[1][1]).toEqual(evalMock.mock.calls[0][1]);
-  expect(evalMock.mock.calls[2][1]).toEqual(evalMock.mock.calls[0][1]);
+  expect(evalMock.mock.calls[1][0]).toEqual(evalMock.mock.calls[0][0]);
+  expect(evalMock.mock.calls[2][0]).toEqual(evalMock.mock.calls[0][0]);
   noWrites();
 });
 
@@ -247,7 +247,7 @@ it('recurring routes reserve once then call the owned internal repository', asyn
   expect(recurring.createRecurringRecord).toHaveBeenCalledWith(
     expect.objectContaining({ user_id: 'session-user' }),
   );
-  expect(evalMock.mock.calls[0][2][0]).toBe(2);
+  expect(evalMock.mock.calls[0][1]).toBe(2);
 });
 
 const safeboxBoundaries = [
@@ -278,7 +278,7 @@ it.each(safeboxBoundaries)(
       name === 'create' ? { id: 'owned-id', ...movement } : { deleted: true },
     );
     expect(evalMock).toHaveBeenCalledTimes(1);
-    expect(evalMock.mock.calls[0][2][0]).toBe(1);
+    expect(evalMock.mock.calls[0][1]).toBe(1);
     const write =
       name === 'create'
         ? safebox.createSafeboxMovement
@@ -312,13 +312,13 @@ it('safebox shares identical visitor and aggregate buckets with other mutation r
   await deleteSafeboxMovement(request({}, 'DELETE'), context);
   await createWallet(request());
   expect(evalMock).toHaveBeenCalledTimes(3);
-  expect(evalMock.mock.calls[0][1]).toEqual(evalMock.mock.calls[2][1]);
-  expect(evalMock.mock.calls[1][1]).toEqual(evalMock.mock.calls[2][1]);
+  expect(evalMock.mock.calls[0][0]).toEqual(evalMock.mock.calls[2][0]);
+  expect(evalMock.mock.calls[1][0]).toEqual(evalMock.mock.calls[2][0]);
   noWrites();
 });
 
 it.each(['production', undefined])(
-  'safebox preserves successful writes without Redis in %s',
+  'safebox preserves successful writes without demo reservations in %s',
   async (environment) => {
     if (environment === undefined) {
       delete process.env.VERCEL_ENV;

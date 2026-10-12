@@ -1,17 +1,16 @@
 /** @jest-environment node */
 
-import { Redis } from '@upstash/redis';
-
+import { reservePreviewBudget } from '@/lib/demo/budget';
 import {
   checkPreviewMutation,
   mutationResponse,
   visitorIdentity,
 } from '@/lib/demo/mutations';
 
-jest.mock('@upstash/redis', () => ({ Redis: jest.fn() }));
+jest.mock('@/lib/demo/budget', () => ({ reservePreviewBudget: jest.fn() }));
 jest.mock('next/headers', () => ({ headers: jest.fn() }));
 
-const evalMock = jest.fn();
+const evalMock = reservePreviewBudget as jest.Mock;
 const envKeys = [
   'VERCEL_ENV',
   'VERCEL',
@@ -32,9 +31,6 @@ beforeEach(() => {
   process.env.UPSTASH_REDIS_TOKEN = 'test-token';
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
-  (Redis as unknown as jest.Mock).mockImplementation(() => ({
-    eval: evalMock,
-  }));
   evalMock.mockResolvedValue(0);
 });
 
@@ -51,7 +47,7 @@ it.each([undefined, 'production', 'development'])(
     if (environment === undefined) delete process.env.VERCEL_ENV;
     else process.env.VERCEL_ENV = environment;
     expect(await checkPreviewMutation(new Headers(), 10000)).toBeNull();
-    expect(Redis).not.toHaveBeenCalled();
+    expect(evalMock).not.toHaveBeenCalled();
   },
 );
 
@@ -99,7 +95,7 @@ it('canonicalizes IPv6 and IPv4-mapped IPv6 without storing raw IPs', () => {
   expect(visitorIdentity(source())).toMatch(/^[a-f0-9]{64}$/);
 });
 
-it('shares keys across endpoints/API keys and isolates visitor and window keys', async () => {
+it('shares visitor identity across endpoints/API keys and isolates visitors', async () => {
   const first = source();
   first.set('x-api-key', 'key-one');
   first.set('host', 'preview-one.vercel.app');
@@ -109,14 +105,10 @@ it('shares keys across endpoints/API keys and isolates visitor and window keys',
   second.set('host', 'preview-two.vercel.app');
   await checkPreviewMutation(second, 2);
   await checkPreviewMutation(source('203.0.113.2'));
-  const keys = evalMock.mock.calls[0][1] as string[];
-  expect(new Set(keys).size).toBe(4);
-  expect(evalMock.mock.calls[1][1]).toEqual(keys);
-  expect(evalMock.mock.calls[2][1].slice(2)).toEqual(keys.slice(2));
-  expect(evalMock.mock.calls[2][1].slice(0, 2)).not.toEqual(keys.slice(0, 2));
-  expect(evalMock.mock.calls[0][2]).toEqual([
-    12, 60, 60000, 1000, 86400000, 300, 60000, 5000, 86400000,
-  ]);
+  const visitor = evalMock.mock.calls[0][0];
+  expect(evalMock.mock.calls[1][0]).toBe(visitor);
+  expect(evalMock.mock.calls[2][0]).not.toBe(visitor);
+  expect(evalMock.mock.calls[0][1]).toBe(12);
 });
 
 it('returns an HTTP 429 with a rounded-up Retry-After and Spanish guidance', async () => {
@@ -133,11 +125,11 @@ it('returns an HTTP 429 with a rounded-up Retry-After and Spanish guidance', asy
   expect((await response.json()).error).toContain('Reintenta en 2 segundos');
 });
 
-it.each(['missing', 'failure', 'invalid'])(
-  'fails closed on Redis %s without in-memory enforcement',
+it.each(['failure', 'invalid'])(
+  'fails closed on PostgreSQL %s without in-memory enforcement',
   async (mode) => {
-    if (mode === 'missing') delete process.env.UPSTASH_REDIS_TOKEN;
-    if (mode === 'failure') evalMock.mockRejectedValue(new Error('Redis down'));
+    if (mode === 'failure')
+      evalMock.mockRejectedValue(new Error('Database down'));
     if (mode === 'invalid') evalMock.mockResolvedValue('0');
     for (let i = 0; i < 2; i++) {
       expect(await checkPreviewMutation(source())).toMatchObject({
@@ -150,7 +142,7 @@ it.each(['missing', 'failure', 'invalid'])(
 );
 
 it.each([0, -1, 61, 1.5, NaN])(
-  'rejects invalid/oversized work %s before Redis',
+  'rejects invalid/oversized work %s before reserving',
   async (weight) => {
     expect(await checkPreviewMutation(source(), weight)).toMatchObject({
       code: 'PREVIEW_BATCH_LIMIT',
@@ -159,3 +151,12 @@ it.each([0, -1, 61, 1.5, NaN])(
     expect(evalMock).not.toHaveBeenCalled();
   },
 );
+
+it('allows manual demo writes without any Redis configuration', async () => {
+  for (const key of envKeys.filter(
+    (key) => key.includes('REDIS') || key.startsWith('KV_'),
+  ))
+    delete process.env[key];
+  expect(await checkPreviewMutation(source(), 2)).toBeNull();
+  expect(evalMock).toHaveBeenCalledWith(visitorIdentity(source()), 2);
+});
