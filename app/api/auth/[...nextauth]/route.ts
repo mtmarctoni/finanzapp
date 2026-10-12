@@ -1,5 +1,3 @@
-import { timingSafeEqual } from 'crypto';
-
 import NextAuth, {
   type DefaultSession,
   type SessionStrategy,
@@ -14,6 +12,12 @@ import GithubProvider, { type GithubProfile } from 'next-auth/providers/github';
 type Provider = NonNullable<AuthOptions['providers']>[number];
 
 import { createUser, getUserByEmail } from '@/lib/actions';
+import {
+  credentialsEnabled,
+  isAllowed,
+  loadDevCredentials,
+  safeEqual,
+} from '@/lib/auth-credentials';
 
 // Extend the default session type to include id
 interface Session extends DefaultSession {
@@ -23,77 +27,6 @@ interface Session extends DefaultSession {
     email?: string | null;
     image?: string | null;
   };
-}
-
-interface DevUser {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-}
-
-/**
- * Parse development credentials from the DEV_CREDENTIALS env var.
- *
- * Format: JSON array of `{ id, email, password, name }` objects.
- *
- * SECURITY: Hard-coded dev credentials used to live in this file (and
- * therefore in the git history). They have been moved to an env var so
- * the source tree is no longer a credential repository. The provider is
- * also gated to non-production builds and Vercel preview deployments —
- * see `getProviders` below.
- */
-function loadDevCredentials(): DevUser[] {
-  const raw = process.env.DEV_CREDENTIALS;
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (u): u is DevUser =>
-        u &&
-        typeof u.id === 'string' &&
-        typeof u.email === 'string' &&
-        typeof u.password === 'string' &&
-        typeof u.name === 'string',
-    );
-  } catch (err) {
-    console.error('[Auth] Failed to parse DEV_CREDENTIALS:', err);
-    return [];
-  }
-}
-
-/**
- * Constant-time string comparison to mitigate timing-based credential
- * enumeration on dev login attempts.
- */
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
-}
-
-/**
- * Returns true iff the given identity is in the allowlist.
- *
- * SECURITY: previously, an empty / unset ALLOWED_USERS would split into
- * `[""]` and a default `(profile.login ?? "")` of `""` would match it,
- * effectively allowing any GitHub user to sign in if the operator forgot
- * to set the variable. We now treat empty/missing as a hard deny.
- */
-function isAllowed(identity: string | undefined | null): boolean {
-  const raw = process.env.ALLOWED_USERS;
-  if (!raw) return false;
-  if (!identity) return false;
-
-  const allowed = raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (allowed.length === 0) return false;
-
-  return allowed.includes(identity);
 }
 
 function getProviders(): Provider[] {
@@ -119,11 +52,7 @@ function getProviders(): Provider[] {
   // including production-mode Preview builds. Production-mode Production
   // deployments and local build/start without Preview remain disabled.
   // DEV_CREDENTIALS must still be set in all cases.
-  const devCredentialsEnabled =
-    (process.env.NODE_ENV !== 'production' ||
-      process.env.VERCEL_ENV === 'preview') &&
-    process.env.DEV_CREDENTIALS;
-  if (devCredentialsEnabled) {
+  if (credentialsEnabled()) {
     providers.push(
       CredentialsProvider({
         name: 'Credentials',

@@ -6,26 +6,19 @@
  * would match any login because `"".split(",")` produces `[""]` and
  * the default `profile.login` was `""`.
  *
- * Since the function is not exported, we re-implement the exact logic
- * here to lock down the contract. If the implementation drifts, these
- * tests will catch it.
+ * Exercise the shared implementation used by auth and demo eligibility.
  */
 
-describe('isAllowed (ALLOWED_USERS parsing)', () => {
-  function isAllowed(
-    identity: string | undefined | null,
-    allowedUsers: string | undefined,
-  ): boolean {
-    if (!allowedUsers) return false;
-    if (!identity) return false;
-    const allowed = allowedUsers
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (allowed.length === 0) return false;
-    return allowed.includes(identity);
-  }
+import { isAllowed as checkAllowed } from '@/lib/auth-credentials';
 
+function isAllowed(
+  identity: string | undefined | null,
+  allowedUsers: string | undefined,
+) {
+  return checkAllowed(identity, allowedUsers ?? '');
+}
+
+describe('isAllowed (ALLOWED_USERS parsing)', () => {
   it('allows a user who is in the allowlist', () => {
     expect(isAllowed('alice', 'alice,bob')).toBe(true);
   });
@@ -69,20 +62,6 @@ describe('isAllowed (ALLOWED_USERS parsing)', () => {
 
 describe('ALLOWED_USERS regression: empty string bypass', () => {
   it("does NOT allow login when ALLOWED_USERS splits into [''] and profile.login is ''", () => {
-    function isAllowed(
-      identity: string | undefined | null,
-      allowedUsers: string | undefined,
-    ): boolean {
-      if (!allowedUsers) return false;
-      if (!identity) return false;
-      const allowed = allowedUsers
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-      if (allowed.length === 0) return false;
-      return allowed.includes(identity);
-    }
-
     expect(isAllowed('', '')).toBe(false);
     expect(isAllowed('', '  ')).toBe(false);
     expect(isAllowed('anyone', '')).toBe(false);

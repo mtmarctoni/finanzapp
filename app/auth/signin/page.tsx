@@ -14,9 +14,12 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  // The credentials provider only exists outside production with
-  // DEV_CREDENTIALS set; ask the server instead of guessing.
+  // Configured local development and production-mode Preview can offer
+  // Credentials; discover availability from the server, not build mode.
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [demo, setDemo] = useState<{ email: string; password: string } | null>(
+    null,
+  );
   const router = useRouter();
   const searchParams = useSearchParams();
   // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- empty callbackUrl query param must fall back to '/'
@@ -33,8 +36,16 @@ export default function SignIn() {
   useEffect(() => {
     let cancelled = false;
     void getProviders()
-      .then((providers) => {
-        if (!cancelled) setHasCredentials(Boolean(providers?.credentials));
+      .then(async (providers) => {
+        if (cancelled || !providers?.credentials) return;
+        setHasCredentials(true);
+        const response = await fetch('/api/auth/demo', { cache: 'no-store' });
+        if (!response.ok) return;
+        const metadata = (await response.json()) as {
+          demo: { email: string; password: string } | null;
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- cleanup can run during either await
+        if (!cancelled) setDemo(metadata.demo);
       })
       .catch(() => {});
     return () => {
@@ -69,14 +80,16 @@ export default function SignIn() {
 
     try {
       const result = await signIn('credentials', {
-        redirect: true,
+        redirect: false,
         email,
         password,
         callbackUrl,
       });
 
-      if (result?.error) {
+      if (result?.error || !result?.ok) {
         setError('Credenciales inválidas');
+      } else {
+        router.push(result.url ?? callbackUrl);
       }
     } catch (error) {
       console.error('Sign in error:', error);
@@ -126,7 +139,7 @@ export default function SignIn() {
         <>
           <div className="my-7 flex items-center gap-3 text-[12px] text-faint">
             <span className="h-px flex-1 bg-hairline" />
-            Acceso de desarrollo
+            {demo ? 'Acceso de prueba' : 'Acceso de desarrollo'}
             <span className="h-px flex-1 bg-hairline" />
           </div>
 
@@ -174,9 +187,37 @@ export default function SignIn() {
               )}
               Iniciar sesión
             </Button>
-            <p className="text-center text-[12px] text-faint">
-              Usa: test@example.com / password123
-            </p>
+            {demo && (
+              <section
+                aria-labelledby="demo-title"
+                className="rounded-[16px] border border-hairline bg-surface p-4"
+              >
+                <h2 id="demo-title" className="text-[14px] font-semibold">
+                  Demo
+                </h2>
+                <p className="mt-2 text-[13px] leading-relaxed text-subtle">
+                  Explora la app con una cuenta de prueba. Los datos son
+                  compartidos: otras personas pueden ver y modificar lo que
+                  guardes. No ingreses datos personales.
+                </p>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={isLoading}
+                  className="mt-4 w-full"
+                  onClick={() => {
+                    setEmail(demo.email);
+                    setPassword(demo.password);
+                    setError(null);
+                  }}
+                >
+                  Usar usuario de prueba
+                </Button>
+                <p className="mt-2 text-center text-[12px] text-faint">
+                  Completa el formulario y pulsa Iniciar sesión.
+                </p>
+              </section>
+            )}
           </form>
         </>
       )}
