@@ -21,12 +21,15 @@ import {
   PUT as updateRecurring,
   DELETE as deleteRecurring,
 } from '@/app/api/recurring/route';
+import { DELETE as deleteSafeboxMovement } from '@/app/api/safebox/movements/[id]/route';
+import { POST as createSafeboxMovement } from '@/app/api/safebox/movements/route';
 import { POST as createApiEntries } from '@/app/api/v1/entries/route';
 import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
 import * as apiKeys from '@/lib/api-keys';
 import * as crypto from '@/lib/cryptoActions';
 import { deleteMerchantById } from '@/lib/merchants/repo';
 import * as recurring from '@/lib/recurring/repo';
+import * as safebox from '@/lib/safeboxActions';
 import { ensureCategory } from '@/lib/server-data';
 
 jest.mock('next-auth');
@@ -54,6 +57,10 @@ jest.mock('@/lib/api-keys', () => ({
 }));
 jest.mock('@/lib/merchants/repo', () => ({ deleteMerchantById: jest.fn() }));
 jest.mock('@/lib/server-data', () => ({ ensureCategory: jest.fn() }));
+jest.mock('@/lib/safeboxActions', () => ({
+  createSafeboxMovement: jest.fn(),
+  deleteSafeboxMovement: jest.fn(),
+}));
 
 const evalMock = jest.fn();
 const envKeys = [
@@ -82,6 +89,12 @@ const entry = {
   quien: 'Yo',
 };
 const context = { params: Promise.resolve({ id: 'owned-id' }) };
+const movement = {
+  movementType: 'deposit',
+  amount: 50,
+  note: 'del cajero',
+  movementDate: '2026-10-11T10:00:00.000Z',
+};
 const request = (body: unknown = {}, method = 'POST') =>
   new NextRequest('https://preview.vercel.app/api/mutation?id=owned-id', {
     method,
@@ -101,6 +114,11 @@ const boundaries = [
   ],
   ['crypto duplicate', async () => duplicateTransaction(request(), context)],
   ['wallet create', async () => createWallet(request())],
+  ['safebox create', async () => createSafeboxMovement(request(movement))],
+  [
+    'safebox delete',
+    async () => deleteSafeboxMovement(request({}, 'DELETE'), context),
+  ],
   ['merchant delete', async () => deleteMerchant(request({}, 'DELETE'))],
   ['API-key create', async () => createKey(request({ name: 'test-key' }))],
   ['API-key revoke', async () => revokeKey(request({}, 'DELETE'), context)],
@@ -156,6 +174,8 @@ function noWrites() {
     apiKeys.markApiKeyUsed,
     deleteMerchantById,
     ensureCategory,
+    safebox.createSafeboxMovement,
+    safebox.deleteSafeboxMovement,
   ])
     expect(write).not.toHaveBeenCalled();
 }
@@ -229,3 +249,87 @@ it('recurring routes reserve once then call the owned internal repository', asyn
   );
   expect(evalMock.mock.calls[0][2][0]).toBe(2);
 });
+
+const safeboxBoundaries = [
+  ['create', async () => createSafeboxMovement(request(movement)), 201],
+  [
+    'delete',
+    async () => deleteSafeboxMovement(request({}, 'DELETE'), context),
+    200,
+  ],
+] as const;
+
+function allowSafeboxWrites() {
+  (safebox.createSafeboxMovement as jest.Mock).mockResolvedValue({
+    ok: true,
+    movement: { id: 'owned-id', ...movement },
+  });
+  (safebox.deleteSafeboxMovement as jest.Mock).mockResolvedValue('deleted');
+}
+
+it.each(safeboxBoundaries)(
+  'safebox %s reserves one unit once before its owned facade write',
+  async (name, call, status) => {
+    evalMock.mockResolvedValue(0);
+    allowSafeboxWrites();
+    const response = await call();
+    expect(response.status).toBe(status);
+    expect(await response.json()).toEqual(
+      name === 'create' ? { id: 'owned-id', ...movement } : { deleted: true },
+    );
+    expect(evalMock).toHaveBeenCalledTimes(1);
+    expect(evalMock.mock.calls[0][2][0]).toBe(1);
+    const write =
+      name === 'create'
+        ? safebox.createSafeboxMovement
+        : safebox.deleteSafeboxMovement;
+    const otherWrite =
+      name === 'create'
+        ? safebox.deleteSafeboxMovement
+        : safebox.createSafeboxMovement;
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledWith(
+      name === 'create' ? movement : 'owned-id',
+      { user: { id: 'session-user' } },
+    );
+    expect(otherWrite).not.toHaveBeenCalled();
+    expect(evalMock.mock.invocationCallOrder[0]).toBeLessThan(
+      (write as jest.Mock).mock.invocationCallOrder[0],
+    );
+  },
+);
+
+it('safebox rejects invalid input before reserving or writing', async () => {
+  expect(
+    (await createSafeboxMovement(request({ ...movement, amount: -5 }))).status,
+  ).toBe(400);
+  expect(evalMock).not.toHaveBeenCalled();
+  noWrites();
+});
+
+it('safebox shares identical visitor and aggregate buckets with other mutation routes', async () => {
+  await createSafeboxMovement(request(movement));
+  await deleteSafeboxMovement(request({}, 'DELETE'), context);
+  await createWallet(request());
+  expect(evalMock).toHaveBeenCalledTimes(3);
+  expect(evalMock.mock.calls[0][1]).toEqual(evalMock.mock.calls[2][1]);
+  expect(evalMock.mock.calls[1][1]).toEqual(evalMock.mock.calls[2][1]);
+  noWrites();
+});
+
+it.each(['production', undefined])(
+  'safebox preserves successful writes without Redis in %s',
+  async (environment) => {
+    if (environment === undefined) {
+      delete process.env.VERCEL_ENV;
+      delete process.env.VERCEL;
+    } else process.env.VERCEL_ENV = environment;
+    allowSafeboxWrites();
+    for (const [, call, status] of safeboxBoundaries) {
+      expect((await call()).status).toBe(status);
+    }
+    expect(evalMock).not.toHaveBeenCalled();
+    expect(safebox.createSafeboxMovement).toHaveBeenCalledTimes(1);
+    expect(safebox.deleteSafeboxMovement).toHaveBeenCalledTimes(1);
+  },
+);

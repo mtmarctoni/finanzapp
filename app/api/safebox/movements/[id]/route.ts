@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 import { deleteSafeboxMovement } from '@/lib/safeboxActions';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
+export async function DELETE(request: Request, { params }: RouteContext) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user.id) {
@@ -17,6 +18,9 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
   try {
     const { id } = await params;
+    const rejection = await checkPreviewMutation(request.headers, 1);
+    if (rejection) return mutationResponse(rejection);
+
     const result = await deleteSafeboxMovement(id, {
       user: { id: session.user.id },
     });
