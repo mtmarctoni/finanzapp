@@ -1,10 +1,13 @@
-'use server';
-
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import {
+  authorizePreviewWork,
+  PreviewMutationError,
+  mutationResponse,
+} from '@/lib/demo/mutations';
 import { logger } from '@/lib/logger';
-import { generateFinanceEntries } from '@/lib/recurringActions';
+import { generateFinanceEntries } from '@/lib/recurring/repo';
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +49,7 @@ export async function POST(request: Request) {
       date,
       targetYear,
       targetMonth,
+      async (units) => authorizePreviewWork(request.headers, units),
     );
     return Response.json({
       success: true,
@@ -53,6 +57,8 @@ export async function POST(request: Request) {
       generated,
     });
   } catch (error: unknown) {
+    if (error instanceof PreviewMutationError)
+      return mutationResponse(error.result);
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error('Detailed error:', {

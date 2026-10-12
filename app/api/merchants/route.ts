@@ -2,6 +2,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import {
+  checkPreviewMutation,
+  mutationResponse,
+  authorizePreviewWork,
+  PreviewMutationError,
+} from '@/lib/demo/mutations';
+import { isPreviewDemo } from '@/lib/demo/policy';
 import { logger } from '@/lib/logger';
 import { deleteMerchantById, listMerchants } from '@/lib/merchants/repo';
 
@@ -29,7 +36,19 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  await deleteMerchantById(id, session.user.id);
+  const rejection = await checkPreviewMutation(request.headers);
+  if (rejection) return mutationResponse(rejection);
+  try {
+    if (isPreviewDemo())
+      await deleteMerchantById(id, session.user.id, async (units) =>
+        authorizePreviewWork(request.headers, units),
+      );
+    else await deleteMerchantById(id, session.user.id);
+  } catch (error) {
+    if (error instanceof PreviewMutationError)
+      return mutationResponse(error.result);
+    throw error;
+  }
   logger.info(`[Merchants] Forgot merchant ${id}`);
 
   return NextResponse.json({ success: true });

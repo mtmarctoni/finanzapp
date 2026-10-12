@@ -3,12 +3,13 @@
 import { getServerSession } from 'next-auth';
 
 import { POST } from '@/app/api/recurring/generate/route';
-import { generateFinanceEntries } from '@/lib/recurringActions';
+import { PreviewMutationError } from '@/lib/demo/mutations';
+import { generateFinanceEntries } from '@/lib/recurring/repo';
 
 // Automock: see __tests__/api/merchants.test.ts for why `next-auth` is not
 // mocked with a partial factory.
 jest.mock('next-auth');
-jest.mock('@/lib/recurringActions', () => ({
+jest.mock('@/lib/recurring/repo', () => ({
   generateFinanceEntries: jest.fn(),
 }));
 
@@ -34,6 +35,22 @@ beforeEach(() => {
 });
 
 describe('POST /api/recurring/generate', () => {
+  it('translates a pre-insert generation denial to retryable HTTP guidance', async () => {
+    const rejection = {
+      ok: false as const,
+      code: 'PREVIEW_RATE_LIMIT' as const,
+      status: 429 as const,
+      error: 'Reintenta en 60 segundos.',
+      retryAfter: 60,
+    };
+    generateMock.mockRejectedValue(new PreviewMutationError(rejection));
+    const response = await POST(
+      request(JSON.stringify({ date: '2026-10-15' })),
+    );
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('60');
+    expect(await response.json()).toEqual(rejection);
+  });
   it('returns 401 without a session', async () => {
     sessionMock.mockResolvedValue(null);
     const res = await POST(request(JSON.stringify({ date: '2026-10-15' })));
@@ -62,7 +79,13 @@ describe('POST /api/recurring/generate', () => {
   it('generates entries for the year and month of the given date', async () => {
     const res = await POST(request(JSON.stringify({ date: '2026-10-15' })));
     expect(res.status).toBe(200);
-    expect(generateMock).toHaveBeenCalledWith('user-1', '2026-10-15', 2026, 10);
+    expect(generateMock).toHaveBeenCalledWith(
+      'user-1',
+      '2026-10-15',
+      2026,
+      10,
+      expect.any(Function),
+    );
     expect(await res.json()).toMatchObject({ success: true, generated: 2 });
   });
 

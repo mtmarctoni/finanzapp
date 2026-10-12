@@ -3,6 +3,8 @@ import { randomBytes, createHash, createHmac, timingSafeEqual } from 'crypto';
 import { createClient } from '@vercel/postgres';
 import { v4 as uuidv4 } from 'uuid';
 
+import { isPreviewDemo } from '@/lib/demo/policy';
+
 const PREFIX = 'fa_';
 const KEY_RANDOM_BYTES = 32; // 256 bits of entropy
 
@@ -161,7 +163,8 @@ export async function verifyApiKey(
       return null;
     }
 
-    await client.sql`
+    if (!isPreviewDemo())
+      await client.sql`
       UPDATE api_keys
          SET last_used_at = NOW()
        WHERE id = ${row.id}
@@ -171,6 +174,17 @@ export async function verifyApiKey(
       userId: row.user_id as string,
       keyId: row.id as string,
     };
+  } finally {
+    await client.end();
+  }
+}
+
+/** Preview defers this write until the shared mutation reservation succeeds. */
+export async function markApiKeyUsed(keyId: string, userId: string) {
+  const client = createClient();
+  await client.connect();
+  try {
+    await client.sql`UPDATE api_keys SET last_used_at = NOW() WHERE id = ${keyId} AND user_id = ${userId}`;
   } finally {
     await client.end();
   }

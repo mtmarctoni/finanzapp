@@ -7,6 +7,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { raceFreeProviders } from '@/lib/ai/fallback';
 import { RECEIPT_PARSE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ai/rate-limit';
+import { previewAiDisabledResponse } from '@/lib/demo/policy';
 import { logger } from '@/lib/logger';
 import { recordMerchantSeen } from '@/lib/merchants/repo';
 import {
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
   if (!session?.user.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
+  const disabledResponse = previewAiDisabledResponse();
+  if (disabledResponse) return disabledResponse;
+
   const userId = session.user.id;
 
   const rateLimitResult = await checkRateLimit(

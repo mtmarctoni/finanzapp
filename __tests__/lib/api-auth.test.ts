@@ -73,4 +73,26 @@ describe('api auth', () => {
     expect(result.rateLimitHeaders).toBeDefined();
     expect(result.rateLimitResponse).toBeUndefined();
   });
+
+  it('uses no legacy per-key limiter in Preview, even after a burst', async () => {
+    const original = process.env.VERCEL_ENV;
+    process.env.VERCEL_ENV = 'preview';
+    try {
+      mockedVerifyApiKey.mockResolvedValue({
+        userId: 'user-preview',
+        keyId: 'key-preview',
+      });
+      const request = new Request('http://localhost/api/v1/entries', {
+        headers: { 'x-api-key': 'secret-key' },
+      });
+      for (let i = 0; i < 70; i++) {
+        expect(await authenticateAndRateLimitApiRequest(request)).toEqual({
+          auth: { userId: 'user-preview', keyId: 'key-preview' },
+        });
+      }
+    } finally {
+      if (original === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = original;
+    }
+  });
 });

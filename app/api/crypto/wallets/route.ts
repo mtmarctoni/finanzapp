@@ -7,6 +7,7 @@ import {
   createCryptoWallet,
   getUsedWallets,
 } from '@/lib/cryptoActions';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function GET(_: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -45,6 +46,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    const rejection = await checkPreviewMutation(request.headers);
+    if (rejection) return mutationResponse(rejection);
     const wallet = await createCryptoWallet(body, {
       user: { id: session.user.id },
     });

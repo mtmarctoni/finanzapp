@@ -1,6 +1,7 @@
 'use client';
 
 import { ITEMS_PER_PAGE } from '@/config';
+import { PreviewWriteError, throwPreviewWriteError } from '@/lib/utils';
 import type { GetCryptoTransactionsOptions } from '@/types/api';
 import type {
   CryptoTransaction,
@@ -76,6 +77,7 @@ export async function createCryptoTransaction(
       body: JSON.stringify(data),
     });
 
+    await throwPreviewWriteError(response);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -83,6 +85,7 @@ export async function createCryptoTransaction(
     return await response.json();
   } catch (error) {
     console.error('API Error:', error);
+    if (error instanceof PreviewWriteError) throw error;
     return null;
   }
 }
@@ -102,6 +105,7 @@ export async function updateCryptoTransaction(
       body: JSON.stringify(data),
     });
 
+    await throwPreviewWriteError(response);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -109,6 +113,7 @@ export async function updateCryptoTransaction(
     return await response.json();
   } catch (error) {
     console.error('API Error:', error);
+    if (error instanceof PreviewWriteError) throw error;
     return null;
   }
 }
@@ -123,6 +128,7 @@ export async function deleteCryptoTransaction(id: string): Promise<boolean> {
       method: 'DELETE',
     });
 
+    await throwPreviewWriteError(response);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }
@@ -130,6 +136,7 @@ export async function deleteCryptoTransaction(id: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error('API Error:', error);
+    if (error instanceof PreviewWriteError) throw error;
     return false;
   }
 }
@@ -220,6 +227,7 @@ export async function duplicateCryptoTransaction(
     { method: 'POST' },
   );
 
+  await throwPreviewWriteError(response);
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
   }

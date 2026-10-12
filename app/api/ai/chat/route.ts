@@ -26,6 +26,7 @@ import {
   getSpendingByCategoryTool,
   getTotalByPeriodTool,
 } from '@/lib/ai/tools';
+import { previewAiDisabledResponse } from '@/lib/demo/policy';
 import { logger } from '@/lib/logger';
 
 // Rate limit config: 5 chat requests per minute per user
@@ -41,6 +42,9 @@ export async function POST(request: NextRequest) {
   if (!session?.user.id) {
     return new Response('No autorizado', { status: 401 });
   }
+
+  const disabledResponse = previewAiDisabledResponse();
+  if (disabledResponse) return disabledResponse;
 
   const userId = session.user.id;
 

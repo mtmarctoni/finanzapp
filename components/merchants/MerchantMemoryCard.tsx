@@ -7,6 +7,7 @@ import {
   SettingsGroup,
   SettingsRow,
 } from '@/components/settings/settings-group';
+import { throwPreviewWriteError } from '@/lib/utils';
 
 /** Spanish needs the noun to agree with the count: "1 compra", "2 compras". */
 function plural(count: number, singular: string, many: string): string {
@@ -29,6 +30,7 @@ interface MerchantSummary {
  */
 export function MerchantMemoryCard() {
   const [merchants, setMerchants] = useState<MerchantSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch('/api/merchants');
@@ -43,10 +45,24 @@ export function MerchantMemoryCard() {
   }, [load]);
 
   async function forget(id: string) {
-    await fetch(`/api/merchants?id=${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-    });
-    await load();
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/merchants?id=${encodeURIComponent(id)}`,
+        {
+          method: 'DELETE',
+        },
+      );
+      await throwPreviewWriteError(response);
+      if (!response.ok) throw new Error('No se ha podido olvidar el comercio.');
+      await load();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'No se ha podido olvidar el comercio.',
+      );
+    }
   }
 
   return (
@@ -54,6 +70,11 @@ export function MerchantMemoryCard() {
       title="Comercios aprendidos"
       footer="Confirmamos o corregimos la categoría de cada compra a partir de lo que ya sabes de ese comercio. Olvidar uno hace que el próximo recibo empiece de cero."
     >
+      {error && (
+        <p role="alert" className="px-4 py-3 text-sm text-destructive">
+          {error}
+        </p>
+      )}
       {merchants === null ? (
         <SettingsRow
           label={<span className="font-normal text-faint">Cargando…</span>}

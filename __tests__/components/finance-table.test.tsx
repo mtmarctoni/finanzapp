@@ -271,6 +271,55 @@ describe('FinanceTable', () => {
     expect(screen.getByText('Compra')).toBeInTheDocument();
   });
 
+  it.each([429, 503])(
+    'restores an optimistic row and displays structured Preview retry guidance (%s)',
+    async (status) => {
+      const error =
+        'Has alcanzado el límite de escrituras de la demo. Reintenta en 60 segundos.';
+      (deleteEntry as jest.Mock).mockResolvedValue({
+        ok: false,
+        status,
+        error,
+        retryAfter: 60,
+      });
+      render(<FinanceTable />);
+      fireEvent.click(await screen.findByLabelText('Eliminar entrada 1'));
+      await waitFor(() =>
+        expect(mockToast).toHaveBeenCalledWith({
+          title: 'No se ha eliminado el registro',
+          description: error,
+          variant: 'destructive',
+        }),
+      );
+      expect(screen.getByText('Salario')).toBeInTheDocument();
+      expect(mockToast).not.toHaveBeenCalledWith({
+        title: 'Registro eliminado',
+      });
+    },
+  );
+
+  it('retains selection on a structured bulk rejection', async () => {
+    const error = 'Reduce el lote e inténtalo otra vez.';
+    (deleteManyEntries as jest.Mock).mockResolvedValue({ ok: false, error });
+    render(<FinanceTable />);
+    await screen.findByText('Salario');
+    fireEvent.click(screen.getByLabelText('Seleccionar todas las filas'));
+    fireEvent.click(
+      await screen.findByLabelText('Eliminar entradas seleccionadas'),
+    );
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith({
+        title: 'No se han eliminado los registros',
+        description: error,
+        variant: 'destructive',
+      }),
+    );
+    expect(screen.getByText('Salario')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Eliminar entradas seleccionadas'),
+    ).toBeInTheDocument();
+  });
+
   describe('on mobile', () => {
     const originalMatchMedia = window.matchMedia;
 

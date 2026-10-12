@@ -1,14 +1,13 @@
-'use server';
-
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 import {
   getRecurringRecords,
   createRecurringRecord,
   updateRecurringRecord,
   deleteRecurringRecord,
-} from '@/lib/recurringActions';
+} from '@/lib/recurring/repo';
 import { ensureCategory } from '@/lib/server-data';
 
 /**
@@ -112,6 +111,8 @@ export async function POST(request: Request) {
       dia,
       user_id: userId,
     };
+    const rejection = await checkPreviewMutation(request.headers, 2);
+    if (rejection) return mutationResponse(rejection);
     const result = await createRecurringRecord(data);
     await provisionCategory(userId, tipo);
 
@@ -166,6 +167,8 @@ export async function PUT(request: Request) {
       return missingFields();
     }
 
+    const rejection = await checkPreviewMutation(request.headers, 2);
+    if (rejection) return mutationResponse(rejection);
     await updateRecurringRecord(
       id,
       {
@@ -224,6 +227,8 @@ export async function DELETE(request: Request) {
     if (!body) return invalidBody();
     const { id } = body;
 
+    const rejection = await checkPreviewMutation(request.headers);
+    if (rejection) return mutationResponse(rejection);
     const result = await deleteRecurringRecord(id, userId);
     if (!result) {
       return Response.json(

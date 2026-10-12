@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createApiKey, listApiKeys } from '@/lib/api-keys';
 import { CreateApiKeySchema } from '@/lib/api-validation';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name } = CreateApiKeySchema.parse(body);
+    const rejection = await checkPreviewMutation(request.headers);
+    if (rejection) return mutationResponse(rejection);
     const apiKey = await createApiKey(session.user.id, name);
 
     return NextResponse.json(

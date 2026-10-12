@@ -39,6 +39,7 @@ import {
   getCryptoOptions,
   getCryptoMarketPrices,
 } from '@/lib/crypto-data';
+import { PreviewWriteError } from '@/lib/utils';
 import type { CryptoTransaction, CryptoTransactionType } from '@/types/finance';
 
 const TRANSACTION_TYPES = [
@@ -272,7 +273,11 @@ export function CryptoTransactionForm({
       router.refresh();
     } catch (error) {
       console.error('Error saving transaction:', error);
-      alert('Error al guardar la transacción');
+      alert(
+        error instanceof PreviewWriteError
+          ? error.message
+          : 'Error al guardar la transacción',
+      );
     } finally {
       setIsSubmitting(false);
     }
