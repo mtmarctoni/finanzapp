@@ -4,11 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { ZodError } from 'zod';
 
 import { authenticateAndRateLimitApiRequest } from '@/lib/api-auth';
+import { markApiKeyUsed } from '@/lib/api-keys';
 import {
   CreateEntrySchema,
   BatchCreateEntrySchema,
 } from '@/lib/api-validation';
 import type { CreateEntryInput } from '@/lib/api-validation';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
+import { isPreviewDemo } from '@/lib/demo/policy';
 import { logger } from '@/lib/logger';
 
 function devLog(...args: Parameters<typeof console.log>) {
@@ -214,6 +217,13 @@ export async function POST(request: NextRequest) {
       { status: 422, headers: rateLimitHeaders },
     );
   }
+
+  const rejection = await checkPreviewMutation(
+    request.headers,
+    entriesToCreate.length + 1,
+  );
+  if (rejection) return mutationResponse(rejection);
+  if (isPreviewDemo()) await markApiKeyUsed(auth.keyId, auth.userId);
 
   // 4. Insert into database
   const client = createClient();

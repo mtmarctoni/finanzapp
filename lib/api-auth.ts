@@ -4,6 +4,7 @@ import {
   getRateLimitHeaders,
 } from './ai/rate-limit';
 import { verifyApiKey } from './api-keys';
+import { isPreviewDemo } from './demo/policy';
 
 export interface ApiAuthContext {
   userId: string;
@@ -54,6 +55,10 @@ export async function authenticateAndRateLimitApiRequest(
   if (!auth) {
     return { auth: null };
   }
+
+  // Preview's weighted boundary uses the distributed shared demo budget;
+  // the legacy per-key limiter can fall back to process-local storage.
+  if (isPreviewDemo()) return { auth };
 
   const rateLimitResult = await checkRateLimit(`api-key:${auth.keyId}`, {
     maxRequests: 60,

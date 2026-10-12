@@ -5,7 +5,7 @@ import { createClient } from '@vercel/postgres';
 import {
   deleteRecurringRecord,
   generateFinanceEntries,
-} from '@/lib/recurringActions';
+} from '@/lib/recurring/repo';
 
 jest.mock('@vercel/postgres');
 jest.mock('@/lib/db', () => ({ withPool: jest.fn() }));
@@ -186,6 +186,55 @@ describe('deleteRecurringRecord', () => {
     await expect(deleteRecurringRecord('r-1', 'user-1')).rejects.toThrow(
       'connection reset',
     );
+    expect(end).toHaveBeenCalled();
+  });
+});
+
+describe('Preview generation work bounds', () => {
+  const original = process.env.VERCEL_ENV;
+  beforeEach(() => {
+    process.env.VERCEL_ENV = 'preview';
+  });
+  afterEach(() => {
+    if (original === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = original;
+  });
+
+  it('bounds the active-record read and rejects oversized work before ledger queries or writes', async () => {
+    sql.mockResolvedValueOnce({
+      rows: Array.from({ length: 61 }, (_, i) => record(String(i), 1)),
+    });
+    const authorize = jest.fn(async () => {
+      throw new Error('batch rejected');
+    });
+    await expect(
+      generateFinanceEntries('user-1', '2026-10-01', 2026, 10, authorize),
+    ).rejects.toThrow('batch rejected');
+    expect(sql.mock.calls[0][0].join(' ')).toContain('LIMIT 61');
+    expect(authorize).toHaveBeenCalledWith(61);
+    expect(query).not.toHaveBeenCalled();
+    expect(end).toHaveBeenCalled();
+  });
+
+  it('charges only the planned generated rows, before INSERT, and leaves the DB unchanged on denial', async () => {
+    sql.mockResolvedValueOnce({
+      rows: [record('A', 1), record('B', 1), record('C', 1)],
+    });
+    query.mockResolvedValueOnce({ rows: [{ que: 'A' }] });
+    const authorize = jest.fn(async () => {
+      throw new Error('rate rejected');
+    });
+    await expect(
+      generateFinanceEntries('user-1', '2026-10-01', 2026, 10, authorize),
+    ).rejects.toThrow('rate rejected');
+    expect(authorize).toHaveBeenCalledWith(2);
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0][0]).toContain('SELECT DISTINCT que');
+    expect(query.mock.calls[0][1]).toEqual([
+      '2026-10-01',
+      'user-1',
+      ['A', 'B', 'C'],
+    ]);
     expect(end).toHaveBeenCalled();
   });
 });

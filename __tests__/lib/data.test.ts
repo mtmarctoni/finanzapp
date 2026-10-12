@@ -76,10 +76,7 @@ describe('Data fetching functions', () => {
 
     it('should handle API errors gracefully', async () => {
       // Mock failed response
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      });
+      (fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 500 });
 
       // Call the function
       const result = await getFinanceEntries();
@@ -231,6 +228,9 @@ describe('Data fetching functions', () => {
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 500,
+        clone: () => ({
+          json: async () => ({ error: 'Internal Server Error' }),
+        }),
       });
 
       await expect(duplicateEntry('original-id')).rejects.toThrow(

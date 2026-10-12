@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import { withClient, withPool } from '@/lib/db';
+import { deleteWithPreviewBudget } from '@/lib/demo/delete-budget';
+import { isPreviewDemo } from '@/lib/demo/policy';
 import { escapeLikePattern } from '@/lib/utils';
 
 /**
@@ -367,7 +369,15 @@ export async function updateEntryById(
 export async function deleteEntryById(
   entryId: string,
   userId: string,
+  authorizeAdditional?: (units: number) => Promise<void>,
 ): Promise<void> {
+  if (isPreviewDemo())
+    return deleteWithPreviewBudget(
+      'entry',
+      [entryId],
+      userId,
+      authorizeAdditional,
+    );
   await withClient(async (client) => {
     await client.sql`
       DELETE FROM finance_entries
@@ -380,8 +390,11 @@ export async function deleteEntryById(
 export async function deleteEntriesByIds(
   ids: string[],
   userId: string,
+  authorizeAdditional?: (units: number) => Promise<void>,
 ): Promise<void> {
   if (ids.length === 0) return;
+  if (isPreviewDemo())
+    return deleteWithPreviewBudget('entry', ids, userId, authorizeAdditional);
   await withClient(async (client) => {
     await client.query(
       `DELETE FROM finance_entries

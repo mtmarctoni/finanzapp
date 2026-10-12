@@ -7,6 +7,7 @@ import {
   updateCryptoTransaction,
   deleteCryptoTransaction,
 } from '@/lib/cryptoActions';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function GET(
   _request: NextRequest,
@@ -55,6 +56,8 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
+    const rejection = await checkPreviewMutation(request.headers);
+    if (rejection) return mutationResponse(rejection);
     const transaction = await updateCryptoTransaction(id, body, {
       user: { id: session.user.id },
     });
@@ -88,6 +91,8 @@ export async function DELETE(
 
   try {
     const { id } = await params;
+    const rejection = await checkPreviewMutation(_request.headers);
+    if (rejection) return mutationResponse(rejection);
     const deleted = await deleteCryptoTransaction(id, {
       user: { id: session.user.id },
     });

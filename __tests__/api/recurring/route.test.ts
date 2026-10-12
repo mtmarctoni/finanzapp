@@ -7,12 +7,12 @@ import {
   createRecurringRecord,
   deleteRecurringRecord,
   updateRecurringRecord,
-} from '@/lib/recurringActions';
+} from '@/lib/recurring/repo';
 
 // Automock: see __tests__/api/merchants.test.ts for why `next-auth` is not
 // mocked with a partial factory.
 jest.mock('next-auth');
-jest.mock('@/lib/recurringActions', () => ({
+jest.mock('@/lib/recurring/repo', () => ({
   getRecurringRecords: jest.fn(),
   createRecurringRecord: jest.fn(),
   updateRecurringRecord: jest.fn(),

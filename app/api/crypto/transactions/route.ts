@@ -7,6 +7,7 @@ import {
   getCryptoTransactions,
   createCryptoTransaction,
 } from '@/lib/cryptoActions';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -83,6 +84,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rejection = await checkPreviewMutation(request.headers);
+    if (rejection) return mutationResponse(rejection);
     const transaction = await createCryptoTransaction(body, {
       user: { id: session.user.id },
     });

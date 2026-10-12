@@ -5,6 +5,24 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Client-safe HTTP error; keeps Preview retry guidance through fetch wrappers. */
+export class PreviewWriteError extends Error {}
+
+export async function throwPreviewWriteError(response: Response) {
+  if (response.ok) return;
+  const payload = (await response
+    .clone()
+    .json()
+    .catch(() => null)) as { code?: string; error?: string } | null;
+  if (
+    typeof payload?.code === 'string' &&
+    payload.code.startsWith('PREVIEW_') &&
+    typeof payload.error === 'string'
+  ) {
+    throw new PreviewWriteError(payload.error);
+  }
+}
+
 export function formatDate(
   dateString: string | Date,
   includeTime: boolean = false,
