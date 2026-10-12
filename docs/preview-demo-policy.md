@@ -28,7 +28,7 @@ change and tests.
 ## Preview mutation budgets (#139)
 
 `lib/demo/mutations.ts` applies only when `VERCEL_ENV === 'preview'`, at request
-time. Authentication runs first. It reserves weighted work atomically in Redis
+time. Authentication runs first. It reserves weighted work atomically in PostgreSQL
 before any domain write; routes return JSON with `code`, `error`, `retryAfter`
 and HTTP 429 / `Retry-After`. Actions return a serializable `{ ok: false, code,
 status, error, retryAfter }` instead of throwing a message Next.js might hide in
@@ -44,22 +44,19 @@ recurring, crypto, merchant and API-key consumers also display the guidance.
 | All demo visitors |       5,000 | 24 hours   |
 
 These are independent, **first-accepted-write-anchored fixed windows**, not
-sliding windows or calendar days. Each Redis key expires at its own window end;
-requests do not extend its TTL. A burst can straddle a window boundary. Retry time
-is the longest TTL among policies that cannot accept the requested weight.
-The Lua script checks all four counters before incrementing any: a denied request
+sliding windows or calendar days. Each bucket expires at its own window end;
+requests do not extend its expiry. A burst can straddle a window boundary. Retry time
+is the longest remaining window among policies that cannot accept the requested weight.
+The PostgreSQL function checks all four counters before incrementing any: a denied request
 does not consume other budgets. Concurrent reservations across processes are
 atomic. Successful reservations are not refunded for DB errors, missing-owned
 rows, receipt dedupe, or ancillary best-effort failures. This conservative
 accounting caps admitted work even when a response is lost or the DB fails.
 
-The fixed namespace `finanzapp:preview:mutations:v1` is shared across routes,
-actions, session users, API keys, and Preview deployments using the same Redis
-database. Visitor/window and aggregate/window keys are distinct. Rotating API keys
-or switching accounts/endpoints does not create a new visitor budget. Separate
-projects should use separate Redis databases. Redis must support atomic EVAL over
-these keys in one database (the configured Upstash REST / Vercel KV integration);
-a Redis Cluster requiring cross-slot hash tags is not supported by this policy.
+The `preview_mutation_budgets` table is shared across routes, actions, session
+users, API keys, and Preview deployments using the same PostgreSQL database.
+Visitor/window and aggregate/window buckets are distinct. Rotating API keys
+or switching accounts/endpoints does not create a new visitor budget.
 Production and local/Vercel Development bypass all these guards and batch bounds.
 
 ### Visitor identity and hosting assumption
@@ -90,20 +87,27 @@ front of Vercel may collapse visitors onto its IP; VPN/IP changes and IPv6 priva
 addresses can change visitor identity. The aggregate budget is the backstop.
 This is abuse-cost containment, not a guarantee of one bucket per human.
 
-### Distributed store and outages
+### PostgreSQL storage and outages
 
-Uses the existing provider variable names: `UPSTASH_REDIS_URL` /
-`UPSTASH_REDIS_TOKEN`, falling through on empty values to `KV_REST_API_URL` /
-`KV_REST_API_TOKEN`. Preview has **no in-memory fallback**. Missing configuration,
-network/Redis/EVAL errors, invalid results, or a 3-second request timeout fail
-closed with 503 `PREVIEW_UNAVAILABLE`, Spanish guidance and `Retry-After: 60`.
-A timed-out reservation may already have consumed units but cannot authorize a
-DB write. Weighted EVAL uses explicit SDK `retry: { retries: 0 }`: in the pinned
-`@upstash/redis` 1.39.0, `retry: false` actually permits two HTTP attempts. A lost
-response must not replay a reservation that Redis may already have executed.
-The real-SDK HTTP-transport regression test records an execution followed by a
-lost response and verifies one attempt, structured 503, and no domain writes;
-it also exercises the actual three-second abort timeout through the SDK.
+Uses the application's existing PostgreSQL pool and connection settings, not
+Upstash/Vercel KV. An archived Redis database cannot block manual demo writes.
+Apply `db/migrations/20261012_create_preview_mutation_budgets.sql` to the Preview
+database before deploying the new guard. The idempotent migration adds a counter
+table, an expiry index, and `reserve_preview_mutation(visitor, weight)`; it does
+not change ledger data. Fresh databases also need this migration after their schema.
+
+`lib/demo/budget.ts` calls the function in one parameterized statement. A shared
+transaction advisory lock serializes reservations, including first-use inserts.
+The function samples database time after acquiring the lock and bounds lock waits
+to three seconds. All four counters commit together. Accepted requests clean up
+at most 100 expired buckets through the expiry index; stale buckets reset lazily,
+so no scheduler or keep-alive service is required after inactivity.
+
+Preview has **no in-memory fallback**. Missing migrations, database failures,
+lock timeouts or invalid results fail closed with 503 `PREVIEW_UNAVAILABLE`,
+Spanish guidance and `Retry-After: 60`. Reservations are never retried by the
+application: a lost response may already have consumed units but cannot authorize
+a domain write. Counter writes are bookkeeping, not charged ledger units.
 Preview API-key authentication bypasses the legacy per-key request
 limiter (which can use memory); the weighted shared policy is authoritative.
 The existing per-key limiter and last-used behavior remain in other environments.
@@ -159,7 +163,7 @@ before DELETE. The DELETE targets only the locked, owned IDs, so a newly appeari
 row cannot enter the delete set after counting. Parent locks block new FK references
 between counting and deletion.
 An additional reservation failure rolls back the transaction with no DELETE;
-the previously accepted base reservation is not refunded. Each Redis reservation
+the previously accepted base reservation is not refunded. Each PostgreSQL reservation
 is independently all-or-nothing across the four policies. Production/local deletes
 retain their original statements. This uses the existing merchant and crypto FK
 schema; it does not add a migration. SQL-level tests verify lock/count/reservation/
@@ -188,20 +192,35 @@ data intact and explain how long to wait; overlarge batches ask for smaller work
 ### Local verification and deployment limitations
 
 Unit/boundary/UI tests cover trusted-header normalization, spoof/missing identity,
-independent keys/windows, batch weights, auth ordering, Redis failure and no writes
-under rejection. The optional `__tests__/lib/preview-redis.integration.test.ts`
-executes the actual Lua against a disposable local Redis via `redis-cli`, including
-70 concurrent clients, all four limits, expiration and all-or-nothing reservations.
-Start an isolated Redis with persistence disabled and a private Unix socket, then
-run `RUN_PREVIEW_REDIS_INTEGRATION=1 PREVIEW_REDIS_TEST_SOCKET=<socket> CI=true pnpm
-test --runInBand __tests__/lib/preview-redis.integration.test.ts`. **It flushes that
-test database**; never target a shared/deployed Redis. Stop the disposable instance
-afterward. Default CI skips these six integration tests because Redis is optional.
+independent visitors, batch weights, auth ordering, PostgreSQL failure and no writes
+under rejection. A regression verifies writes with every Redis variable absent.
+The optional `__tests__/lib/preview-postgres.integration.test.ts` applies the actual
+migration to a uniquely named isolated schema and runs seven PostgreSQL tests,
+including 70 concurrent connections, all four limits, expiration, unchanged
+window ends and all-or-nothing reservations. It drops only its own schema.
+Run with `PREVIEW_POSTGRES_TEST_URL=<test connection> CI=true pnpm test --runInBand
+__tests__/lib/preview-postgres.integration.test.ts`; `PSQL_BIN` optionally specifies
+the PostgreSQL client binary. Default CI skips these tests without a test URL.
 
-No deployed Preview/Upstash smoke test is claimed. After an authorized deployment,
+After an authorized deployment,
 verify edge overwrite with a spoofed client header, normal manual writes, a burst
-across endpoints/API keys, two IPs, and Redis unavailability. Local Redis verifies
-the algorithm, not deployed credentials, edge routing or Upstash availability.
+across endpoints/API keys, two IPs, and PostgreSQL unavailability. Database tests
+verify the algorithm, not deployed edge routing or the complete authenticated UI.
+
+### Verified PostgreSQL rollout (2026-10-12)
+
+Applied the budget migration to the Preview database after checking it is distinct
+from Production. All seven PostgreSQL integration tests passed in an isolated
+schema, which was dropped afterward. The full unit suite passed (608 tests), as
+did typechecking, lint, formatting, dependency rules and unused-code checks.
+
+Deployed `https://finanzapp-7ytxztflp-mtmarctonis-projects.vercel.app` and verified
+the test account through an automated browser: manual entry creation, amount
+editing, duplication, and deletion all persisted. Both temporary smoke entries
+were removed through the UI. The existing Preview AI endpoint still returned 403.
+This verifies normal writes through the deployed Vercel visitor identity and
+PostgreSQL function; spoofed headers, multiple real visitor IPs and database
+outage behavior were not exercised on that deployment.
 
 ## AI deployment verification (#138)
 
