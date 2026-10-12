@@ -109,15 +109,16 @@ function getProviders(): Provider[] {
     }),
   ];
 
-  // The Credentials provider is intentionally disabled in production
-  // builds. The previous implementation skipped the password check
-  // entirely in production ("TODO: Add password hash check") and
+  // The Credentials provider is intentionally disabled in production-mode
+  // runs outside Vercel Preview. The previous implementation skipped the
+  // password check entirely in production ("TODO: Add password hash check") and
   // therefore authenticated anyone whose email existed in the users
   // table. Adding a real password column is a larger change; until then
   // this provider is restricted behind an explicit env var. It is now
-  // allowed on local development and Vercel preview deployments
-  // (VERCEL_ENV === 'preview'); production (VERCEL_ENV === 'production')
-  // remains hard-gated. DEV_CREDENTIALS must still be set in all cases.
+  // allowed when NODE_ENV !== 'production' or VERCEL_ENV === 'preview',
+  // including production-mode Preview builds. Production-mode Production
+  // deployments and local build/start without Preview remain disabled.
+  // DEV_CREDENTIALS must still be set in all cases.
   const devCredentialsEnabled =
     (process.env.NODE_ENV !== 'production' ||
       process.env.VERCEL_ENV === 'preview') &&
