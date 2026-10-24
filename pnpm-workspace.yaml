@@ -18,14 +18,13 @@ overrides:
   'sharp@<0.35.5': ^0.35.5
   'shell-quote@<1.11.0': ^1.11.0
   'source-map-js@<1.2.2': ^1.2.2
-  'undici@>=6.7.0 <6.28.1': ^6.28.1
-auditConfig:
-  # No patched release exists yet for these, so overrides cannot fix them.
-  # Both are dev-only and only see patterns and templates from this repo's own
-  # tooling config. Remove each entry once its fix is published.
-  ignoreGhsas:
-    # braces <=3.0.3 (latest), via micromatch in jest, eslint and semantic-release
-    - GHSA-vfj7-8cjw-p6xm
-    # handlebars <=4.7.9 (latest), via semantic-release's changelog writer
-    - GHSA-8r5x-fm3f-whwj
-    - GHSA-p8wg-vrv2-v86f
+  # 2026-10-24: the parents accept the fixed releases, but `pnpm update` does
+  # not move these transitive copies, so pin the floor here.
+  # handlebars: GHSA-8r5x-fm3f-whwj, GHSA-p8wg-vrv2-v86f, GHSA-xw65-4hp5-5hc7
+  # undici: GHSA-xjj6-f33q-929c, GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472
+  # zod: GHSA-mrhx-c7xc-m3w5 (the copy eslint-plugin-react-hooks pulls in);
+  # zod 3 is left alone on purpose, since forcing it to 4 would break callers.
+  'handlebars@<4.7.10': ^4.7.10
+  'undici@>=6.7.0 <6.29.1': ^6.29.1
+  'undici@>=7.0.0 <7.30.1': ^7.30.1
+  'zod@>=4.0.0 <4.6.6': ^4.6.6
