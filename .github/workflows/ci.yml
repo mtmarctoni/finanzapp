@@ -11,144 +11,60 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-
-  commitlint:
-    # Every commit reaches main unchanged (rebase merge), and its type decides
-    # the release, so check each one rather than trusting the local hook.
-    # Dependabot is skipped: its bodies quote release notes past the line limit.
-    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+  # Most checks take seconds; share checkout, cache restore and installation
+  # instead of paying that overhead for every command. Fail before expensive
+  # build/browser work when an inexpensive check already rejects the change.
+  quality:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
         with:
+          # Commitlint checks every commit that rebase-merge will put on main.
           fetch-depth: 0
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: >-
-          pnpm exec commitlint
-          --from ${{ github.event.pull_request.base.sha }}
-          --to ${{ github.event.pull_request.head.sha }}
-          --verbose
-
-  format:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
-
-  typecheck:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm tsc --noEmit
-
-  dependency-cruise:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm depcruise
-
-  knip:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm knip
-
-  security:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-
       - name: Secret scanning with trufflehog
         uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
         with:
           extra_args: --only-verified
-
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-
+      - name: Check commit messages
+        # Dependabot bodies quote release notes past commitlint's line limit.
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+      - name: Check formatting
+        run: pnpm format:check
       - name: Audit for vulnerabilities
         # To accept an advisory that has no patched release, list it with a
         # reason under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
         run: pnpm audit --audit-level=high
-
-  build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-
-  test:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - name: Check CI automation
+        run: pnpm test:ci
+      - name: Check architecture
+        run: pnpm depcruise
+      - name: Check unused code
+        run: pnpm knip
+      - name: Check types
+        run: pnpm tsc --noEmit
+      - name: Lint
+        run: pnpm lint
+      - name: Unit tests
+        run: pnpm test
+      - name: Production build
+        run: pnpm build
 
   e2e-tests:
+    needs: quality
+    # A skipped required check can permit a merge. Run the guard even when
+    # quality failed/skipped, and explicitly fail without installing browsers.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # Every run resets the one shared CI database, so e2e runs from different
@@ -164,6 +80,22 @@ jobs:
       DEV_CREDENTIALS: '[{"id":"f7a8b9c0-1e2f-3d45-6a7b-1234567890cd","email":"test@example.com","password":"password123","name":"Test User"}]'
       ALLOWED_USERS: Test User
     steps:
+      - name: Require successful quality checks
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+        run: |
+          if [ "$QUALITY_RESULT" != success ]; then
+            echo '::error::Quality checks did not pass; browser tests cannot proceed.'
+            exit 1
+          fi
+
+      - name: Validate database configuration
+        run: |
+          if [ -z "$POSTGRES_URL" ] || [ -z "$POSTGRES_URL_NON_POOLING" ]; then
+            echo '::error::CI database URLs are missing. Dependabot runs require Dependabot secrets with the same names as the Actions secrets.'
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
@@ -179,9 +111,7 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium firefox webkit
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-
+      # ubuntu-24.04 already includes the PostgreSQL client.
       - name: Initialize database schema
         run: psql "$POSTGRES_URL_NON_POOLING" -f db/init.sql
 

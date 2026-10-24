@@ -29,6 +29,7 @@ export default defineConfig([
             '.dependency-cruiser.js',
             'commitlint.config.mjs',
             'release.config.mjs',
+            'scripts/ci/*.test.mjs',
           ],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 16,
         },
