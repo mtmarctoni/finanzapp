@@ -118,8 +118,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Audit for vulnerabilities
-        # Advisories with no patched release are listed, with reasons, under
-        # auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        # To accept an advisory that has no patched release, list it with a
+        # reason under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
         run: pnpm audit --audit-level=high
 
   build:
