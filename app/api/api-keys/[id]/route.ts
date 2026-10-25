@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getApiKeyById, revokeApiKey } from '@/lib/api-keys';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function GET(
   _request: NextRequest,
@@ -46,6 +47,8 @@ export async function DELETE(
   const { id } = await params;
 
   try {
+    const rejection = await checkPreviewMutation(_request.headers);
+    if (rejection) return mutationResponse(rejection);
     const revoked = await revokeApiKey(id, session.user.id);
 
     if (!revoked) {

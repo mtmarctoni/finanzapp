@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { v4 as uuidv4 } from 'uuid';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function POST(
   _request: NextRequest,
@@ -16,6 +17,8 @@ export async function POST(
   }
 
   const { id } = await params;
+  const rejection = await checkPreviewMutation(_request.headers);
+  if (rejection) return mutationResponse(rejection);
   const userId = session.user.id;
 
   try {

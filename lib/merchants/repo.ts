@@ -1,4 +1,6 @@
 import { withClient, withPool } from '@/lib/db';
+import { deleteWithPreviewBudget } from '@/lib/demo/delete-budget';
+import { isPreviewDemo } from '@/lib/demo/policy';
 import { normalizeMerchantName } from '@/lib/merchants/normalize';
 
 /**
@@ -174,7 +176,15 @@ export async function listMerchants(userId: string): Promise<MerchantRecord[]> {
 export async function deleteMerchantById(
   id: string,
   userId: string,
+  authorizeAdditional?: (units: number) => Promise<void>,
 ): Promise<void> {
+  if (isPreviewDemo())
+    return deleteWithPreviewBudget(
+      'merchant',
+      [id],
+      userId,
+      authorizeAdditional,
+    );
   await withClient(async (client) => {
     await client.sql`
       DELETE FROM merchants

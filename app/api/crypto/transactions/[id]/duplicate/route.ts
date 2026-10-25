@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { duplicateCryptoTransaction } from '@/lib/cryptoActions';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 
 export async function POST(
   _request: NextRequest,
@@ -16,6 +17,8 @@ export async function POST(
 
   try {
     const { id } = await params;
+    const rejection = await checkPreviewMutation(_request.headers);
+    if (rejection) return mutationResponse(rejection);
     const duplicated = await duplicateCryptoTransaction(id, {
       user: { id: session.user.id },
     });

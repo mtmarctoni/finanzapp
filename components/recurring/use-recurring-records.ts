@@ -6,6 +6,7 @@ import {
   type RecurringFormData,
 } from '@/components/recurring/types';
 import { useToast } from '@/hooks/use-toast';
+import { PreviewWriteError, throwPreviewWriteError } from '@/lib/utils';
 import { type RecurringRecord } from '@/types/finance';
 
 interface UseRecurringRecordsResult {
@@ -70,6 +71,7 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
           body: JSON.stringify(buildPayload(record)),
         });
 
+        await throwPreviewWriteError(response);
         if (!response.ok) throw new Error('Failed to add recurring record');
 
         await fetchRecurringRecords();
@@ -82,7 +84,10 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
         console.error('Error adding recurring record:', error);
         toast({
           title: 'Error',
-          description: 'Error al añadir el registro recurrente',
+          description:
+            error instanceof PreviewWriteError
+              ? error.message
+              : 'Error al añadir el registro recurrente',
           variant: 'destructive',
         });
         return false;
@@ -103,6 +108,7 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
           body: JSON.stringify({ id, ...buildPayload(record) }),
         });
 
+        await throwPreviewWriteError(response);
         if (!response.ok) throw new Error('Failed to update recurring record');
 
         await fetchRecurringRecords();
@@ -115,7 +121,10 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
         console.error('Error updating recurring record:', error);
         toast({
           title: 'Error',
-          description: 'Error al actualizar el registro recurrente',
+          description:
+            error instanceof PreviewWriteError
+              ? error.message
+              : 'Error al actualizar el registro recurrente',
           variant: 'destructive',
         });
         return false;
@@ -139,6 +148,7 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
           body: JSON.stringify({ id }),
         });
 
+        await throwPreviewWriteError(response);
         if (!response.ok) throw new Error('Failed to delete recurring record');
 
         await fetchRecurringRecords();
@@ -151,7 +161,10 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
         console.error('Error deleting recurring record:', error);
         toast({
           title: 'Error',
-          description: 'Error al eliminar el registro recurrente',
+          description:
+            error instanceof PreviewWriteError
+              ? error.message
+              : 'Error al eliminar el registro recurrente',
           variant: 'destructive',
         });
         return false;
@@ -181,6 +194,7 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
           }),
         });
 
+        await throwPreviewWriteError(response);
         if (!response.ok) {
           const errorData = (await response.json()) as GenerateError;
           throw new Error(
@@ -199,7 +213,10 @@ export function useRecurringRecords(): UseRecurringRecordsResult {
         console.error('Error generating recurring records:', error);
         toast({
           title: 'Error',
-          description: 'Error al generar los registros recurrentes',
+          description:
+            error instanceof PreviewWriteError
+              ? error.message
+              : 'Error al generar los registros recurrentes',
           variant: 'destructive',
         });
         return false;

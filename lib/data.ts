@@ -3,6 +3,7 @@
 import type { Entry, GetEntriesOptions } from './definitions';
 
 import { ITEMS_PER_PAGE } from '@/config';
+import { throwPreviewWriteError } from '@/lib/utils';
 
 /**
  * Fetches finance entries from the API with optional filtering and pagination
@@ -82,6 +83,7 @@ export async function duplicateEntry(id: string): Promise<Entry | null> {
       method: 'POST',
     });
 
+    await throwPreviewWriteError(response);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }

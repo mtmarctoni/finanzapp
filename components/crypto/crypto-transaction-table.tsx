@@ -261,7 +261,17 @@ export default function CryptoTransactionTable({
     setActiveTransaction(null);
 
     startTransition(async () => {
-      const success = await deleteCryptoTransaction(id);
+      let success: boolean;
+      try {
+        success = await deleteCryptoTransaction(id);
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Error al eliminar la transacción',
+        );
+        return;
+      }
       if (success) {
         setTransactions((prev) => ({
           ...prev,
@@ -282,9 +292,18 @@ export default function CryptoTransactionTable({
 
     startTransition(async () => {
       const deletedIds: string[] = [];
+      let retryGuidance: string | null = null;
       for (const id of selectedIds) {
-        const success = await deleteCryptoTransaction(id);
-        if (success) deletedIds.push(id);
+        try {
+          const success = await deleteCryptoTransaction(id);
+          if (success) deletedIds.push(id);
+        } catch (error) {
+          retryGuidance =
+            error instanceof Error
+              ? error.message
+              : 'Error al eliminar las transacciones';
+          break;
+        }
       }
 
       // Drop only the rows the server deleted; failed ones stay selected.
@@ -298,9 +317,10 @@ export default function CryptoTransactionTable({
       const failedCount = selectedIds.length - deletedIds.length;
       if (failedCount > 0) {
         alert(
-          failedCount === 1
-            ? 'No se pudo eliminar 1 transacción'
-            : `No se pudieron eliminar ${failedCount} transacciones`,
+          retryGuidance ??
+            (failedCount === 1
+              ? 'No se pudo eliminar 1 transacción'
+              : `No se pudieron eliminar ${failedCount} transacciones`),
         );
       }
     });
@@ -318,7 +338,11 @@ export default function CryptoTransactionTable({
       setTransactions(await fetchTransactions());
     } catch (error) {
       console.error('Error duplicating transaction:', error);
-      alert('Error al duplicar la transacción');
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Error al duplicar la transacción',
+      );
     }
   };
 

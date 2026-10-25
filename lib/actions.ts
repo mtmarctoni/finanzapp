@@ -25,6 +25,12 @@
 import { revalidatePath } from 'next/cache';
 
 import {
+  checkPreviewAction,
+  authorizePreviewAction,
+  PreviewMutationError,
+} from '@/lib/demo/mutations';
+import { isPreviewDemo } from '@/lib/demo/policy';
+import {
   deleteEntriesByIds,
   deleteEntryById,
   insertEntry,
@@ -56,6 +62,11 @@ async function provisionCategory(userId: string, tipo: string | undefined) {
 }
 
 export async function createUser(formData: { name: string; email: string }) {
+  if (isPreviewDemo()) {
+    await requireSessionUserId();
+    const rejection = await checkPreviewAction();
+    if (rejection) return rejection;
+  }
   try {
     await insertUser(formData);
   } catch (error) {
@@ -84,6 +95,10 @@ export async function createEntry(
   },
 ) {
   const userId = await requireSessionUserId();
+  const rejection = await checkPreviewAction(
+    2 + (learning && formData.origen === 'receipt' ? 1 : 0),
+  );
+  if (rejection) return rejection;
   try {
     await insertEntry(formData, userId);
     await provisionCategory(userId, formData.tipo);
@@ -126,6 +141,8 @@ export async function createEntry(
 
 export async function updateEntry(entryId: string, formData: EntryInput) {
   const userId = await requireSessionUserId();
+  const rejection = await checkPreviewAction(2);
+  if (rejection) return rejection;
   try {
     await updateEntryById(entryId, formData, userId);
     await provisionCategory(userId, formData.tipo);
@@ -140,7 +157,16 @@ export async function deleteEntry(formData: FormData) {
   const userId = await requireSessionUserId();
   const entryId = String(formData.get('entryId') ?? '');
   if (!entryId) return;
-  await deleteEntryById(entryId, userId);
+  const rejection = await checkPreviewAction();
+  if (rejection) return rejection;
+  try {
+    if (isPreviewDemo())
+      await deleteEntryById(entryId, userId, authorizePreviewAction);
+    else await deleteEntryById(entryId, userId);
+  } catch (error) {
+    if (error instanceof PreviewMutationError) return error.result;
+    throw error;
+  }
   revalidatePath('/');
 }
 
@@ -152,6 +178,15 @@ export async function deleteManyEntries(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (ids.length === 0) return;
-  await deleteEntriesByIds(ids, userId);
+  const rejection = await checkPreviewAction(new Set(ids).size);
+  if (rejection) return rejection;
+  try {
+    if (isPreviewDemo())
+      await deleteEntriesByIds(ids, userId, authorizePreviewAction);
+    else await deleteEntriesByIds(ids, userId);
+  } catch (error) {
+    if (error instanceof PreviewMutationError) return error.result;
+    throw error;
+  }
   revalidatePath('/');
 }

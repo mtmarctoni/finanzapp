@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { previewAiDisabledResponse } from '@/lib/demo/policy';
 import { logger } from '@/lib/logger';
 
 // Store user confirmations (in-memory, per-session)
@@ -80,6 +81,9 @@ export async function GET(_: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
+  const disabledResponse = previewAiDisabledResponse();
+  if (disabledResponse) return disabledResponse;
+
   const userId = session.user.id;
   const confirmation = confirmations.get(userId);
 
@@ -114,6 +118,9 @@ export async function POST(request: NextRequest) {
   if (!session?.user.id) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
+
+  const disabledResponse = previewAiDisabledResponse();
+  if (disabledResponse) return disabledResponse;
 
   try {
     const body = await request.json();

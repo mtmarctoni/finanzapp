@@ -201,7 +201,16 @@ export default function FinanceTable({
         if (!session?.user.id) {
           throw new Error('User session not available');
         }
-        await deleteEntry(formData);
+        const result = await deleteEntry(formData);
+        if (result?.ok === false) {
+          setEntries(snapshot);
+          toast({
+            title: 'No se ha eliminado el registro',
+            description: result.error,
+            variant: 'destructive',
+          });
+          return;
+        }
         toast({ title: 'Registro eliminado' });
       } catch (error) {
         console.error('Error eliminando entrada:', error);
@@ -233,6 +242,7 @@ export default function FinanceTable({
         console.error('Error duplicando entrada:', error);
         toast({
           title: 'Error al duplicar la entrada',
+          description: error instanceof Error ? error.message : undefined,
           variant: 'destructive',
         });
       }
@@ -249,7 +259,15 @@ export default function FinanceTable({
         return;
       }
       try {
-        await deleteManyEntries(formData);
+        const result = await deleteManyEntries(formData);
+        if (result?.ok === false) {
+          toast({
+            title: 'No se han eliminado los registros',
+            description: result.error,
+            variant: 'destructive',
+          });
+          return;
+        }
       } catch (error) {
         console.error('Error eliminando entradas:', error);
         toast({

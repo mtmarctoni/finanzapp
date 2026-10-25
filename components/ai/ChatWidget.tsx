@@ -3,6 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { MessageSquare, X, Send, Loader2, DollarSign } from 'lucide-react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
@@ -59,6 +60,17 @@ export function ChatWidget() {
 
   const isLoading = status === 'streaming' || status === 'submitted';
   const hasError = status === 'error' || !!error;
+  let displayedError = error?.message ?? 'Algo salió mal';
+  let previewDisabled = false;
+  try {
+    const payload = JSON.parse(displayedError);
+    if (payload.code === 'PREVIEW_AI_DISABLED') {
+      previewDisabled = true;
+      displayedError = payload.error;
+    }
+  } catch {
+    // Plain-text errors retain their existing display.
+  }
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -288,7 +300,18 @@ export function ChatWidget() {
 
             {hasError && !fallbackError && (
               <div className="mb-3 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive flex items-center justify-between">
-                <span>Error: {error?.message ?? 'Algo salió mal'}</span>
+                <span>
+                  Error: {displayedError}
+                  {previewDisabled && (
+                    <Link
+                      href="/new"
+                      onClick={() => setIsOpen(false)}
+                      className="block underline"
+                    >
+                      Añadir entrada manualmente
+                    </Link>
+                  )}
+                </span>
                 <button
                   onClick={clearError}
                   className="ml-2 text-xs underline hover:no-underline"

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { checkPreviewMutation, mutationResponse } from '@/lib/demo/mutations';
 import { CreateSafeboxMovementSchema } from '@/lib/safebox/validation';
 import {
   createSafeboxMovement,
@@ -60,6 +61,9 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+
+    const rejection = await checkPreviewMutation(request.headers, 1);
+    if (rejection) return mutationResponse(rejection);
 
     const result = await createSafeboxMovement(parsed.data, {
       user: { id: session.user.id },

@@ -13,7 +13,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GithubProvider, { type GithubProfile } from 'next-auth/providers/github';
 type Provider = NonNullable<AuthOptions['providers']>[number];
 
-import { createUser, getUserByEmail } from '@/lib/actions';
+import { getUserByEmail } from '@/lib/actions';
+import { insertUser as createUser } from '@/lib/users/repo';
 
 // Extend the default session type to include id
 interface Session extends DefaultSession {
